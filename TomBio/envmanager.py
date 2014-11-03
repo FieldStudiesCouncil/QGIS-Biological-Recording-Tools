@@ -22,12 +22,18 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 import os
+from shutil import *
 
 class envManager():
     
     def __init__(self):
         
         self.iniFile = os.path.join(os.path.dirname( __file__ ), "iniBioRec.txt")
+        self.iniFileDefault = os.path.join(os.path.dirname( __file__ ), "iniBioRecDefault.txt")
+        if not os.path.exists(self.iniFile):
+            if os.path.exists(self.iniFileDefault):
+                copyfile(self.iniFileDefault, self.iniFile) 
+            
         self.loadEnvironment()
         
     def loadEnvironment(self):
@@ -37,6 +43,7 @@ class envManager():
             self.textEnv = open(self.iniFile).read()
         else:
             self.textEnv = "Environment File '" + self.iniFile + "'not found."
+            self.textEnv = "#Environment File"
             
     def saveEnvironment(self):
         f = open(self.iniFile, 'w')

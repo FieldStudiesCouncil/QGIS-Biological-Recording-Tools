@@ -47,6 +47,7 @@ Temporary Items
 
 *.pyc
 resources_rc.py
+iniBioRec.txt
 ui_*.py
 
 # =========================
