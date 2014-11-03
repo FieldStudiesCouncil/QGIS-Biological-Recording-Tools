@@ -1,0 +1,24 @@
+# Default directories for Map Mashup tool
+
+mapmashup.imgfolder: C:\Users\fsc\Documents\Temp
+mapmashup.regfolder: C:\Users\fsc\Documents\GIS Datafiles\MashupReg
+
+# Default directories for Biorec tool
+
+biorec.csvfolder: C:\Users\fsc\Documents\GIS Demo
+biorec.atlasimagefolder: C:\Users\fsc\Documents\Temp\images
+biorec.stylefilefolder: C:\Users\fsc\Documents\Temp\Styles
+
+# Biorec data specification column names
+
+biorec.gridrefcol: GridRef
+biorec.gridrefcol: Gridref
+biorec.taxoncol: ScientificName
+biorec.taxoncol: TaxonName
+biorec.taxoncol: Taxon
+biorec.groupingcol: TaxonGroup
+biorec.groupingcol: Order
+biorec.abundancecol: Abundance
+biorec.abundancecol: Quantity
+biorec.scientificnames: True
+biorec.maketree: True
