@@ -26,7 +26,7 @@ QGISDIR=.qgis2
 
 # translation
 # ui_tombio.py tombiodialog.py
-SOURCES = tombio.py  ui_osgr.py ui_nbn.py ui_mapmashup.py ui_biorec.py ui_env.py  __init__.py 
+SOURCES = tombio.py  ui_osgr.py ui_nbn.py ui_mapmashup.py ui_biorec.py ui_env.py ui_file.py __init__.py 
 
 #TRANSLATIONS = i18n/tombio_en.ts
 TRANSLATIONS =
@@ -36,11 +36,11 @@ TRANSLATIONS =
 PLUGINNAME = tombio
 
 #tombiodialog.py
-PY_FILES = tombio.py osgrdialog.py nbndialog.py mapmashupdialog.py biorecdialog.py envdialog.py __init__.py
+PY_FILES = tombio.py osgrdialog.py nbndialog.py mapmashupdialog.py biorecdialog.py envdialog.py filedialog.py __init__.py
 
 EXTRAS = icon.png metadata.txt
 
-UI_FILES = ui_osgr.py ui_nbn.py ui_mapmashup.py ui_biorec.py ui_env.py
+UI_FILES = ui_osgr.py ui_nbn.py ui_mapmashup.py ui_biorec.py ui_env.py ui_file.py
 
 RESOURCE_FILES = resources_rc.py
 

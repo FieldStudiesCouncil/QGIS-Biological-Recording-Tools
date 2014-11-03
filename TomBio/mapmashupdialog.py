@@ -145,7 +145,8 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         dlg = QtGui.QFileDialog(self)
         dlg.setFileMode(QtGui.QFileDialog.Directory)
         dlg.setOption(QtGui.QFileDialog.ShowDirsOnly, True)
-        dlg.setDirectory(self.env.getEnvValue("mapmashup.imgfolder"))
+        if os.path.exists(self.env.getEnvValue("mapmashup.imgfolder")):
+            dlg.setDirectory(self.env.getEnvValue("mapmashup.imgfolder"))      
         folderName = dlg.exec_()
         if folderName:
             for folderImage in dlg.selectedFiles():
@@ -156,7 +157,9 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         dlg = QtGui.QFileDialog(self)
         dlg.setFileMode(QtGui.QFileDialog.Directory)
         dlg.setOption(QtGui.QFileDialog.ShowDirsOnly, True)
-        dlg.setDirectory(self.env.getEnvValue("mapmashup.regfolder"))
+        if os.path.exists(self.env.getEnvValue("mapmashup.regfolder")):
+            dlg.setDirectory(self.env.getEnvValue("mapmashup.regfolder"))     
+            
         folderName = dlg.exec_()
         if folderName:
             for folderImage in dlg.selectedFiles():

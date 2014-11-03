@@ -109,6 +109,12 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.env.loadEnvironment()
         
         dlg = QFileDialog
+        
+        if os.path.exists(self.leImageFolder.text()):
+            strInitPath = self.leImageFolder.text()
+        else:
+            strInitPath = ""
+            
         folderName = dlg.getExistingDirectory(self, "Browse for image folder", self.leImageFolder.text())
         if folderName:
             self.leImageFolder.setText(folderName)
@@ -119,8 +125,13 @@ class BiorecDialog(QWidget, Ui_Biorec):
         #Reload env
         self.env.loadEnvironment()
         
+        if os.path.exists(self.env.getEnvValue("biorec.stylefilefolder")):
+            strInitPath = self.env.getEnvValue("biorec.stylefilefolder")
+        else:
+            strInitPath = ""
+            
         dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Browse for style file", self.env.getEnvValue("biorec.stylefilefolder"), "QML Style Files (*.qml)")
+        fileName = dlg.getOpenFileName(self, "Browse for style file", strInitPath, "QML Style Files (*.qml)")
         if fileName:
             self.leStyleFile.setText(fileName)
             self.leStyleFile.setToolTip(fileName)
@@ -130,8 +141,13 @@ class BiorecDialog(QWidget, Ui_Biorec):
         #Reload env
         self.env.loadEnvironment()
         
+        if os.path.exists(self.env.getEnvValue("biorec.csvfolder")):
+            strInitPath = self.env.getEnvValue("biorec.csvfolder")
+        else:
+            strInitPath = ""
+            
         dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Browse for biological record file", self.env.getEnvValue("biorec.csvfolder"), "Record Files (*.csv)")
+        fileName = dlg.getOpenFileName(self, "Browse for biological record file", strInitPath, "Record Files (*.csv)")
         if fileName:
             #Initialise the tree model
             self.initTreeView()

@@ -28,6 +28,7 @@ from PyQt4.QtNetwork import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
+from filedialog import FileDialog
 import urllib
 import urllib2
 import cookielib
@@ -53,6 +54,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butClear.clicked.connect(self.removeMaps)
         self.pbLogin.clicked.connect(self.loginNBN)
         self.pbLogout.clicked.connect(self.logoutNBN)
+        self.butHelp.clicked.connect(self.helpFile)
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
@@ -70,17 +72,26 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
         self.butWMSFetch.setIcon(QIcon( self.pathPlugin % "images/nbn.png" ))
         self.butTaxonSearch.setIcon(QIcon( self.pathPlugin % "images/speciesinventory.png" ))
+        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
         self.twTaxa.setHeaderLabel("Matching taxa")
         self.noLoginText = "Not logged in to NBN. Default NBN access will apply."
         self.lblLoginStatus.setText (self.noLoginText)
         self.currentNBNUser = ""
         self.nbnAthenticationCookie = None
+        self.guiFile = None
+        self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
         
         # NBN login not currently available
         self.lblLoginStatus.setText ("NBN login for WMS is not yet available from QGIS.")
         #self.pbLogin.setEnabled(False)
         #self.pbLogout.setEnabled(False)
         self.tabWidget.widget(1).setEnabled(False)
+       
+    def helpFile(self):
+        if self.guiFile is None:
+            self.guiFile = FileDialog(self.iface, self.infoFile)
+        
+        self.guiFile.setVisible(True)
         
     def TaxonSearch(self):
     
@@ -158,7 +169,9 @@ class NBNDialog(QWidget, Ui_nbn):
         selectedTVK = self.twTaxa.selectedItems()[0].text(0)
         if selectedTVK is None:
             return
-       
+
+        #selectedTVK = "NHMSYS0000530739"
+        
         #Get the map from NBN
         url = 'url=https://gis.nbn.org.uk/SingleSpecies/'
         
@@ -180,46 +193,73 @@ class NBNDialog(QWidget, Ui_nbn):
         if self.rb100m.isChecked():
             strLayers = "&layers=Grid-100m"
             strName = " NBN 100 m"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName)
         elif self.rb1km.isChecked():
             strLayers = "&layers=Grid-1km"
             strName = " NBN monad"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName)
         elif self.rb2km.isChecked():
             strLayers = "&layers=Grid-2km"
             strName = " NBN tetrad"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName)
         elif self.rb10km.isChecked():
             strLayers = "&layers=Grid-10km"
             strName = " NBN hectad"
-        else:
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName)
+        elif self.rbAuto2.isChecked():
             strLayers = "&layers=Grid-10km&layers=Grid-2km&layers=Grid-1km&layers=Grid-100m"
             strStyles="&styles=&styles=&styles=&styles="
             strName = " NBN auto"
-            
-        url = url + strLayers + strStyles + "&format=image/png&crs=EPSG:27700" #falls over without the styles argument
-        
-        url = url.replace(' ','%20')
-        #self.iface.messageBar().pushMessage("Info", "Query - " + url, level=QgsMessageBar.INFO)
-        
-        rlayer = QgsRasterLayer(url, 'layer', 'wms')
-        
-        if not rlayer.isValid():
-            self.iface.messageBar().pushMessage("Info", "Layer failed to load!", level=QgsMessageBar.CRITICAL)
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName)
         else:
-            rlayer.setLayerName(self.nameFromTVK(selectedTVK) + strName)
-            opacity = (100-self.hsTransparency.value()) * 0.01
-            rlayer.renderer().setOpacity(opacity)
-            regLayer = QgsMapLayerRegistry.instance().addMapLayer(rlayer)
-            self.layers.append(rlayer.id())
-            self.canvas.refresh()
-        
-        # If he
-        if strName == " NBN auto":
+            strLayers = "&layers=Grid-100m"
+            strName = " NBN 100 m (auto)"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName, 0, 15000)
+            strLayers = "&layers=Grid-1km"
+            strName = " NBN monad (auto)"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName, 15001, 100000)
+            strLayers = "&layers=Grid-2km"
+            strName = " NBN tetrad (auto)"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName, 100001, 250000)
+            strLayers = "&layers=Grid-10km"
+            strName = " NBN hectad (auto)"
+            self.addWMSRaster(url, selectedTVK, strLayers, strStyles, strName, 250000, 100000000)
+       
+        if strName.endswith("auto") or strName.endswith("(auto)"):
             #self.canvas.extentsChanged.emit() #Doesn't seem to invoke the web service, perhaps because the extents haven't actually changed
             rectExtent = self.canvas.extent()
             self.canvas.setExtent(QgsRectangle())
             self.canvas.refresh()
             self.canvas.setExtent(rectExtent)
             self.canvas.refresh()
+            
+    def addWMSRaster(self, url, selectedTVK, strLayers, strStyles, strName, minExtent=0, maxExtent=0):
     
+        url = url + strLayers + strStyles + "&format=image/png&crs=EPSG:27700" #falls over without the styles argument
+        url = url.replace(' ','%20')      
+        rlayer = QgsRasterLayer(url, 'layer', 'wms')
+        
+        if not rlayer.isValid():
+            self.iface.messageBar().pushMessage("Info", "Layer failed to load!", level=QgsMessageBar.CRITICAL)
+            return None
+
+        rlayer.setLayerName(self.nameFromTVK(selectedTVK) + strName)
+        opacity = (100-self.hsTransparency.value()) * 0.01
+        rlayer.renderer().setOpacity(opacity)
+        
+        """
+        #Doesn't work at the anticipated zoom levels
+        if not (minExtent == 0 and  maxExtent == 0):
+            rlayer.setMinimumScale(minExtent)
+            rlayer.setMaximumScale(maxExtent)
+            rlayer.toggleScaleBasedVisibility(True)
+        """
+        
+        self.layers.append(rlayer.id())
+        QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+        self.canvas.refresh()
+        return rlayer
+            
     def checkTransform(self):
         if self.canvasCrs != self.canvas.mapRenderer().destinationCrs():
             self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
@@ -227,7 +267,6 @@ class NBNDialog(QWidget, Ui_nbn):
         
     def mapExtentsChanged(self):
    
-        #Needs converting to work with any coordinate system
         rectExtent = self.canvas.extent()
         self.checkTransform()
         if self.canvasCrs != self.osgbCrs:
@@ -235,7 +274,7 @@ class NBNDialog(QWidget, Ui_nbn):
         else:
             mapWidth = rectExtent.width()
         
-        #self.iface.messageBar().pushMessage("Info", "Signal emitted", level=QgsMessageBar.INFO)
+        #self.iface.messageBar().pushMessage("Info", "Map width: " + str(int(mapWidth)), level=QgsMessageBar.INFO)
         
         for layerID in self.layers:
             rlayer = None
@@ -245,30 +284,59 @@ class NBNDialog(QWidget, Ui_nbn):
                 pass
                 
             if not rlayer is None:
-            
-                #self.iface.messageBar().pushMessage("Info", "Width: " + rlayer.name(), level=QgsMessageBar.INFO)
-                if rlayer.name().endswith("NBN auto"):
-            
+           
+                if rlayer.name().endswith("auto") or rlayer.name().endswith("(auto)"):
+                
+                    #for strSub in rlayer.subLayers():
+                    #    self.iface.messageBar().pushMessage("Info", strSub, level=QgsMessageBar.INFO)
+                        
                     if mapWidth < 15000:
-                        rlayer.setSubLayerVisibility("Grid-10km", False)
-                        rlayer.setSubLayerVisibility("Grid-2km", False)
-                        rlayer.setSubLayerVisibility("Grid-1km", False)
-                        rlayer.setSubLayerVisibility("Grid-100m", True)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-100m", level=QgsMessageBar.INFO)
+                        if rlayer.name().endswith("auto"):
+                            rlayer.setSubLayerVisibility("Grid-10km", False)
+                            rlayer.setSubLayerVisibility("Grid-2km", False)
+                            rlayer.setSubLayerVisibility("Grid-1km", False)
+                            rlayer.setSubLayerVisibility("Grid-100m", True)
+                        elif " 100 m " in rlayer.name():
+                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                        else:
+                            self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            
                     elif mapWidth < 100000:
-                        rlayer.setSubLayerVisibility("Grid-10km", False)
-                        rlayer.setSubLayerVisibility("Grid-2km", False)
-                        rlayer.setSubLayerVisibility("Grid-1km", True)
-                        rlayer.setSubLayerVisibility("Grid-100m", False)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-1km", level=QgsMessageBar.INFO)
+                        if rlayer.name().endswith("auto"):
+                            rlayer.setSubLayerVisibility("Grid-10km", False)
+                            rlayer.setSubLayerVisibility("Grid-2km", False)
+                            rlayer.setSubLayerVisibility("Grid-1km", True)
+                            rlayer.setSubLayerVisibility("Grid-100m", False)
+                        elif " monad " in rlayer.name():
+                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                        else:
+                            self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            
                     elif mapWidth < 250000:
-                        rlayer.setSubLayerVisibility("Grid-10km", False)
-                        rlayer.setSubLayerVisibility("Grid-2km", True)
-                        rlayer.setSubLayerVisibility("Grid-1km", False)
-                        rlayer.setSubLayerVisibility("Grid-100m", False)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-2km", level=QgsMessageBar.INFO)
+                        if rlayer.name().endswith("auto"):
+                            rlayer.setSubLayerVisibility("Grid-10km", False)
+                            rlayer.setSubLayerVisibility("Grid-2km", True)
+                            rlayer.setSubLayerVisibility("Grid-1km", False)
+                            rlayer.setSubLayerVisibility("Grid-100m", False)
+                        elif " tetrad " in rlayer.name():
+                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                        else:
+                            self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            
                     else:
-                        rlayer.setSubLayerVisibility("Grid-10km", True)
-                        rlayer.setSubLayerVisibility("Grid-2km", False)
-                        rlayer.setSubLayerVisibility("Grid-1km", False)
-                        rlayer.setSubLayerVisibility("Grid-100m", False)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-10km", level=QgsMessageBar.INFO)
+                        if rlayer.name().endswith("auto"):
+                            rlayer.setSubLayerVisibility("Grid-10km", True)
+                            rlayer.setSubLayerVisibility("Grid-2km", False)
+                            rlayer.setSubLayerVisibility("Grid-1km", False)
+                            rlayer.setSubLayerVisibility("Grid-100m", False)
+                        elif " hectad " in rlayer.name():
+                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                        else:
+                            self.iface.legendInterface().setLayerVisible(rlayer, False)
             
             
     def nameFromTVK(self, tvk):
