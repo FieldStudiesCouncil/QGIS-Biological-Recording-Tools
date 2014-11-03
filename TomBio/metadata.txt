@@ -34,8 +34,8 @@ email=richardb@field-studies-council.org
 tags=biological records, NBN, OSGB, Ordnance Survey, UK Species Inventory
 
 homepage=http://tombio.myspecies.info/QGISTools
-tracker=
-repository=
+tracker=https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues
+repository=https://github.com/burkmarr/QGIS-Biological-Recording-Tools
 icon=icon.png
 # experimental flag
 experimental=False
