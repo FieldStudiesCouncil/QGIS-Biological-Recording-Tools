@@ -178,8 +178,6 @@ class NBNDialog(QWidget, Ui_nbn):
         #Taxon
         url = url + selectedTVK 
         
-        url = url + "&username=burkmarr&userkey=c19e94acc9fba33cb279ed8267f1982d"
-        
         #Set user login stuff
         if not self.leUsername.text() == "":
             url = url + "&username=" + self.leUsername.text()
