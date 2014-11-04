@@ -24,6 +24,7 @@ from ui_biorec import Ui_Biorec
 import os
 import csv
 import sys
+from filedialog import FileDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtNetwork import *
@@ -32,6 +33,7 @@ from qgis.gui import *
 from qgis.utils import *
 from bioreclayer import *
 from envmanager import *
+
 
 class BiorecDialog(QWidget, Ui_Biorec):
     def __init__(self, iface, dockwidget):
@@ -51,6 +53,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         self.butMap.clicked.connect(self.MapRecords)
         self.butGenTree.clicked.connect(self.listTaxa)
+        self.butSaveImage.clicked.connect(self.stepCreateMapImage)
         self.butRemoveMap.clicked.connect(self.removeMap)
         self.butRemoveMaps.clicked.connect(self.removeMaps)
         self.butExpand.clicked.connect(self.expandAll)
@@ -60,7 +63,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.pbBrowseImageFolder.clicked.connect(self.browseImageFolder)
         self.pbBrowseStyleFile.clicked.connect(self.browseStyleFile)
         self.pbCancel.clicked.connect(self.cancelBatch)
-        
+        self.butHelp.clicked.connect(self.helpFile)
         self.cboTaxonCol.currentIndexChanged.connect(self.enableDisable)
         self.cboBatchMode.currentIndexChanged.connect(self.enableDisable)
         
@@ -71,19 +74,29 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.propogateDown = True
         self.propogateUp = True
         self.layers = []
+        self.stepLayerIndex = -1
         self.folderError = False
         self.imageError = False
         self.cancelBatchMap = False
+        self.guiFile = None
+        self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoBioRecTool.txt")
         
         # Set button graphics
         self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
         self.butMap.setIcon(QIcon( self.pathPlugin % "images/maptaxa.png" ))
         self.butRemoveMap.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butRemoveMaps.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
+        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
+        self.butSaveImage.setIcon(QIcon( self.pathPlugin % "images/saveimage.png" ))
         
         # Defaults
         self.leImageFolder.setText(self.env.getEnvValue("biorec.atlasimagefolder"))
+    
+    def helpFile(self):
+        if self.guiFile is None:
+            self.guiFile = FileDialog(self.iface, self.infoFile)
         
+        self.guiFile.setVisible(True)    
     def enableDisable(self):
     
         if self.cboTaxonCol.currentIndex() == 0:
@@ -387,12 +400,13 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     i=i+1
                     self.progBatch.setValue(i)
                     self.createMapLayer([taxa])
+
             self.progBatch.setValue(0)
             self.cancelBatchMap = False
     
     def cancelBatch(self):
         self.cancelBatchMap = True
-        
+       
     def createMapLayer(self, selectedTaxa):
         
         # Initialsie the map layer
@@ -422,40 +436,61 @@ class BiorecDialog(QWidget, Ui_Biorec):
         if self.cbApplyStyle.isChecked():
             if os.path.exists( self.leStyleFile.text()):
                 styleFile = self.leStyleFile.text()
-            
         layer.createMapLayer(self.cboMapType.currentText(), self.cboSymbol.currentText(), styleFile)
         layer.setExpanded(False)
-        
+               
+        #Save reference to map layer
         self.layers.append(layer)
         
-        # Map image generation
         if self.cbGenerateImages.isChecked():
-            imgFolder = self.leImageFolder.text()
-            
-            if not os.path.exists(imgFolder):
-                if not self.folderError:
-                    self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
-                    self.folderError = True
-            else:
-                imgFile = imgFolder + "\\" + layerName + ".png"
-                
-                try:
-                    self.canvas.saveAsImage(imgFile)
-                    os.remove(imgFolder + "\\" + layerName + ".pngw")
-                except:
-                    if not self.imageError:
-                        e = sys.exc_info()[0]
-                        self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
-                        self.imageError = True
-                        
-             
-        #Now hide map layer so that it doesn't mess up next image generation
+            self.createMapImage(layer) 
+         
+        #Now hide map layer so that it doesn't mess up next image generation in batch mode
         if self.cboBatchMode.currentIndex() == 1:
             layer.setVisibility(False)
                             
         # Remove map if not required
         if self.cbRemoveMaps.isChecked():
             layer.removeFromMap()
+            
+        # Init step index
+        self.stepLayerIndex = -1
+            
+    def stepCreateMapImage(self):
+    
+        if self.stepLayerIndex > -1 and self.stepLayerIndex < len(self.layers):
+            layer = self.layers[self.stepLayerIndex]
+            layer.setVisibility(False)
+
+        self.stepLayerIndex += 1
+        if self.stepLayerIndex < len(self.layers):
+            layer = self.layers[self.stepLayerIndex]
+            layer.setVisibility(True)
+            self.createMapImage(layer)
+        else:
+            self.iface.messageBar().pushMessage("Info", "End of map layers reached. Will start again if you continue.", level=QgsMessageBar.INFO)
+            self.stepLayerIndex = -1
+            
+    def createMapImage(self, layer):
+    
+        imgFolder = self.leImageFolder.text()
+        
+        if not os.path.exists(imgFolder):
+            if not self.folderError:
+                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.folderError = True
+        else:
+            imgFile = imgFolder + "\\" + layer.getName() + ".png"
+            
+            try:
+                self.canvas.saveAsImage(imgFile)
+                os.remove(imgFolder + "\\" + layer.getName() + ".pngw")
+            except:
+                if not self.imageError:
+                    e = sys.exc_info()[0]
+                    self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
+                    self.imageError = True
+                    
         
     def getCheckedTaxa(self, item):
         selectedTaxa = []
@@ -479,4 +514,3 @@ class BiorecDialog(QWidget, Ui_Biorec):
             layer.removeFromMap()
         self.layers = []
             
-    

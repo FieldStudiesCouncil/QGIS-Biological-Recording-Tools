@@ -368,14 +368,82 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="cbGenerateImages">
-         <property name="toolTip">
-          <string>Generate atlas image</string>
-         </property>
-         <property name="text">
-          <string>Generate atlas images</string>
-         </property>
-        </widget>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QCheckBox" name="cbGenerateImages">
+           <property name="toolTip">
+            <string>Generate atlas image</string>
+           </property>
+           <property name="text">
+            <string>Generate atlas images</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="butSaveImage">
+           <property name="minimumSize">
+            <size>
+             <width>28</width>
+             <height>28</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Save map as image</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>images/saveimage.png</normaloff>images/saveimage.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="butHelp">
+           <property name="minimumSize">
+            <size>
+             <width>28</width>
+             <height>28</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Tips and help</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>images/bang.png</normaloff>images/bang.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
