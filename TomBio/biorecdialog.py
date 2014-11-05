@@ -438,10 +438,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 styleFile = self.leStyleFile.text()
         layer.createMapLayer(self.cboMapType.currentText(), self.cboSymbol.currentText(), styleFile)
         layer.setExpanded(False)
-               
-        #Save reference to map layer
-        self.layers.append(layer)
-        
+
         if self.cbGenerateImages.isChecked():
             self.createMapImage(layer) 
          
@@ -452,6 +449,9 @@ class BiorecDialog(QWidget, Ui_Biorec):
         # Remove map if not required
         if self.cbRemoveMaps.isChecked():
             layer.removeFromMap()
+        else:
+             #Save reference to map layer
+            self.layers.append(layer)
             
         # Init step index
         self.stepLayerIndex = -1

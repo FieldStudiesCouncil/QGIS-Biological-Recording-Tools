@@ -4,6 +4,6 @@ It is apparent that batch image generation does not produce the desired results 
 
 The problem in recent QGIS versions is that the map canvas is not updated until all processing is complete, so the batch process of generating images by displaying distribution layers one at a time before creating an image does not work. QGIS doesn't actually update the map with layers until the whole process is over. This appears to have affected other QGIS tools too - such as the MMQGIS animation tools. I am looking into the problem.
 
-In the meantime, users of newer versions of QGIS can generate batch map layers in the usual way, but to create the map images, you will need to manually click the 'save map as image' button (next to this one). As you repeatedly click this button, the tool will cycle through all map layers created by the tool during this session. Unfortunately it's a slower process than with older versions of QGIS.
+In the meantime, users of newer versions of QGIS can generate batch map layers in the usual way - make sure you DON'T have the 'remove map layers in batch mode' option checked because you need the layers for this workaround. To create the map images, you will need to manually click the 'save map as image' button (next to this one). As you repeatedly click this button, the tool will cycle through all map layers created by the tool during this session. Unfortunately it's a slower process than with older versions of QGIS.
 
 If you have any information on which versions of QGIS work and which don't please let me know.

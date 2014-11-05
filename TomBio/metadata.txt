@@ -19,7 +19,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed specifically at biolo
 	biological recordes including viewing NBN maps (via the NBN WMS), 
 	displaying biological records derived from CSV file, working with 
 	OS grid references and registering raster map images from the internet.
-version=1.2.0
+version=1.2.1
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 

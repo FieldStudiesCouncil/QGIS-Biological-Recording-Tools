@@ -6,7 +6,7 @@ In the meantime, for versions 2.4.0 (Chugiak) onwards, you can use the 'dynamic 
 
 Hanging on zoom?
 
-We are aware that for some combinations of QGIS versions and Windows operating systems, QGIS hangs easily when zooming with an NBN WMS map displayed. This has so far been reported for versions 2.4.0 (Chugiak) with Windows XP. Other combinations, so far, appear okay.
+We are aware that for some combinations of QGIS versions and Windows operating systems, QGIS hangs easily when zooming with an NBN WMS map displayed. This has been reported for version 2.4.0 (Chugiak) and version 2.6 (Brighton) with Windows XP. Windows 7 and Windows 8 appear to be okay.
 
 Strange "SSL Expired Certificate" error?
 
