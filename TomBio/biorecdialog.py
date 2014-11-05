@@ -95,7 +95,28 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         # Defaults
         self.leImageFolder.setText(self.env.getEnvValue("biorec.atlasimagefolder"))
+        
+        if self.testImageCreation():
+            #self.iface.messageBar().pushMessage("Info", "2.4 or above", level=QgsMessageBar.INFO)
+            self.qgisVersion = ">2"
+        else:
+            #self.iface.messageBar().pushMessage("Info", "2.0", level=QgsMessageBar.INFO)
+            self.qgisVersion = "2"
     
+    def testImageCreation(self):
+        
+        try:
+            imgPath = self.pathPlugin % "/test"
+            pixmap = QPixmap(self.canvas.mapSettings().outputSize().width(), 
+                self.canvas.mapSettings().outputSize().height())
+            self.canvas.saveAsImage(imgPath + ".png", pixmap)
+           
+            os.remove(imgPath + ".png")
+            os.remove(imgPath + ".pngw")
+            return True
+        except:
+            return False
+ 
     def helpFile(self):
         if self.guiFile is None:
             self.guiFile = FileDialog(self.iface, self.infoFile)
@@ -425,9 +446,11 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         for layer in self.layers:
             if not self.cancelBatchMap:
-                #layer.setVisibility(False)
-                layer.setTransparency(100)
-            
+                if self.qgisVersion == ">2":
+                    layer.setTransparency(100)
+                else:
+                    layer.setVisibility(False)
+                    
         # In turn set each layer to transparency defined on interface'
         # generate image, and then make invisible again
         #self.iface.mainWindow().statusBar().showMessage("Generating batch images graphics")
@@ -437,16 +460,27 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 i=i+1
                 self.progBatch.setValue(i)
                 #layer.setVisibility(True)
-                layer.setTransparency(self.hsLayerTransparency.value())
+                if self.qgisVersion == ">2":
+                    layer.setTransparency(self.hsLayerTransparency.value())
+                else:
+                    layer.setVisibility(True)
+                    
                 self.createMapImage(layer)
                 #layer.setVisibility(False)
-                layer.setTransparency(100)
+                
+                #layer.setVisibility(True)
+                if self.qgisVersion == ">2":
+                    layer.setTransparency(100)
+                else:
+                    layer.setVisibility(False)
                 qApp.processEvents()
 
         # Set all layers to the transparency set by the user
         for layer in self.layers:
-            #layer.setVisibility(True)
-            layer.setTransparency(self.hsLayerTransparency.value())
+            if self.qgisVersion == ">2":
+                layer.setTransparency(self.hsLayerTransparency.value())
+            else:
+                layer.setVisibility(True)
         
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
@@ -534,7 +568,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         layer.setExpanded(False)
                            
         self.layers.append(layer)
-  
+       
     def createMapImage(self, layer):
     
         imgFolder = self.leImageFolder.text()
@@ -548,9 +582,13 @@ class BiorecDialog(QWidget, Ui_Biorec):
             imgFile = imgFolder + "\\" + validName + ".png"
             
             try:
-                pixmap = QPixmap(self.canvas.mapSettings().outputSize().width(), 
-                    self.canvas.mapSettings().outputSize().height())
-                self.canvas.saveAsImage(imgFile, pixmap)
+                if self.qgisVersion == ">2":
+                    pixmap = QPixmap(self.canvas.mapSettings().outputSize().width(), 
+                        self.canvas.mapSettings().outputSize().height())
+                    self.canvas.saveAsImage(imgFile, pixmap)
+                else:
+                    self.canvas.saveAsImage(imgFile)
+                
                 # Don't need the registration file, so delete it
                 os.remove(imgFolder + "\\" + validName + ".pngw")
             except:
