@@ -55,6 +55,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbLogin.clicked.connect(self.loginNBN)
         self.pbLogout.clicked.connect(self.logoutNBN)
         self.butHelp.clicked.connect(self.helpFile)
+        #self.butHelp.clicked.connect(self.bugTest)
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
@@ -87,6 +88,20 @@ class NBNDialog(QWidget, Ui_nbn):
         #self.pbLogout.setEnabled(False)
         self.tabWidget.widget(1).setEnabled(False)
        
+    def bugTest(self):
+        url = ("url=https://gis.nbn.org.uk/SingleSpecies/NHMSYS0000530739&" +
+        "layers=Grid-100m&layers=Grid-1km&layers=Grid-2km&layers=Grid-10km" +
+        "&styles=&styles=&styles=&styles=" +
+        "&format=image/png&crs=EPSG:27700")
+        
+        rlayer = QgsRasterLayer(url, 'NBN WMS layer', 'wms')
+        QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+        
+        rlayer.setSubLayerVisibility("Grid-10km", False)
+        rlayer.setSubLayerVisibility("Grid-2km", True)
+        rlayer.setSubLayerVisibility("Grid-1km", False)
+        rlayer.setSubLayerVisibility("Grid-100m", False)
+                           
     def helpFile(self):
         if self.guiFile is None:
             self.guiFile = FileDialog(self.iface, self.infoFile)

@@ -53,6 +53,8 @@ class biorecLayer(QObject):
         # Load the environment stuff
         self.env = envManager()
         
+        self.vl = None
+        
     def setName(self, name):
         self.name = name
         
@@ -67,7 +69,13 @@ class biorecLayer(QObject):
         
     def setTransparency(self, transparency):
         self.transparency = transparency
-        
+        if not self.vl is None:
+            # If the layer has already been removed via native QGIS, this will fail
+            try:
+                 self.vl.setLayerTransparency(self.transparency)
+            except:
+                pass
+            
     def createMapLayer(self, mapType, symbolType, styleFile=None):
         
         # Create layer
@@ -94,11 +102,33 @@ class biorecLayer(QObject):
         else:
             self.addFieldsToAtlas(mapType, symbolType)
             
-    def setVisibility(self, bVisibility):
-        self.iface.legendInterface().setLayerVisible(self.vl, bVisibility)
+    def startEditing(self):
+        # If the layer has already been removed via native QGIS, this will fail
+        try:
+            self.vl.startEditing()
+        except:
+            pass
         
+    def rollBack(self):
+        # If the layer has already been removed via native QGIS, this will fail
+        try:
+            self.vl.rollBack()
+        except:
+            pass
+             
+    def setVisibility(self, bVisibility):
+        # If the layer has already been removed via native QGIS, this will fail
+        try:
+            self.iface.legendInterface().setLayerVisible(self.vl, bVisibility)
+        except:
+            pass
+            
     def setExpanded(self, bExpanded):
-        self.iface.legendInterface().setLayerExpanded(self.vl, bExpanded)
+         # If the layer has already been removed via native QGIS, this will fail
+        try:
+            self.iface.legendInterface().setLayerExpanded(self.vl, bExpanded)
+        except:
+            pass
   
     def removeFromMap(self):
         # Remove from layer
