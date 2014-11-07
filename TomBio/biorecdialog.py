@@ -425,7 +425,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     i=i+1
                     self.progBatch.setValue(i)
                     self.createMapLayer([taxa])
-                    qApp.processEvents()
+                    #qApp.processEvents()
                     
             self.progBatch.setValue(0)
             self.cancelBatchMap = False
@@ -473,7 +473,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     layer.setTransparency(100)
                 else:
                     layer.setVisibility(False)
-                qApp.processEvents()
+                #qApp.processEvents()
 
         # Set all layers to the transparency set by the user
         for layer in self.layers:
@@ -505,7 +505,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 i=i+1
                 self.progBatch.setValue(i)
                 layer.setVisibility(bShow)
-                qApp.processEvents()
+                #qApp.processEvents()
         
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
@@ -529,7 +529,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 i=i+1
                 self.progBatch.setValue(i)
                 layer.removeFromMap()
-                qApp.processEvents()
+                #qApp.processEvents()
         
         self.progBatch.setValue(0)
         self.layers = []

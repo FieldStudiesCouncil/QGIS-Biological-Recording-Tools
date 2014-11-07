@@ -1,17 +1,17 @@
 Dynamic Layers vs Dynamic sub-layers
 
-The 'dynamic sub-layers' option should create one layer from the NBN and set the visibility of the sub-layers (hidden in the layer viewer) depending on the scale. This works well for versions of QGIS up to 2.4.0 (Chugiak). From that version onwards, including the current 2.6 (Brighton) version, only the yellow hectad sub-layer is shown in the map, whatever the zoom level. It seems as though QGIS' handling of sub-layers has stopped working correctly. I will look into this with QGIS.
+The 'dynamic sub-layers' option should create one layer from the NBN and set the visibility of the sub-layers depending on the scale. This works well for versions of QGIS before 2.4. From that version onwards, including the current QGIS 2.6 version, only the yellow hectad sub-layer is shown in the map, whatever the zoom level. It seems as though QGIS' handling of sub-layers has stopped working correctly. I will look into this using the QGIS technical help groups.
 
-In the meantime, for versions 2.4.0 (Chugiak) onwards, you can use the 'dynamic layers' workaround option instead. The main difference is that you get four layers instead of one - each with a single layer with visibility set according to the zoom level.
+In the meantime, for version 2.4 of QGIS onwards, you can use the 'dynamic layers' option instead. The main difference is that you get four layers instead of one - each with a single layer whose visibility gets set according to the zoom level.
 
 Hanging on zoom?
 
-We are aware that for some combinations of QGIS versions and Windows operating systems, QGIS hangs easily when zooming with an NBN WMS map displayed. This has been reported for version 2.4.0 (Chugiak) and version 2.6 (Brighton) with Windows XP. Windows 7 and Windows 8 appear to be okay.
+We are aware that in Windows XP, QGIS may hang easily when zooming with an NBN WMS map displayed. This has been reported for QGIS versions 2.4 and version 2.6. Windows 7 and Windows 8 appear to be okay. If you zoom carefully with XP, ensuring that you wait for the map to refresh before zooming again, you can avoid hanging. If you are an XP user, you may find it easier to avoid accidental multiple zooms if you turn off the mouse-wheel zoom from the QGIS settings menu (settings, options, map tools: set mouse wheel action to nothing). 
 
-Strange "SSL Expired Certificate" error?
+"SSL Expired Certificate" error?
 
-Again this has been reported when using the NBN WMS for certain combinations of QGIS versions and Windows operating systems such as 2.4.0 (Chugiak) with Windows XP. But it doesn't seem to stop the tool being used.
+This message has been reported by Windows XP users when using the NBN WMS for QGIS version 2.4 onwards. But it doesn't seem to stop the tool being used.
 
 NBN Web service availability
 
-This tool relies on two NBN web services (Taxon Dictionary and Web Mapping Service). Either may, on rare occassions, be unavailable, which could result in unexpected behaviour.
+This tool relies on two NBN web services (Taxon Dictionary and Web Mapping Service). Either may, on rare occasions, be unavailable, which could result in unexpected behaviour.
