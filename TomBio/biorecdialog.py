@@ -425,10 +425,21 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     i=i+1
                     self.progBatch.setValue(i)
                     self.createMapLayer([taxa])
-                    #qApp.processEvents()
-                    
+                    #This is needed to allow interruptions. Now safe to use
+                    #because layers not actually added to map until after all created.
+                    qApp.processEvents() 
+                   
             self.progBatch.setValue(0)
             self.cancelBatchMap = False
+            
+        # Add all layers to the map in a single step
+        layerIDs = []
+        for layer in self.layers:
+            layerIDs.append(layer.getVectorLayer())
+        QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
+        # Make sure none of the layers expanded
+        for layer in self.layers:
+            layer.setExpanded(False)
        
     def batchImageGenerate(self):
           
@@ -437,65 +448,61 @@ class BiorecDialog(QWidget, Ui_Biorec):
             
         self.progBatch.setValue(0)
         self.progBatch.setMaximum(len(self.layers))
-        
-        # Make all the layers invisible
-        # Setting layer visibility to false does not work
-        # it needs to be done by leaving displayed and setting transparency
-        # So layers need to already set to visible otherwise they will not
-        # appear in image.
-        
-        for layer in self.layers:
-            if not self.cancelBatchMap:
-                if self.qgisVersion == ">2":
-                    layer.setTransparency(100)
-                else:
-                    layer.setVisibility(False)
-                    
-        # In turn set each layer to transparency defined on interface'
-        # generate image, and then make invisible again
-        #self.iface.mainWindow().statusBar().showMessage("Generating batch images graphics")
-        i=0
-        for layer in self.layers:
-            if not self.cancelBatchMap:
-                i=i+1
-                self.progBatch.setValue(i)
-                #layer.setVisibility(True)
-                if self.qgisVersion == ">2":
-                    layer.setTransparency(self.hsLayerTransparency.value())
-                else:
-                    layer.setVisibility(True)
-                    
-                self.createMapImage(layer)
-                #layer.setVisibility(False)
+       
+        if self.qgisVersion == ">2":
+            # Version 2.4 and above
+            layerIDs = []
+            for layer in self.layers:
+                layerIDs.append(layer.getID())
                 
-                #layer.setVisibility(True)
-                if self.qgisVersion == ">2":
-                    layer.setTransparency(100)
-                else:
-                    layer.setVisibility(False)
-                #qApp.processEvents()
-
-        # Set all layers to the transparency set by the user
-        for layer in self.layers:
-            if self.qgisVersion == ">2":
-                layer.setTransparency(self.hsLayerTransparency.value())
-            else:
-                layer.setVisibility(True)
+            displayedLayerIDs = self.canvas.mapSettings().layers()
+            backdropLayerIDs = [item for item in displayedLayerIDs if item not in layerIDs]
+            settings = self.canvas.mapSettings()
+            i=0
+            for layer in self.layers:
+                if not self.cancelBatchMap:
+                    i=i+1
+                    self.progBatch.setValue(i)
+                    layersRender = [layer.getID()] + backdropLayerIDs
+                    settings.setLayers(layersRender)
+                    job = QgsMapRendererParallelJob(settings)
+                    job.start()
+                    job.waitForFinished()
+                    image = job.renderedImage()
+                    self.saveMapImage(image, layer.getName())
+                    qApp.processEvents()
+        else:
+            # Version 2.0
+            # Make all the layers invisible
+            # In turn set each layer to visible
+            # generate image, and then make invisible again
+            if self.hideAll():
+                i=0
+                for layer in self.layers:
+                    if not self.cancelBatchMap:
+                        i=i+1
+                        self.progBatch.setValue(i)
+                        layer.setVisibility(True)
+                        self.createMapImage(layer)
+                        layer.setVisibility(False)
+                        #qApp.processEvents()
         
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
         
     def showAll(self):
-        self.allShowHide(True)
+        return self.allShowHide(True)
         
     def hideAll(self):
-        self.allShowHide(False)
+        return self.allShowHide(False)
         
     def allShowHide(self, bShow):
           
         if len(self.layers) == 0:
             return
             
+        self.canvas.setRenderFlag(False)
+        
         self.progBatch.setValue(0)
         self.progBatch.setMaximum(len(self.layers))
         
@@ -505,15 +512,20 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 i=i+1
                 self.progBatch.setValue(i)
                 layer.setVisibility(bShow)
-                #qApp.processEvents()
+                qApp.processEvents()
         
         self.progBatch.setValue(0)
+        retValue = (not self.cancelBatchMap)
         self.cancelBatchMap = False
+        self.canvas.setRenderFlag(True)
+        
+        return retValue
         
     def removeMap(self):
         if len(self.layers) > 0:
             layer = self.layers[-1]
             layer.removeFromMap()
+            layer = None
             self.layers = self.layers[:-1]
             
     def removeMaps(self):
@@ -524,16 +536,16 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.progBatch.setMaximum(len(self.layers))
         
         i=0
+        layerIDs = []
         for layer in self.layers:
-            if not self.cancelBatchMap:
-                i=i+1
-                self.progBatch.setValue(i)
-                layer.removeFromMap()
-                #qApp.processEvents()
-        
-        self.progBatch.setValue(0)
+            i=i+1
+            self.progBatch.setValue(i)
+            layerIDs.append(layer.getID())
+            layer = None
+            
         self.layers = []
-        self.cancelBatchMap = False
+        QgsMapLayerRegistry.instance().removeMapLayers(layerIDs)
+        self.progBatch.setValue(0)
         
     def cancelBatch(self):
         self.cancelBatchMap = True
@@ -565,10 +577,27 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 styleFile = self.leStyleFile.text()
         layer.createMapLayer(self.cboMapType.currentText(), self.cboSymbol.currentText(), styleFile)
         layer.setTransparency(self.hsLayerTransparency.value())
-        layer.setExpanded(False)
                            
         self.layers.append(layer)
        
+    def saveMapImage(self, image, name):
+        
+        imgFolder = self.leImageFolder.text()
+        
+        if not os.path.exists(imgFolder):
+            if not self.folderError:
+                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.folderError = True
+        else:
+            validName = self.makeValidFilename(name)
+            try:
+                image.save(imgFolder + "\\" + validName + ".png")
+            except:
+                if not self.imageError:
+                    e = sys.exc_info()[0]
+                    self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
+                    self.imageError = True
+                    
     def createMapImage(self, layer):
     
         imgFolder = self.leImageFolder.text()
@@ -582,13 +611,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             imgFile = imgFolder + "\\" + validName + ".png"
             
             try:
-                if self.qgisVersion == ">2":
-                    pixmap = QPixmap(self.canvas.mapSettings().outputSize().width(), 
-                        self.canvas.mapSettings().outputSize().height())
-                    self.canvas.saveAsImage(imgFile, pixmap)
-                else:
-                    self.canvas.saveAsImage(imgFile)
-                
+                self.canvas.saveAsImage(imgFile) 
                 # Don't need the registration file, so delete it
                 os.remove(imgFolder + "\\" + validName + ".pngw")
             except:

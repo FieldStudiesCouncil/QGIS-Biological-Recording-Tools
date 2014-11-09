@@ -55,6 +55,10 @@ class biorecLayer(QObject):
         
         self.vl = None
         
+        
+    def getVectorLayer(self):
+        return self.vl
+        
     def setName(self, name):
         self.name = name
         
@@ -94,7 +98,7 @@ class biorecLayer(QObject):
             self.vl.loadNamedStyle(styleFile)
         
         # Add to map layer registry
-        QgsMapLayerRegistry.instance().addMapLayer(self.vl)
+        #QgsMapLayerRegistry.instance().addMapLayer(self.vl)
     
         # Create the geometry and attributes
         if mapType.startswith("Records"):
@@ -138,6 +142,12 @@ class biorecLayer(QObject):
         except:
             pass
         
+    def getID(self):
+        if self.vl is None:
+            return None
+        else:
+            return self.vl.id()
+            
     def addFieldsToTable(self, mapType):
         
         #self.pteLog.appendPlainText("Add fields to table reached ")
@@ -164,7 +174,7 @@ class biorecLayer(QObject):
                     self.pr.addAttributes([QgsField(attr, QVariant.String)]) #book
                 iCols += 1
             
-        self.canvas.setRenderFlag(False)
+        #self.canvas.setRenderFlag(False)
         self.vl.startEditing()
             
         fets = []
@@ -199,7 +209,7 @@ class biorecLayer(QObject):
         self.vl.commitChanges()
         self.vl.updateExtents()
         self.vl.removeSelection()
-        self.canvas.setRenderFlag(True)
+        #self.canvas.setRenderFlag(True)
         
     def addFieldsToAtlas(self, mapType, symbolType):
         
@@ -207,7 +217,7 @@ class biorecLayer(QObject):
         self.pr.addAttributes([QgsField("Records", QVariant.Int)])
         self.pr.addAttributes([QgsField("Abundance", QVariant.Int)])
             
-        self.canvas.setRenderFlag(False)
+        #self.canvas.setRenderFlag(False)
         self.vl.startEditing()
             
         fetsDict = {}
@@ -253,8 +263,6 @@ class biorecLayer(QObject):
                                 #self.pteLog.appendPlainText(str(i) + ">>" + self.model.item(i, self.iColAb).text() + "<<>>" +str(abundance) + "<<")
                             except:
                                 abundance = 1
-                                
-                            
                     
                     ret = self.osgr.convertGr(grOriginal, gridPrecision)
                     if ret[1] != "":
@@ -286,7 +294,7 @@ class biorecLayer(QObject):
         self.vl.commitChanges()
         self.vl.updateExtents()
         self.vl.removeSelection()
-        self.canvas.setRenderFlag(True)
+        #self.canvas.setRenderFlag(True)
 
     def includeTaxon(self, i):
         # Check if taxa is in list

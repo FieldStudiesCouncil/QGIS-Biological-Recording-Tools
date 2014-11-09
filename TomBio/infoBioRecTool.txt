@@ -4,5 +4,7 @@ Release 1.3 of the tools has introduced substantial changes in the interface for
 
 A new tutorial video will shortly be added to the YouTube help for this tool to demonstrate how the new interface works, but it should mostly be discernible from the tool-tips on the buttons. Generating batch map images is now a two stage process - generate the map layers and then generate the map images (replacing the individual stepped, image creation of the workaround in version 1.2). Make sure all your map layers are visible before clicking the map image generation button.
 
+Batch map image generation is occasionally slow with certain backgrounds - I've noticed it when using a particular WMS (web mapping service) to provide background mapping. If you are finding map or image generation slow, use this workflow: first get your map background just right (using WMS if you like) and then use the QGIS facility to save the map as a raster image. Now turn off all your background layers and load the single raster image you just created - it will look exactly the same but will avoid calls to WMS during map and image generation.nThis will be demonstrated in the new tutorial video.
+
 If you are generating *very* large numbers of map layers, the progress bar may freeze, but the function is unaffected. I've noticed this when generating 400 maps layers together - the progress bar freezes at 20% (i.e. after about 80 layers), but all layers are generated without a problem.
 
