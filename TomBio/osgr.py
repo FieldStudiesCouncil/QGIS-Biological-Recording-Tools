@@ -308,6 +308,9 @@ class osgr:
             if (t[1] == east100) & (t[2] == north100):
                 prefix = t[0]
                 break
+                
+        if prefix == "":
+            return ""
             
         if precision == 1:
             intDigits = 5
@@ -325,18 +328,19 @@ class osgr:
             suffix = self.getQuadrantSuffix(easting, northing)
         elif precision == 10000:
             intDigits = 1
-        else:
+        elif precision == 100000:
             intDigits = 0
-    
+        else:
+            # Not a valid precision for a grid reference
+            # so return sgring with 'na'.
+            return "na"
+            
         strEast = str(int(easting)).rjust(6,'0')
         strEast = strEast[str(east100).__len__():str(east100).__len__() + intDigits]
         strNorth = str(int(northing)).rjust(6,'0') 
         strNorth = strNorth[str(north100).__len__():str(north100).__len__() + intDigits]
                    
-        if prefix != "":
-            return prefix + strEast + strNorth + suffix
-        else:
-            return ""
+        return prefix + strEast + strNorth + suffix
         
     def convertGr(self, grIn, toPrecision):
         

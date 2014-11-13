@@ -37,20 +37,39 @@ class osgrLayer(QObject):
     super(osgrLayer,self).__init__()
     self.canvas = iface.mapCanvas()
     self.iface = iface
-    
+   
     # Get a reference to an osgr object
     self.osgr = osgr()
+    self.vl = None
+    
+  def getCRS(self):
+    if self.vl is None:
+        return None
+    else:
+        try:
+            #Vector layer Could have been removed
+            return self.vl.crs()
+        except:
+            return None
+    
+  def infoMessage(self, strMessage):
+    self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
     
   def createLayer(self):
   
-    # Create layer
+    # Create layer with the same CRS as the canvas.
+    # Need to find a way to create a layer with specified CRS other than by EPSG string
+    # because this is retained in general layer properties even after CRS is changed.
+    # If layer created without CRS, the user is prompted to select one so that's not an option.
     self.vl = QgsVectorLayer("Polygon?crs=epsg:27700", "OSGR grid squares", "memory")
+    self.vl.setCrs(self.canvas.mapRenderer().destinationCrs())
     self.pr = self.vl.dataProvider()
     
     # Add fields
     self.pr.addAttributes( [ QgsField("GridType", QVariant.String), QgsField("GridRef", QVariant.String) ] )
     
     # Symbology
+    
     props = { 'color_border' : '0,0,0,200', 'style' : 'no', 'style_border' : 'solid' }
     s = QgsFillSymbolV2.createSimple(props)
     self.vl.setRendererV2( QgsSingleSymbolRendererV2( s ) )
@@ -92,14 +111,28 @@ class osgrLayer(QObject):
     except:
         pass
         
-        
   def cancelGrid(self):
     self.cancel = True
 
-  def boxDragged(self, xMin, yMin, xMax, yMax, selectedFeatures):
+  def boxDragged(self, xMin, yMin, xMax, yMax, selectedFeatures=[], isOSGB=False, trans=None):
     
     self.canvas.setRenderFlag(False)
     
+    # If selectedFeatures is not empty, then extract geometry to a list.
+    # Also transform geometry if trans object is not emtpy. The trans object will transform from the
+    # projection of the selected layer to the projection of the map canvas.
+    # If the selected features list is not empty, ensure that square overlaps feature before adding
+    selectedGeometries = []
+    if len(selectedFeatures) > 0:
+        for ftrSelected in selectedFeatures:
+            geom = ftrSelected.geometry()
+            if not trans is None:
+                try:
+                    geom.transform(trans)
+                except:
+                    pass
+            selectedGeometries.append(geom)
+
     # If layer is not present, create it
     try:
        self.vl.startEditing()
@@ -110,7 +143,7 @@ class osgrLayer(QObject):
     
     # Build the grid
     llx = (xMin // self.precision) * self.precision
-    lly= (yMin // self.precision) * self.precision
+    lly = (yMin // self.precision) * self.precision
     
     x = llx
     y = lly
@@ -127,23 +160,41 @@ class osgrLayer(QObject):
     while x < xMax:
         while y < yMax:
             # add a feature for the grid square (if it has a valid GR)
-            gr = self.osgr.grFromEN(x,y,self.precision)
-            if gr <> "":
+            
+            if isOSGB:
+                # This may return string 'na' if the precision 
+                # is not a valid one for OSGR.
+                gr = self.osgr.grFromEN(x,y,self.precision)
+            else:
+                gr = ""
+                
+            # If not projection is OSGB then always make a square (subject to overlap where appropriate).
+            # If projection is OSGB then only make a square if valid GR or precision not standard
+            # OSGB precision (denoted by 'na' in GR).
+            
+            if not isOSGB or (isOSGB and gr <> ""):
+                        
+                #self.infoMessage("gr is " + gr + " precision is " + str(self.precision))
+                
                 points = [[QgsPoint(x,y), QgsPoint(x,y + self.precision), QgsPoint(x + self.precision,y + self.precision), QgsPoint(x + self.precision,y)]]
                 fet = QgsFeature()
                 fet.setGeometry(QgsGeometry.fromPolygon(points))
-                fet.setAttributes([self.precisionText, self.osgr.grFromEN(x,y,self.precision)])
-                #self.pr.addFeatures([fet])
                 
-                # If the selected features list is not empty, ensure that square overlaps feature before adding
-                if len(selectedFeatures) > 0:
-                    for ftrSelected in selectedFeatures:
-                        geom = ftrSelected.geometry()
+                if gr != "na":
+                    fet.setAttributes([self.precisionText, gr])
+                    #self.pr.addFeatures([fet])
+                else:
+                    fet.setAttributes([self.precisionText, ""])
+                
+                # If the selected geometry list is not empty, ensure that square overlaps geometry before adding
+                if len(selectedGeometries) > 0:
+                    for geom in selectedGeometries:
                         if geom.intersects(fet.geometry()):
                             self.vl.addFeatures([fet])
                             break
                 else:
                     self.vl.addFeatures([fet])
+                    
             y += self.precision
             
             # Process other events so if user clicks cancel button, this operation is cancelled.

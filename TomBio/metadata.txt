@@ -14,15 +14,16 @@
 name=TomBio productivity tools
 qgisMinimumVersion=2.0
 description=FSC Tomorrow's Biodiversity productivity tools for biological recorders.
-about=This is a plugin for QGIS desktop GIS which is aimed specifically at biological 
+about=This is a plugin for QGIS desktop GIS which is aimed initially at biological 
     recorders working with UK OS grid referenced data. 
 	It streamlines many of the tasks commonly required from GIS by 
 	biological recorders including viewing NBN maps (via the NBN WMS), 
 	displaying biological records derived from CSV file, working with 
 	OS grid references and registering raster map images from the internet. 
-	Although most of these tools are relevant only in the UK context,
-	the Map Mashup tool may also be useful to people working elsewhere.
-version=1.3.3
+	Although some of the tools are relevant only in the UK context, some
+	such as the the Map Mashup tool and the grid-generating facility of the
+	OSGR tool, can be used outside of the UK context.
+version=1.3.4
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +32,11 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=1.3.3
+changelog=1.3.4
+    - Updated the OSGR tool so that it supports non-UK based coordinate
+	reference systems and allows generation of grids at user-specified sizes,
+	whatever coordinate reference system is used (including OSGB).
+  1.3.3
     - Incorporated changes to make better use of the new multi-threaded
 	rendering (MTR) model. This should improve the performance of batch
 	atlas map layer and image generation in most circumstances.
