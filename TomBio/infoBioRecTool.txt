@@ -1,8 +1,10 @@
 Interface changes for batch generation
 
-Release 1.3 of the tools has introduced substantial changes in the interface for the Biological Recording tool. This is to incorporate new work flows that work with the new map rendering and refreshing behaviour of QGIS introduced with QGIS version 2.4. This replaces the workaround provided in version 1.2 of this tool.
+Release 1.3 of the tools introduced substantial changes in the interface for the Biological Recording tool. This is to incorporate new work flows that work with the new map rendering and refreshing behaviour of QGIS introduced with QGIS version 2.4.
 
-A new tutorial video will shortly be added to the YouTube help for this tool to demonstrate how the new interface works, but it should mostly be discernible from the tool-tips on the buttons. Generating batch map images is now a two stage process - generate the map layers and then generate the map images (replacing the individual stepped, image creation of the workaround in version 1.2). Make sure all your map layers are visible before clicking the map image generation button.
+Release 1.4 introduced further changes to the interface, mainly to accommodate working with coordinate reference systems other that OSGB. This should make the tool useful outside the UK.
+
+New tutorial videos will shortly be added to the YouTube help for this tool to demonstrate how the new interface and features work, but it should mostly be discernible from the tool-tips on the buttons. Generating batch map images is now a two stage process - generate the map layers and then generate the map images (replacing the individual stepped, image creation of the workaround in version 1.2). Make sure all your map layers are visible before clicking the map image generation button.
 
 Batch map image generation is occasionally slow with certain backgrounds - I've noticed it when using a particular WMS (web mapping service) to provide background mapping. If you are finding map or image generation slow, use this workflow: first get your map background just right (using WMS if you like) and then use the QGIS facility to save the map as a raster image. Now turn off all your background layers and load the single raster image you just created - it will look exactly the same but will avoid calls to WMS during map and image generation.nThis will be demonstrated in the new tutorial video.
 

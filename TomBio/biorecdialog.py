@@ -31,7 +31,7 @@ from PyQt4.QtNetwork import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from bioreclayer import *
+from bioreclayer2 import *
 from envmanager import *
 
 
@@ -66,8 +66,14 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.pbBrowseStyleFile.clicked.connect(self.browseStyleFile)
         self.pbCancel.clicked.connect(self.cancelBatch)
         self.butHelp.clicked.connect(self.helpFile)
-        self.cboTaxonCol.currentIndexChanged.connect(self.enableDisable)
-        self.cboBatchMode.currentIndexChanged.connect(self.enableDisable)
+        self.cboTaxonCol.currentIndexChanged.connect(self.enableDisableTaxa)
+        self.cboGridRefCol.currentIndexChanged.connect(self.enableDisableGridRef)
+        self.cboXCol.currentIndexChanged.connect(self.enableDisableXY)
+        self.cboYCol.currentIndexChanged.connect(self.enableDisableXY)
+        self.pbInputCRS.clicked.connect(self.selectInputCRS)
+        self.pbOutputCRS.clicked.connect(self.selectOutputCRS)
+        self.cboMapType.currentIndexChanged.connect(self.checkMapType)
+        self.cbMatchCRS.stateChanged.connect(self.matchCRSClick)
         
         # Load the environment stuff
         self.env = envManager()
@@ -82,6 +88,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.cancelBatchMap = False
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoBioRecTool.txt")
+        self.csvLayer = None
         
         # Set button graphics
         self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
@@ -102,7 +109,31 @@ class BiorecDialog(QWidget, Ui_Biorec):
         else:
             #self.iface.messageBar().pushMessage("Info", "2.0", level=QgsMessageBar.INFO)
             self.qgisVersion = "2"
+
+        #Inits
+        self.blockGR = False
+        self.blockXY = False
+        self.dsbGridSize.setEnabled(False)
+        self.lblInputCRS.setText("")
+        self.lblOutputCRS.setText("")
+        self.lastWaitMessage = None
+        self.cbMatchCRS.setChecked(True)
     
+    def infoMessage(self, strMessage):
+        self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
+        
+    def warningMessage(self, strMessage):
+        self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
+        
+    def waitMessage(self, str1="", str2=""):
+       
+        if str1 <> "":
+            widget = iface.messageBar().createMessage(str1, str2)
+            self.lastWaitMessage = iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
+            qApp.processEvents() 
+        else:
+            iface.messageBar().popWidget(self.lastWaitMessage)
+        
     def testImageCreation(self):
         
         try:
@@ -123,7 +154,75 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         self.guiFile.setVisible(True)    
         
-    def enableDisable(self):
+    def checkMapType(self):
+    
+        if self.cboMapType.currentText().startswith("User-defined"):
+            if self.cboGridRefCol.currentIndex() > 0:
+                self.infoMessage("Can't set a user-defined grid size when using OS grid references as input")
+                self.cboMapType.setCurrentIndex(0)
+            else:
+                self.dsbGridSize.setEnabled(True)
+        else:
+            self.dsbGridSize.setValue(0)
+            self.dsbGridSize.setEnabled(False)
+            
+        if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
+        
+            if self.lblInputCRS.text() != "EPSG:27700":
+                self.infoMessage("Only points or user-defined grid for input data that are not OSGB (EPSG:27700)")
+                self.cboMapType.setCurrentIndex(0)
+            
+        if self.cboMapType.currentText() == "Records as grid squares" and self.cboGridRefCol.currentIndex() == 0:
+            
+            self.infoMessage("'Records as grid squares' only available for input as OS grid references")
+            self.cboMapType.setCurrentIndex(0)
+            
+    def enableDisableGridRef(self):
+    
+        self.blockGR = True
+        
+        if self.cboGridRefCol.currentIndex() > 0 and not self.blockXY:
+            self.cboXCol.setCurrentIndex(0)
+            self.cboYCol.setCurrentIndex(0)
+            
+        if self.cboGridRefCol.currentIndex() > 0:
+            self.pbInputCRS.setEnabled(False)
+            self.lblInputCRS.setText("EPSG:27700")
+            self.pbOutputCRS.setEnabled(False)
+            self.lblOutputCRS.setText("EPSG:27700")
+            
+            if self.cboMapType.currentText().startswith("User-defined"):
+                self.cboMapType.setCurrentIndex(0)
+        else:
+            self.pbInputCRS.setEnabled(True)
+            self.pbOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+     
+        self.checkMapType()
+        
+        self.blockGR = False
+        
+    def enableDisableXY(self):
+    
+        self.blockXY = True
+        
+        if (self.cboXCol.currentIndex() > 0 or self.cboYCol.currentIndex() > 0) and not self.blockGR:
+            self.cboGridRefCol.setCurrentIndex(0)
+            
+        self.checkMapType()
+        
+        self.blockXY = False
+
+    def matchCRSClick(self):
+       
+        if self.cboGridRefCol.currentIndex() > 0:
+            self.pbOutputCRS.setEnabled(False)
+        else:
+            self.pbOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+            
+        if self.cbMatchCRS.isChecked():
+            self.lblOutputCRS.setText(self.lblInputCRS.text())
+            
+    def enableDisableTaxa(self):
     
         if self.cboTaxonCol.currentIndex() == 0:
             self.cboGroupingCol.setCurrentIndex(0)
@@ -135,11 +234,32 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.cboGroupingCol.setEnabled(True)
             self.cbIsScientific.setEnabled(True)
             self.lblGroupingCol.setEnabled(True)
-           
-        if self.cboBatchMode.currentIndex() == 0:
-            pass
+            
+    def selectInputCRS(self):
+    
+        crs = self.selectCRS()
+        if not crs == None:
+            self.lblInputCRS.setText(crs)
+            
+            if self.cbMatchCRS.isChecked():
+                self.lblOutputCRS.setText(crs)
+            
+        self.checkMapType()
+            
+    def selectOutputCRS(self):
+    
+        crs = self.selectCRS()
+        if not crs == None:
+            self.lblOutputCRS.setText(crs)
+            
+    def selectCRS(self):
+    
+        crsSelector = QgsGenericProjectionSelector()
+        crsSelector.exec_()
+        if crsSelector.selectedCrsId() == 0:
+            return None
         else:
-            pass
+            return str(crsSelector.selectedAuthId())
             
     def browseImageFolder(self):
     
@@ -187,12 +307,15 @@ class BiorecDialog(QWidget, Ui_Biorec):
         dlg = QFileDialog
         fileName = dlg.getOpenFileName(self, "Browse for biological record file", strInitPath, "Record Files (*.csv)")
         if fileName:
+                 
             #Initialise the tree model
             self.initTreeView()
         
             # Clear all current values
             self.model.clear()
             self.cboGridRefCol.clear()
+            self.cboXCol.clear()
+            self.cboYCol.clear()
             self.cboTaxonCol.clear()
             self.cboGroupingCol.clear()
             self.cboAbundanceCol.clear()
@@ -212,36 +335,52 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.tvTaxa.setModel(modelTree)
         self.modelTree = modelTree
             
-    def listTaxa(self):
+    def listTaxa(self, suppressMessage=False):
        
         #Init the tree view
         self.initTreeView()
         
         if self.cboTaxonCol.currentIndex() == 0:
-            self.iface.messageBar().pushMessage("Info", "No taxon column selected.", level=QgsMessageBar.INFO)
+            if not suppressMessage:
+                self.infoMessage("No taxon column selected")
             return
+            
         iColGrouping = self.cboGroupingCol.currentIndex() - 1
         iColTaxon = self.cboTaxonCol.currentIndex() - 1
         bScientific = self.cbIsScientific.isChecked()
         
-        if iColTaxon < 0:
+        if iColTaxon == -1:
             return
+            
+        self.waitMessage("Building taxon tree", "can take a minute or so for very large files...")
         
         tree = {}
+        iter = self.csvLayer.getFeatures()
+        for feature in iter:
         
-        for i in range(self.model.rowCount()):
+            if iColGrouping > -1:
+
+                try:
+                    group = str(feature.attributes()[iColGrouping])
+                except:
+                    group = "invalid"
                     
-            if iColGrouping > 0:
-                group = self.model.item(i, iColGrouping).text()
                 #self.pteLog.appendPlainText("add candidate " + group)
                 if group not in tree.keys():
                     tree[group] = {}
-                parent = tree[group]         
+                
+                try:
+                    parent = tree[group]
+                except:
+                    self.pteLog.appendPlainText("Grouping error " + str(group))
             else:
                 parent = tree
-                
-            taxon = self.model.item(i, iColTaxon).text()
             
+            try:
+                taxon = str(feature.attributes()[iColTaxon])
+            except:
+                taxon = "invalid"
+                
             if bScientific:
                 splitTaxon = taxon.split(" ")
                 genus = splitTaxon[0]
@@ -272,6 +411,8 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     itemL2.appendRow(itemL3)
                     
         self.tvTaxa.header().close()
+        
+        self.waitMessage()
         
     def tvBoxChecked(self, item):
         self.propogateUp = False
@@ -317,90 +458,171 @@ class BiorecDialog(QWidget, Ui_Biorec):
         for i in range(self.tvTaxa.model().rowCount()):
             self.tvTaxa.model().item(i,0).setCheckState(Qt.Unchecked)
             self.setChildrenItems(self.tvTaxa.model().item(i,0), Qt.Unchecked)
-            
+              
+    def addItemToFieldLists(self, item):
+        self.cboGridRefCol.addItem(item)
+        self.cboXCol.addItem(item)
+        self.cboYCol.addItem(item)
+        self.cboTaxonCol.addItem(item)
+        self.cboGroupingCol.addItem(item)
+        self.cboAbundanceCol.addItem(item)
+        
     def loadCsv(self, fileName):
     
-        #Reload the envrionment
+        #Reload the environment
         self.env.loadEnvironment()
         
-        with open(fileName, "rb") as fileInput:
-            firstRow = True
-            for row in csv.reader(fileInput):
-                if  firstRow:
-                    self.cboGridRefCol.addItems([""] + row)
-                    self.model.setHorizontalHeaderLabels(row)
-                    #for i in range(len(row)):
-                        #self.model.setHorizontalHeaderItem(i, QStandardItem(row[i]))
-                    self.cboTaxonCol.addItems([""] + row)
-                    self.cboGroupingCol.addItems([""] + row)
-                    self.cboAbundanceCol.addItems([""] + row)
-                    firstRow = False
+        #Load as a CSV
+        uri = "file:///" + fileName + "?delimiter=%s" % (",")
+        
+        self.waitMessage("Loading", fileName)
+        try:
+            self.csvLayer = QgsVectorLayer(uri, "biorecCSV", "delimitedtext")
+        except:
+            self.csvLayer = None
+        self.waitMessage()
+        
+        if self.csvLayer == None:
+            self.warningMessage("Couldn't open CSV file: '%s'" % (fileName))
+        else:
+            #Add the fields to the relevant drop-down lists
+            self.addItemToFieldLists("")
+            for field in self.csvLayer.dataProvider().fields():
+                self.addItemToFieldLists(field.name())
+            
+            # Set default value for GridRef column
+            for colGridRef in self.env.getEnvValues("biorec.gridrefcol"):
+                index = 1
+                for field in self.csvLayer.dataProvider().fields():
+                    if field.name() == colGridRef:
+                        self.cboGridRefCol.setCurrentIndex(index)
+                        break
+                    index += 1
                     
-                    # Set default value for GridRef column
-                    for colGridRef in self.env.getEnvValues("biorec.gridrefcol"):
-                        index = 1
-                        for col in row:
-                            if col == colGridRef:
-                                self.cboGridRefCol.setCurrentIndex(index)
-                                break
-                            index += 1
-                            
-                    # Set default value for Taxon column
-                    for colTaxon in self.env.getEnvValues("biorec.taxoncol"):
-                        index = 1
-                        for col in row:
-                            if col == colTaxon:
-                                self.cboTaxonCol.setCurrentIndex(index)
-                                break
-                            index += 1
-                            
-                    # Set default value for Grouping column
-                    for colGrouping in self.env.getEnvValues("biorec.groupingcol"):
-                        index = 1
-                        for col in row:
-                            if col == colGrouping:
-                                self.cboGroupingCol.setCurrentIndex(index)
-                                break
-                            index += 1
-                            
-                    # Set default value for Abundance column
-                    for colAbundance in self.env.getEnvValues("biorec.abundancecol"):
-                        index = 1
-                        for col in row:
-                            if col == colAbundance:
-                                self.cboAbundanceCol.setCurrentIndex(index)
-                                break
-                            index += 1
-                            
-                    # Set scientific names checkbox if set in environment
-                    if self.env.getEnvValue("biorec.scientificnames") == "True":
-                        self.cbIsScientific.setChecked(True)
-                    else:
-                        self.cbIsScientific.setChecked(False)
-                            
+            # Set default value for X column
+            for colX in self.env.getEnvValues("biorec.xcol"):
+                index = 1
+                for field in self.csvLayer.dataProvider().fields():
+                    if field.name() == colX:
+                        self.cboXCol.setCurrentIndex(index)
+                        break
+                    index += 1
+                    
+            # Set default value for Y column
+            for colY in self.env.getEnvValues("biorec.ycol"):
+                index = 1
+                for field in self.csvLayer.dataProvider().fields():
+                    if field.name() == colY:
+                        self.cboYCol.setCurrentIndex(index)
+                        break
+                    index += 1
+                    
+            # Set default value for Taxon column
+            for colTaxon in self.env.getEnvValues("biorec.taxoncol"):
+                index = 1
+                for field in self.csvLayer.dataProvider().fields():
+                    if field.name() == colTaxon:
+                        self.cboTaxonCol.setCurrentIndex(index)
+                        break
+                    index += 1
+                    
+            # Set default value for Grouping column
+            for colGrouping in self.env.getEnvValues("biorec.groupingcol"):
+                index = 1
+                for field in self.csvLayer.dataProvider().fields():
+                    if field.name() == colGrouping:
+                        self.cboGroupingCol.setCurrentIndex(index)
+                        break
+                    index += 1
+                    
+            # Set default value for Abundance column
+            for colAbundance in self.env.getEnvValues("biorec.abundancecol"):
+                index = 1
+                for field in self.csvLayer.dataProvider().fields():
+                    if field.name() == colAbundance:
+                        self.cboAbundanceCol.setCurrentIndex(index)
+                        break
+                    index += 1
+            
+            # Set scientific names checkbox if set in environment
+            if self.env.getEnvValue("biorec.scientificnames") == "True":
+                self.cbIsScientific.setChecked(True)
+            else:
+                self.cbIsScientific.setChecked(False)      
+                
+            # Make first few records available for user to inspect
+            fields = []
+            for field in self.csvLayer.dataProvider().fields():
+                fields.append(field.name())
+            self.model.setHorizontalHeaderLabels(fields)
+           
+            rowCount = 0
+            iter = self.csvLayer.getFeatures()
+            for feature in iter:
+                rowCount += 1
+                
+                if rowCount > 10:
+                    #Only output the first ten rows
+                    break
                 else:
+                    #Output a row
+                    items = []
+                    for field in feature.attributes():
+                        try:
+                            items.append(QStandardItem(str(field)))
+                        except:
+                            items.append(QStandardItem(""))
+                    """
                     items = [
-                        QStandardItem(field)
-                        for field in row
+                        QStandardItem(str(field))
+                        for field in feature.attributes()
                     ]
+                    """
                     self.model.appendRow(items)
-                    
-        self.enableDisable()
+            
+        self.enableDisableTaxa()
+        self.enableDisableGridRef()
+        self.enableDisableXY()
         
         #If the maketree environment variable is set, then
         #automatically create tree
-        
         if self.env.getEnvValue("biorec.maketree") == "True":
-            self.listTaxa() 
+            self.listTaxa(True) 
         
     def MapRecords(self):
         
         self.progBatch.setValue(0)
         
-        # Return if no grid reference field selected
-        if self.cboGridRefCol.currentIndex() == 0:
-            self.iface.messageBar().pushMessage("Info", "No grid reference column selected.", level=QgsMessageBar.INFO)
+        # Return if no grid reference or X & Y fields selected
+        if self.cboGridRefCol.currentIndex() == 0 and (self.cboXCol.currentIndex() == 0 or self.cboYCol.currentIndex() == 0):
+            self.iface.messageBar().pushMessage("Info", "You must select either an OS grid ref column or both X and Y columns", level=QgsMessageBar.INFO)
             return
+            
+        # Return if Grid ref selected with user-defined grid
+        if self.cboGridRefCol.currentIndex() > 0 and self.cboMapType.currentText().startswith("User-defined"):
+            self.iface.messageBar().pushMessage("Info", "You cannot specify a user-defined grid with input of OS grid references", level=QgsMessageBar.INFO)
+            return
+            
+        # Return if X & Y selected but no input CRS
+        if self.cboXCol.currentIndex() > 0 and self.lblInputCRS.text() == "":
+            self.iface.messageBar().pushMessage("Info", "You must specify an input CRS if specifying X and Y columns", level=QgsMessageBar.INFO)
+            return
+            
+        # Return if X & Y selected but no output CRS
+        if self.cboXCol.currentIndex() > 0 and self.lblOutputCRS.text() == "":
+            self.iface.messageBar().pushMessage("Info", "You must specify an output CRS if specifying X and Y columns", level=QgsMessageBar.INFO)
+            return
+            
+        # Return if user-defined atlas selected, but no grid size
+        if self.cboMapType.currentText().startswith("User-defined") and self.dsbGridSize.value() == 0:
+            self.iface.messageBar().pushMessage("Info", "You must specify a grid size if specifying a user-defined atlas", level=QgsMessageBar.INFO)
+            return
+        
+        # Return X & Y input selected, but not records as points or user-defined grid selected
+        if self.cboXCol.currentIndex() > 0 and self.lblInputCRS.text() != "EPSG:27700":
+            if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText()== ("Records as points"):
+                self.iface.messageBar().pushMessage("Info", "For CRS other than OSGB, you must create records as points or a user-defined atlas",level=QgsMessageBar.INFO)
+                return
         
         # Make a list of all the selected taxa
         selectedTaxa = []
@@ -436,11 +658,16 @@ class BiorecDialog(QWidget, Ui_Biorec):
         layerIDs = []
         for layer in self.layers:
             layerIDs.append(layer.getVectorLayer())
-        QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
+            
+        try:
+            QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
+        except:
+            pass
+            
         # Make sure none of the layers expanded
         for layer in self.layers:
             layer.setExpanded(False)
-       
+    
     def batchImageGenerate(self):
           
         if len(self.layers) == 0:
@@ -553,10 +780,16 @@ class BiorecDialog(QWidget, Ui_Biorec):
     def createMapLayer(self, selectedTaxa):
         
         # Initialsie the map layer
-        layer = biorecLayer(self.iface, self.cboGridRefCol.currentIndex() - 1, self.cboAbundanceCol.currentIndex() - 1, self.model, self.pteLog) 
+        layer = biorecLayer2(self.iface, self.csvLayer, self.pteLog) 
         layer.setTaxa(selectedTaxa)
         layer.setColTaxa(self.cboTaxonCol.currentIndex() - 1)
+        layer.setColAb(self.cboAbundanceCol.currentIndex() - 1)
+        layer.setColGr(self.cboGridRefCol.currentIndex() - 1)
+        layer.setColX(self.cboXCol.currentIndex() - 1)
+        layer.setColY(self.cboYCol.currentIndex() - 1)
         layer.setTransparency(self.hsLayerTransparency.value())
+        layer.setCrs(self.lblInputCRS.text(), self.lblOutputCRS.text())
+        layer.setGridSize(self.dsbGridSize.value())
         
         # Name the layer
         if len(selectedTaxa) == 1:
@@ -575,11 +808,13 @@ class BiorecDialog(QWidget, Ui_Biorec):
         if self.cbApplyStyle.isChecked():
             if os.path.exists( self.leStyleFile.text()):
                 styleFile = self.leStyleFile.text()
-        layer.createMapLayer(self.cboMapType.currentText(), self.cboSymbol.currentText(), styleFile)
-        layer.setTransparency(self.hsLayerTransparency.value())
-                           
+                
+        self.waitMessage("Making map layer", layerName)
+        layer.createMapLayer(self.cboMapType.currentText(), self.cboSymbol.currentText(), styleFile)  
+        self.waitMessage()
+        
         self.layers.append(layer)
-       
+        
     def saveMapImage(self, image, name):
         
         imgFolder = self.leImageFolder.text()

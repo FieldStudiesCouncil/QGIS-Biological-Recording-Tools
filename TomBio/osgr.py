@@ -2,7 +2,7 @@
 """
 /***************************************************************************
  osgr
-        A class for manipulating OSGB36 frid refs
+        A class for manipulating OSGB36 grid refs
  FSC Tomorrow's Biodiversity productivity tools for biological recorders
                               -------------------
         begin                : 2014-02-17

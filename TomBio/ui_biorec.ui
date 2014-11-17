@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>342</width>
+    <width>360</width>
     <height>488</height>
    </rect>
   </property>
@@ -23,36 +23,7 @@
       <attribute name="title">
        <string>Data specification</string>
       </attribute>
-      <layout class="QFormLayout" name="formLayout_2">
-       <property name="fieldGrowthPolicy">
-        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-       </property>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="leFilename">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QComboBox" name="cboGridRefCol">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string>Select column containing OS grid reference</string>
-         </property>
-        </widget>
-       </item>
+      <layout class="QFormLayout" name="formLayout">
        <item row="0" column="0">
         <widget class="QPushButton" name="butBrowse">
          <property name="enabled">
@@ -72,14 +43,87 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="leFilename">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
         <widget class="QLabel" name="lblGridRefCol">
          <property name="text">
-          <string>Grid Ref Column</string>
+          <string>OS Grid Ref Column</string>
          </property>
         </widget>
        </item>
        <item row="2" column="1">
+        <widget class="QComboBox" name="cboGridRefCol">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select column containing OS grid reference</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="lblXCol">
+         <property name="text">
+          <string>X Column</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QComboBox" name="cboXCol">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select column containing X value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="lblYCol">
+         <property name="text">
+          <string>Y Column</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QComboBox" name="cboYCol">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select column containing Y value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="lblAbundanceColumn">
+         <property name="text">
+          <string>Abundance Column</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
         <widget class="QComboBox" name="cboAbundanceCol">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -92,14 +136,14 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="lblAbundanceColumn">
+       <item row="6" column="0">
+        <widget class="QLabel" name="lblTaxonCol">
          <property name="text">
-          <string>Abundance Column</string>
+          <string>Taxon Column</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="6" column="1">
         <widget class="QComboBox" name="cboTaxonCol">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -112,14 +156,7 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="lblTaxonCol">
-         <property name="text">
-          <string>Taxon Column</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
+       <item row="7" column="1">
         <widget class="QCheckBox" name="cbIsScientific">
          <property name="enabled">
           <bool>false</bool>
@@ -135,7 +172,17 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
+       <item row="9" column="0">
+        <widget class="QLabel" name="lblGroupingCol">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Grouping Column</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
         <widget class="QComboBox" name="cboGroupingCol">
          <property name="enabled">
           <bool>false</bool>
@@ -151,15 +198,104 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="lblGroupingCol">
-         <property name="enabled">
-          <bool>false</bool>
+       <item row="10" column="0">
+        <widget class="QPushButton" name="pbInputCRS">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>90</width>
+           <height>23</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Select input CRS when X and Y columns are selected </string>
          </property>
          <property name="text">
-          <string>Grouping Column</string>
+          <string>Input CRS</string>
          </property>
         </widget>
+       </item>
+       <item row="10" column="1">
+        <widget class="QLabel" name="lblInputCRS">
+         <property name="text">
+          <string>Input crs</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0">
+        <widget class="QPushButton" name="pbOutputCRS">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>90</width>
+           <height>23</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Select output CRS when X and Y columns are selected </string>
+         </property>
+         <property name="text">
+          <string>Output CRS</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="1">
+        <widget class="QLabel" name="lblOutputCRS">
+         <property name="text">
+          <string>Output crs</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="1">
+        <widget class="QCheckBox" name="cbMatchCRS">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="toolTip">
+          <string>Select if taxon column contains scientific binomials</string>
+         </property>
+         <property name="text">
+          <string>Match to input CRS</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="1">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>84</height>
+          </size>
+         </property>
+        </spacer>
        </item>
       </layout>
      </widget>
@@ -399,6 +535,30 @@
         </widget>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_8">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Transparency</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSlider" name="hsLayerTransparency">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="tickPosition">
+            <enum>QSlider::TicksBelow</enum>
+           </property>
+           <property name="tickInterval">
+            <number>10</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
           <widget class="QLineEdit" name="leImageFolder">
@@ -535,30 +695,6 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_8">
-     <item>
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Transparency</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSlider" name="hsLayerTransparency">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="tickPosition">
-        <enum>QSlider::TicksBelow</enum>
-       </property>
-       <property name="tickInterval">
-        <number>10</number>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_5">
      <item>
       <widget class="QComboBox" name="cboSymbol">
@@ -646,6 +782,27 @@
          <string>10 km atlas (hectads)</string>
         </property>
        </item>
+       <item>
+        <property name="text">
+         <string>User-defined atlas size:</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="dsbGridSize">
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Grid size for atlas - specify in units used by output CRS&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="decimals">
+        <number>3</number>
+       </property>
+       <property name="maximum">
+        <double>100000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>100.000000000000000</double>
+       </property>
       </widget>
      </item>
     </layout>
@@ -878,19 +1035,6 @@
     </layout>
    </item>
   </layout>
-  <zorder>tabWidget</zorder>
-  <zorder>label_2</zorder>
-  <zorder>hsLayerTransparency</zorder>
-  <zorder>cboSymbol</zorder>
-  <zorder>cboMapType</zorder>
-  <zorder>cboMapType</zorder>
-  <zorder>butRemoveMaps</zorder>
-  <zorder>butRemoveMap</zorder>
-  <zorder>butMap</zorder>
-  <zorder>butHideAll</zorder>
-  <zorder>butShowAll</zorder>
-  <zorder>butSaveImage</zorder>
-  <zorder>horizontalSpacer_3</zorder>
  </widget>
  <resources/>
  <connections/>
