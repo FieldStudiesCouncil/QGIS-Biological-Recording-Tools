@@ -81,7 +81,9 @@ class biorecLayer2(QObject):
         return self.name
         
     def setTaxa(self, taxa):
-        self.taxa = taxa
+        # Using a set class massively improves performance
+        # later when searching for specific taxa in large lists
+        self.taxa = set(taxa)
         
     def setColTaxa(self, iColTaxa):
         self.iColTaxa = iColTaxa
@@ -119,14 +121,7 @@ class biorecLayer2(QObject):
     def createMapLayer(self, mapType, symbolType, styleFile=None):
         
         # Create layer
-        """
-        if self.iColGr > 0:
-            epsg = "epsg:27700"
-        else:
-            epsg = self.canvas.mapRenderer().destinationCrs().authid()
-        """
         epsg = self.crsOutput
-        
         if mapType == "Records as points":
             self.vl = QgsVectorLayer("Point?crs=" + epsg, self.name, "memory")
         else:
@@ -190,7 +185,7 @@ class biorecLayer2(QObject):
             except:
                 id = None
             return id
-        
+            
     def addFieldsToTable(self, mapType):
         # This procedure makes a map of either points or squares - one for each record.
         
@@ -218,32 +213,34 @@ class biorecLayer2(QObject):
         
         fets = []
         
-        if len(self.taxa) == 0:
-            # No taxa selected, so get all features from CSV
-            iter = self.csvLayer.getFeatures()
-            fets = self.makeFeatures(iter, mapType)
-        else:
+        if len(self.taxa) == 1:
             # Taxa selected, so get 
             taxonFieldName = self.csvLayer.dataProvider().fields()[self.iColTaxa].name()
-            strFilter = ""
+            # No indexing in set class so can't use self.taxa[0]
             for taxon in self.taxa:
-                if strFilter <> "":
-                    strFilter = strFilter + " or "
-                strFilter = strFilter + '"%s" = \'%s\'' % (taxonFieldName, taxon)
-            
-            bNoFilterMethod = False            
+                strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
+
+            bNoFilterMethod = False     
             try:      
                 # Only available from 2.2 onwards so catch for backward compatibility
                 request = QgsFeatureRequest().setFilterExpression(strFilter)
                 iter = self.csvLayer.getFeatures(request)
-                fets = fets + self.makeFeatures(iter, mapType)
+                fets = fets + self.makeFeatures(iter, mapType) 
             except:
                 bNoFilterMethod = True
          
-            if len(fets) == 0 or bNoFilterMethod:
+            if bNoFilterMethod:
                 iter = self.csvLayer.getFeatures()
-                fets = fets + self.makeFeatures(iter, mapType, True)
-            
+                fets = fets + self.makeFeatures(iter, mapType, True)    
+        else:
+            # No taxa selected, so get all features from CSV
+            iter = self.csvLayer.getFeatures()
+            if len(self.taxa) == 0: 
+                fets = self.makeFeatures(iter, mapType)
+            else:
+                # More than one taxa selected
+                fets = self.makeFeatures(iter, mapType, True)
+                   
         self.vl.addFeatures(fets)
         self.vl.commitChanges()
         self.vl.updateExtents()
@@ -255,10 +252,11 @@ class biorecLayer2(QObject):
         fets = []
         for feature in iter:
         
-            try:
-                taxon = str(feature.attributes()[self.iColTaxa])
-            except:
-                taxon = "invalid"
+            if bFilterTaxaV2:
+                try:
+                    taxon = str(feature.attributes()[self.iColTaxa])
+                except:
+                    taxon = "invalid"
                 
             if not bFilterTaxaV2:
                 bTaxonOkay = True
@@ -350,19 +348,13 @@ class biorecLayer2(QObject):
             symbol = "circle"
             
         fetsDict = {}
+
+        if len(self.taxa) == 1:
         
-        if len(self.taxa) == 0:
-            # No taxa selected, so get all features from CSV
-            iter = self.csvLayer.getFeatures()
-            fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
-        else:
-            # Taxa selected, so loop through the list 
             taxonFieldName = self.csvLayer.dataProvider().fields()[self.iColTaxa].name()
             strFilter = ""
-            for taxon in self.taxa:  
-                if strFilter <> "":
-                    strFilter = strFilter + " or "
-                strFilter = strFilter + '"%s" = \'%s\'' % (taxonFieldName, taxon)
+            for taxon in self.taxa:  #self.taxa is a set, so can't user self.taxa[0]
+                strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
                 
             bNoFilterMethod = False
             try:      
@@ -374,10 +366,18 @@ class biorecLayer2(QObject):
             except:
                 bNoFilterMethod = True
                 
-            if len(fetsDict) == 0 or bNoFilterMethod:
+            if bNoFilterMethod:
                 iter = self.csvLayer.getFeatures()
                 fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol, True)
-                            
+        else:
+            iter = self.csvLayer.getFeatures()
+            if len(self.taxa) == 0:
+                # No taxa selected, so get all features from CSV
+                fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
+            else:
+                # More than one taxon selected - so filter based on taxa
+                fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol, True)
+                
         # Now loop through the dictionary and create a feature for each one
         fets=[]
         for gr in fetsDict:
@@ -399,13 +399,13 @@ class biorecLayer2(QObject):
         fetsDict = {}
         
         for feature in iter:
-            try:
-                taxon = str(feature.attributes()[self.iColTaxa])
-            except:
-                taxon = "invalid"
-                
-            #self.pteLog.appendPlainText(taxon)
             
+            if bFilterTaxaV2:
+                try:
+                    taxon = str(feature.attributes()[self.iColTaxa])
+                except:
+                    taxon = "invalid"
+
             if not bFilterTaxaV2:
                 bTaxonOkay = True
             elif bFilterTaxaV2 and taxon in self.taxa:
