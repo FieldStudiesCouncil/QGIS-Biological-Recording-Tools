@@ -47,6 +47,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
         
         self.butLoadImage.clicked.connect(self.fromClipboard)
+        self.butLoadImageFile.clicked.connect(self.loadImageFile)
         self.butBrowseImg.clicked.connect(self.BrowseImageFolder)
         self.butBrowseReg.clicked.connect(self.BrowseRegistrationFolder)
         self.leRegistrationFolder.textChanged.connect(self.listRegistrations)
@@ -54,7 +55,8 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.butTransparentColour.clicked.connect(self.setTransparentColour)
-         
+        self.pbBrowseStyleFile.clicked.connect(self.browseStyleFile)
+        
         #http://stackoverflow.com/questions/20834064/how-to-create-qpixmap-with-dragimagebits-from-my-browser
         #Replace the leImageFolder line edit with the custom one that handles image drops
         self.hlImageFolder.removeWidget(self.leImageFolder)
@@ -75,10 +77,47 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.layers = []
         self.tempFiles = []
         self.butLoadImage.setIcon(QIcon( self.pathPlugin % "images/mashup.png" ))
+        self.butLoadImageFile.setIcon(QIcon( self.pathPlugin % "images/mashup2.png" ))
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
         self.butTransparentColour.setStyleSheet("QWidget { background-color: #FFFFFF }")
         
+    def _glob(self, path, *exts):
+        """
+        Glob for multiple file extensions
+    
+        Parameters
+        ----------
+        path : str
+            A file name without extension, or directory name
+        exts : tuple
+            File extensions to glob for
+    
+        Returns
+        -------
+        files : list
+            list of files matching extensions in exts in path
+    
+        """
+        path = os.path.join(path, "*") if os.path.isdir(path) else path + "*"
+        return [f for files in [glob.glob(path + ext) for ext in exts] for f in files]
+    
+    def browseStyleFile(self):
+    
+        #Reload env
+        self.env.loadEnvironment()
+        
+        if os.path.exists(self.env.getEnvValue("mapmashup.stylefilefolder")):
+            strInitPath = self.env.getEnvValue("mapmashup.stylefilefolder")
+        else:
+            strInitPath = ""
+            
+        dlg = QFileDialog
+        fileName = dlg.getOpenFileName(self, "Browse for style file", strInitPath, "QML Style Files (*.qml)")
+        if fileName:
+            self.leStyleFile.setText(fileName)
+            self.leStyleFile.setToolTip(fileName)
+            
     def setTransparentColour(self):
         startCol = self.butTransparentColour.palette().color(QPalette.Background)
         col = QtGui.QColorDialog.getColor(startCol)
@@ -89,42 +128,54 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         #image is a QtGui.QImage object
         self.loadImage(image)
         
-    def loadImage(self, image):
+    def loadImageFile(self):
+        self.loadImage()
         
+    def loadImage(self, image=None):
+   
         #Is a registration file selected?
         if self.cboRegistrations.count() == 0:
             self.iface.messageBar().pushMessage("Info", "No registration file selected.", level=QgsMessageBar.INFO)
             return
             
         dirImages = self.leImageFolder.text()
-        #Check if image foler exists
+        #Check if image folder exists
         if not os.path.isdir(dirImages):
             self.iface.messageBar().pushMessage("Info", "The specified image folder - '" + dirImages + "' - cannot be found.", level=QgsMessageBar.INFO)
             return
-            
-        #Create temporary filename
+    
+        #Create temporary iamge filename 
         f = tempfile.NamedTemporaryFile(dir=dirImages)
-        tempName = f.name + ".png"
+        imageTemp = f.name + ".png"
         f.close()
-        
-        #self.iface.messageBar().pushMessage("Info", tempName, level=QgsMessageBar.INFO)
-        image.save(tempName)
+            
+        if image is None:
+            # Get most recent image in image folder and copy to temp file
+            imageFiles = self._glob(dirImages, ".gif", ".png", "jpg", ".tif", ".bmp", "jpeg", ".tiff")
+            if len(imageFiles) == 0:
+                self.iface.messageBar().pushMessage("Info", "No images found in folder '" + dirImages + "'.", level=QgsMessageBar.INFO)
+                return
+                
+            recentImage = max(imageFiles, key=os.path.getmtime)
+            if recentImage == "":
+                return
+            copyfile(recentImage, imageTemp)
+        else:
+            # Copy clipboard image to temp file
+            image.save(imageTemp)
         
         # Copy the wld file to image folder and give it the same name as the image
-        regFileOut = tempName[:-4] + ".wld"
+        regFileOut = imageTemp[:-4] + ".wld"
         regFile = os.path.join(self.leRegistrationFolder.text() , self.cboRegistrations.currentText() + ".wld")
         copyfile(regFile, regFileOut)
         
         # Load the raster
-        #fileInfo = QFileInfo(tempName)
-        #baseName = fileInfo.baseName()
         if self.leName.text() != "":
             layerName = self.leName.text() + " " + self.cboRegistrations.currentText()
         else:
             layerName = self.cboRegistrations.currentText()
             
-        rlayer = QgsRasterLayer(tempName, layerName)
-        #rlayer.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
+        rlayer = QgsRasterLayer(imageTemp, layerName)
         
         # General transparency
         opacity = (100-self.hsTransparency.value()) * 0.01
@@ -135,12 +186,20 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             color = self.butTransparentColour.palette().color(QPalette.Background)
             rlayer.renderer().rasterTransparency().initializeTransparentPixelList(color.red(), color.green(), color.blue())
 
+        # Style file
+        styleFile = None
+        if self.cbApplyStyle.isChecked():
+            if os.path.exists( self.leStyleFile.text()):
+                styleFile = self.leStyleFile.text()
+                rlayer.loadNamedStyle(self.leStyleFile.text())
+         
+        # Add to map
         regLayer = QgsMapLayerRegistry.instance().addMapLayer(rlayer)
         
         # Store ID and temp file
         self.layers.append(rlayer.id())
-        self.tempFiles.append(tempName)
-        
+        self.tempFiles.append(imageTemp)
+
     def BrowseImageFolder(self):
         dlg = QtGui.QFileDialog(self)
         dlg.setFileMode(QtGui.QFileDialog.Directory)

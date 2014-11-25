@@ -55,7 +55,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.butShowAll.clicked.connect(self.showAll)
         self.butHideAll.clicked.connect(self.hideAll)
         self.butGenTree.clicked.connect(self.listTaxa)
-        self.butSaveImage.clicked.connect(self.batchImageGenerate) 
+        self.butSaveImage.clicked.connect(self.batchImageGenerate)
         self.butRemoveMap.clicked.connect(self.removeMap)
         self.butRemoveMaps.clicked.connect(self.removeMaps)
         self.butExpand.clicked.connect(self.expandAll)
@@ -590,7 +590,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.listTaxa(True) 
         
     def MapRecords(self):
-        
+              
         self.progBatch.setValue(0)
         
         # Return if no grid reference or X & Y fields selected
@@ -675,7 +675,23 @@ class BiorecDialog(QWidget, Ui_Biorec):
             
         self.progBatch.setValue(0)
         self.progBatch.setMaximum(len(self.layers))
-       
+        
+        """
+        if self.hideAll():
+            i=0
+            for layer in self.layers:
+                if not self.cancelBatchMap:
+                    i=i+1
+                    self.progBatch.setValue(i)
+                    layer.setVisibility(True)
+                    self.createComposerImage(layer)
+                    layer.setVisibility(False)
+                
+        self.progBatch.setValue(0)
+        self.cancelBatchMap = False          
+        return
+        """
+        
         if self.qgisVersion == ">2":
             # Version 2.4 and above
             layerIDs = []
@@ -698,6 +714,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     image = job.renderedImage()
                     self.saveMapImage(image, layer.getName())
                     qApp.processEvents()
+
         else:
             # Version 2.0
             # Make all the layers invisible
@@ -832,7 +849,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     e = sys.exc_info()[0]
                     self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
                     self.imageError = True
-                    
+                           
     def createMapImage(self, layer):
     
         imgFolder = self.leImageFolder.text()
@@ -854,7 +871,51 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     e = sys.exc_info()[0]
                     self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
                     self.imageError = True
+                
+    def createComposerImage(self, layer):
     
+        imgFolder = self.leImageFolder.text()
+        
+        if not os.path.exists(imgFolder):
+            if not self.folderError:
+                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.folderError = True
+        else:
+            validName = self.makeValidFilename(layer.getName())
+            imgFile = imgFolder + "\\" + validName + ".png"
+            
+            #try:
+            if len(self.iface.activeComposers()) > 0:
+            
+                c = self.iface.activeComposers()[0].composition()
+                #c.refreshItems()
+                dpi = c.printResolution()
+                dpmm = dpi / 25.4
+                width = int(dpmm * c.paperWidth())
+                height = int(dpmm * c.paperHeight())
+
+                # create output image and initialize it
+                imageC = QImage(QSize(width, height), QImage.Format_ARGB32)
+                imageC.setDotsPerMeterX(dpmm * 1000)
+                imageC.setDotsPerMeterY(dpmm * 1000)
+                imageC.fill(0)
+
+                # render the composition
+                imagePainter = QPainter(imageC)
+                sourceArea = QRectF(0, 0, c.paperWidth(), c.paperHeight())
+                targetArea = QRectF(0, 0, width, height)
+                c.render(imagePainter, targetArea, sourceArea)
+                imagePainter.end()
+
+                imageC.save(imgFolder + "\\" + validName + "-composer.png")
+            """
+            except:
+                if not self.imageError:
+                    e = sys.exc_info()[0]
+                    self.iface.messageBar().pushMessage("Error", "Composer image generation error: %s" % e, level=QgsMessageBar.WARNING)
+                    self.imageError = True
+            """
+            
     def makeValidFilename(self, filename):
         newFilename = "".join([c for c in filename if c.isalpha() or c.isdigit() or c==' ']).rstrip()
         return newFilename
