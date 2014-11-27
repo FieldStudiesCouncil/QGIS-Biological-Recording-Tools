@@ -188,18 +188,18 @@ class NBNDialog(QWidget, Ui_nbn):
         #selectedTVK = "NHMSYS0000530739"
         
         #Get the map from NBN
-        url = 'url=https://gis.nbn.org.uk/SingleSpecies/'
+        url = ''
+
+        #Set user login stuff
+        if not self.leUsername.text() == "":
+            url = url + "username=" + self.leUsername.text()
+            url = url + ",password=" + self.lePassword.text() + ','
+
+        url = url + 'url=https://gis.nbn.org.uk/SingleSpecies/'
         
         #Taxon
         url = url + selectedTVK 
         
-        #Set user login stuff
-        if not self.leUsername.text() == "":
-            url = url + "&username=" + self.leUsername.text()
-            #url = url + "&userkey=" + self.nbnAthenticationCookie.value
-            hashed_password = hashlib.md5(self.lePassword.text()).hexdigest()
-            url = url + "&userkey=" + hashed_password
-            #self.iface.messageBar().pushMessage("Info", "Hash is: " + hashed_password, level=QgsMessageBar.INFO)
             
         #Set layer stuff
         strStyles="&styles="
