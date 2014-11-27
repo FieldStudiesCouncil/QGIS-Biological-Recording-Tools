@@ -590,52 +590,22 @@
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
+           <widget class="QLabel" name="lblLoginStatus">
+            <property name="minimumSize">
              <size>
-              <width>191</width>
-              <height>20</height>
+              <width>0</width>
+              <height>21</height>
              </size>
             </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pbLogin">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
             <property name="text">
-             <string>Login</string>
+             <string>TextLabel</string>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pbLogout">
-            <property name="enabled">
+            <property name="wordWrap">
              <bool>true</bool>
-            </property>
-            <property name="text">
-             <string>Logout</string>
             </property>
            </widget>
           </item>
          </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="lblLoginStatus">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>21</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
         </widget>
        </item>
        <item>

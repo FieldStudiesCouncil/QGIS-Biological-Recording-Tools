@@ -52,8 +52,8 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butTaxonSearch.clicked.connect(self.TaxonSearch)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
-        self.pbLogin.clicked.connect(self.loginNBN)
-        self.pbLogout.clicked.connect(self.logoutNBN)
+        #self.pbLogin.clicked.connect(self.loginNBN)
+        #self.pbLogout.clicked.connect(self.logoutNBN)
         self.butHelp.clicked.connect(self.helpFile)
         #self.butHelp.clicked.connect(self.bugTest)
         
@@ -83,10 +83,10 @@ class NBNDialog(QWidget, Ui_nbn):
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
         
         # NBN login not currently available
-        self.lblLoginStatus.setText ("NBN login for WMS is not yet available from QGIS.")
+        self.lblLoginStatus.setText ("Enter your NBN username and password above if you want to access data as a logged in user.")
         #self.pbLogin.setEnabled(False)
         #self.pbLogout.setEnabled(False)
-        self.tabWidget.widget(1).setEnabled(False)
+        #self.tabWidget.widget(1).setEnabled(False)
        
     def bugTest(self):
         url = ("url=https://gis.nbn.org.uk/SingleSpecies/NHMSYS0000530739&" +
@@ -118,10 +118,10 @@ class NBNDialog(QWidget, Ui_nbn):
             url = url.replace(' ','%20')
             data = urllib2.urlopen(url).read()
         except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Info", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
             return
         except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Info", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return
     
         jsonData = json.loads(data)
@@ -188,19 +188,20 @@ class NBNDialog(QWidget, Ui_nbn):
         #selectedTVK = "NHMSYS0000530739"
         
         #Get the map from NBN
-        url = 'url=https://gis.nbn.org.uk/SingleSpecies/'
+        url = 'https://gis.nbn.org.uk/SingleSpecies/'
         
         #Taxon
         url = url + selectedTVK 
         
         #Set user login stuff
         if not self.leUsername.text() == "":
-            url = url + "&username=" + self.leUsername.text()
+            url = url + "?username=" + self.leUsername.text()
             #url = url + "&userkey=" + self.nbnAthenticationCookie.value
             hashed_password = hashlib.md5(self.lePassword.text()).hexdigest()
             url = url + "&userkey=" + hashed_password
+            url = urllib.quote_plus(url) # encode the url
             #self.iface.messageBar().pushMessage("Info", "Hash is: " + hashed_password, level=QgsMessageBar.INFO)
-            
+
         #Set layer stuff
         strStyles="&styles="
         if self.rb100m.isChecked():
@@ -248,12 +249,12 @@ class NBNDialog(QWidget, Ui_nbn):
             
     def addWMSRaster(self, url, selectedTVK, strLayers, strStyles, strName, minExtent=0, maxExtent=0):
     
-        url = url + strLayers + strStyles + "&format=image/png&crs=EPSG:27700" #falls over without the styles argument
+        url = 'url=' + url + strLayers + strStyles + "&format=image/png&crs=EPSG:27700" #falls over without the styles argument
         url = url.replace(' ','%20')      
         rlayer = QgsRasterLayer(url, 'layer', 'wms')
         
         if not rlayer.isValid():
-            self.iface.messageBar().pushMessage("Info", "Layer failed to load!", level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Layer failed to load. URL: " + url, level=QgsMessageBar.CRITICAL)
             return None
 
         rlayer.setLayerName(self.nameFromTVK(selectedTVK) + strName)
@@ -359,10 +360,10 @@ class NBNDialog(QWidget, Ui_nbn):
             url = 'https://data.nbn.org.uk/api/taxa/' + tvk
             data = urllib2.urlopen(url).read()
         except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Info", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
             return ('')
         except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Info", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return ('')
     
         jsonData = json.loads(data)
@@ -404,10 +405,10 @@ class NBNDialog(QWidget, Ui_nbn):
         try:
             opener.open('https://data.nbn.org.uk/api/user/login', login_data)
         except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Info", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
             return
         except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Info", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return
             
         #self.iface.messageBar().pushMessage("Info", "NBN login success", level=QgsMessageBar.INFO)
@@ -437,10 +438,10 @@ class NBNDialog(QWidget, Ui_nbn):
         try:
             opener.open('https://data.nbn.org.uk/api/user/logout')
         except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Info", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
             return
         except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Info", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return
             
         self.lblLoginStatus.setText (self.noLoginText)
