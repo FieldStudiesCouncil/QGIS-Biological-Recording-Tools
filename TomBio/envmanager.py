@@ -52,6 +52,10 @@ class envManager():
         
     def getTextEnv(self):
         return self.textEnv
+        
+    def getTextExample(self):
+        if os.path.isfile(self.iniFileDefault):
+            return open(self.iniFileDefault).read()
     
     def setTextEnv(self, textEnv):
         self.textEnv = textEnv

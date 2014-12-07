@@ -37,7 +37,7 @@ class EnvDialog(QWidget, Ui_Env):
         Ui_Env.__init__(self)
         self.setupUi(self)
         self.__canvas = iface.mapCanvas()
-        self.__iface = iface
+        self.iface = iface
 
         #self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
         self.pathPlugin = os.path.dirname( __file__ ) 
@@ -45,9 +45,20 @@ class EnvDialog(QWidget, Ui_Env):
         # Load the environment stuff
         self.env = envManager()
         self.pteEnvironment.setPlainText(self.env.getTextEnv())
+        self.exampleText = self.env.getTextExample()
+        self.pteExample.setPlainText(self.exampleText)
         
         self.bbButtons.accepted.connect(self.okayClicked)
         self.bbButtons.rejected.connect(self.cancelClicked)
+        
+        self.pteExample.textChanged.connect(self.editingExample)
+        
+    def editingExample(self):
+    
+        self.iface.messageBar().pushMessage("Warning", "You are editing the example environment file - changes will not be saved", level=QgsMessageBar.WARNING, duration=1)
+        self.pteExample.blockSignals(True)
+        self.pteExample.setPlainText(self.exampleText)
+        self.pteExample.blockSignals(False)
         
     def okayClicked(self):
         

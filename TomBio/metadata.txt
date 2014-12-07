@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed initially at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=1.4.3
+version=1.5.0
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,16 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=1.4.3
+changelog=1.5.0
+    - Added filtering by dataset, date and presence/absence to
+	NBN mapping tool.
+  1.4.4
+    - Modified the environment options dialog so that users can
+	see example environment option values. The example option
+	values file is updated whenever new options are added to the 
+	plugin. So now users can always easily check if new options
+	have been added whenever the tool is updated.
+  1.4.3
     - Now able to provide access to NBN maps via the NBN WMS
 	as a logged in user so NBN-registered users with greater
 	than public access can see all the data they have access

@@ -34,6 +34,7 @@ import urllib2
 import cookielib
 import json 
 import hashlib, uuid
+import shutil
 
 #import requests
 
@@ -52,10 +53,12 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butTaxonSearch.clicked.connect(self.TaxonSearch)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
-        #self.pbLogin.clicked.connect(self.loginNBN)
-        #self.pbLogout.clicked.connect(self.logoutNBN)
+        self.pbLogin.clicked.connect(self.loginNBN)
+        self.pbLogout.clicked.connect(self.logoutNBN)
         self.butHelp.clicked.connect(self.helpFile)
-        #self.butHelp.clicked.connect(self.bugTest)
+        self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
+        self.pbUncheckAll.clicked.connect(self.uncheckAll)
+        self.twDatasets.itemClicked.connect(self.datasetTwClick)
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
@@ -81,13 +84,18 @@ class NBNDialog(QWidget, Ui_nbn):
         self.nbnAthenticationCookie = None
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
-        
-        # NBN login not currently available
-        self.lblLoginStatus.setText ("Enter your NBN username and password above if you want to access data as a logged in user.")
-        #self.pbLogin.setEnabled(False)
-        #self.pbLogout.setEnabled(False)
-        #self.tabWidget.widget(1).setEnabled(False)
+        self.readDatasetFile()
+        self.datasetSelectionChanged()
+        #font = self.lblDatasetFilter.font()
+        #font.setBold(True)
+        #self.lblDatasetFilter.setFont(font)
        
+    def infoMessage(self, strMessage):
+        self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
+        
+    def warningMessage(self, strMessage):
+        self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
+        
     def bugTest(self):
         url = ("url=https://gis.nbn.org.uk/SingleSpecies/NHMSYS0000530739&" +
         "layers=Grid-100m&layers=Grid-1km&layers=Grid-2km&layers=Grid-10km" +
@@ -101,11 +109,139 @@ class NBNDialog(QWidget, Ui_nbn):
         rlayer.setSubLayerVisibility("Grid-2km", True)
         rlayer.setSubLayerVisibility("Grid-1km", False)
         rlayer.setSubLayerVisibility("Grid-100m", False)
-                           
+        
+    def uncheckAll(self):
+              
+        for iProvider in range(self.twDatasets.topLevelItemCount()):
+            twiProvider = self.twDatasets.topLevelItem(iProvider)
+            twiProvider.setCheckState(0, Qt.Unchecked)
+            for iDataset in range(twiProvider.childCount()):
+                twiDataset = twiProvider.child(iDataset)
+                twiDataset.setCheckState(0, Qt.Unchecked)
+            
+        self.datasetSelectionChanged()
+        
+    def datasetTwClick(self, twItem, iCol):
+        
+        for iDataset in range(twItem.childCount()):
+            twiDataset = twItem.child(iDataset)
+            twiDataset.setCheckState(0, twItem.checkState(0))
+            
+        self.datasetSelectionChanged()
+            
+    def datasetSelectionChanged(self):
+    
+        iChecked = 0
+        for iProvider in range(self.twDatasets.topLevelItemCount()):
+            twiProvider = self.twDatasets.topLevelItem(iProvider)
+            for iDataset in range(twiProvider.childCount()):
+                twiDataset = twiProvider.child(iDataset)
+                if twiDataset.checkState(0) == Qt.Checked:
+                    iChecked += 1
+                    
+        if iChecked == 0:
+            self.lblDatasetFilter.setText("No dataset filter will be applied.")
+        else:
+            self.lblDatasetFilter.setText("Filter will be applied for " + str(iChecked) + " selected datasets.")
+    
+    def refreshDatasets(self):
+        
+        self.twDatasets.clear()
+        
+        try:
+            data = urllib2.urlopen('https://data.nbn.org.uk/api/datasets').read()
+        except urllib2.HTTPError, e:
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            return
+        except urllib2.URLError, e:
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            return
+        
+        jsonData = json.loads(data)
+
+        # Write the json data to a file
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
+        with open(datafile, 'w') as jsonfile:
+            jsonfile.write(data)
+            
+        # Rebuild dataset tree
+        self.readDatasetFile()
+        self.datasetSelectionChanged()
+            
+    def readDatasetFile(self):
+    
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
+        if not os.path.isfile(datafile):
+            self.infoMessage("NBN dataset file not found.")
+            return
+            
+        try:
+            with open(datafile) as f:
+                jsonData = json.load(f)
+        except:
+            self.warningMessage("NBN dataset file failed to load. Use the refresh button to generate a new one.")
+            return
+            
+        treeNodes = {} #Dictionary
+        
+        for jDataset in jsonData:
+        
+            if not jDataset["organisationName"] in(treeNodes.keys()):
+                #Create a new top level tree item for the dataset provider organisation
+                twiOrganisation = QTreeWidgetItem(self.twDatasets)
+                twiOrganisation.setText(0, jDataset["organisationName"])
+                twiOrganisation.setExpanded(False)
+                twiOrganisation.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiOrganisation.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+                self.twDatasets.addTopLevelItem(twiOrganisation)
+                #Add to dictionary
+                treeNodes[jDataset["organisationName"]] = twiOrganisation
+            else:
+                twiOrganisation = treeNodes[jDataset["organisationName"]]
+            
+            # Create a tree item for the dataset
+            twiDataset = QTreeWidgetItem(twiOrganisation)
+            twiDataset.setText(0, jDataset["title"])
+            twiDataset.setExpanded(False)
+            twiDataset.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            twiDataset.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+            twiDataset.setToolTip(0, jDataset["key"])
+            self.twDatasets.addTopLevelItem(twiOrganisation)
+                
+        self.twDatasets.sortItems(0, Qt.AscendingOrder)
+        
     def helpFile(self):
+        
+        #self.nbnTaxonObservations()
+        #return
+        
         if self.guiFile is None:
             self.guiFile = FileDialog(self.iface, self.infoFile)
         
+        self.guiFile.setVisible(True)
+        
+    def nbnTaxonObservations(self):
+        
+        if self.nbnAthenticationCookie is None:
+             return
+             
+        cj = cookielib.CookieJar()
+        cj.set_cookie(self.nbnAthenticationCookie)
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        params = urllib.urlencode({'datasetKey': 'GA000483', 'ptvk': 'NBNSYS0000008679'})
+        try:
+            #data = opener.open('https://data.nbn.org.uk/api/taxonObservations', params).read()
+            data = opener.open('https://data.nbn.org.uk/api/datasets').read()
+        except urllib2.HTTPError, e:
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            return
+        except urllib2.URLError, e:
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            return
+        
+        self.iface.messageBar().pushMessage("Info", "Success", level=QgsMessageBar.INFO)
+        
+        self.guiFile = FileDialog(self.iface, data)
         self.guiFile.setVisible(True)
         
     def TaxonSearch(self):
@@ -114,7 +250,8 @@ class NBNDialog(QWidget, Ui_nbn):
             self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
             return
         try:
-            url = 'https://data.nbn.org.uk/api/search/taxa?q=' + self.leTaxonSearch.text()
+            #url = 'https://data.nbn.org.uk/api/search/taxa?q=' + self.leTaxonSearch.text()
+            url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
             url = url.replace(' ','%20')
             data = urllib2.urlopen(url).read()
         except urllib2.HTTPError, e:
@@ -193,15 +330,67 @@ class NBNDialog(QWidget, Ui_nbn):
         #Taxon
         url = url + selectedTVK 
         
+        bURLextended = False
+        
         #Set user login stuff
         if not self.leUsername.text() == "":
             url = url + "?username=" + self.leUsername.text()
             #url = url + "&userkey=" + self.nbnAthenticationCookie.value
             hashed_password = hashlib.md5(self.lePassword.text()).hexdigest()
             url = url + "&userkey=" + hashed_password
-            url = urllib.quote_plus(url) # encode the url
             #self.iface.messageBar().pushMessage("Info", "Hash is: " + hashed_password, level=QgsMessageBar.INFO)
-
+            bURLextended = True
+            
+        #Start year filter
+        if self.cbStartYear.isChecked():
+            if not bURLextended:
+                url = url + "?"
+            else:
+                url = url + "&"
+            url = url + "startyear=" + str(self.sbStartYear.value())
+            bURLextended = True
+            
+        #End year filter
+        if self.cbEndYear.isChecked():
+            if not bURLextended:
+                url = url + "?"
+            else:
+                url = url + "&"
+            url = url + "endyear=" + str(self.sbEndYear.value())
+            bURLextended = True
+            
+        #Presence/absence
+        if self.rbAbsence.isChecked():
+            if not bURLextended:
+                url = url + "?"
+            else:
+                url = url + "&"
+            url = url + "abundance=absence"
+            bURLextended = True
+        
+        #Datasets
+        strDatasets = ""
+        for iProvider in range(self.twDatasets.topLevelItemCount()):
+            twiProvider = self.twDatasets.topLevelItem(iProvider)
+            for iDataset in range(twiProvider.childCount()):
+                twiDataset = twiProvider.child(iDataset)
+                if twiDataset.checkState(0) == Qt.Checked:
+                    if strDatasets == "":
+                        strDatasets = "datasets=" + twiDataset.toolTip(0)
+                    else:
+                        strDatasets = strDatasets + "," + twiDataset.toolTip(0)
+        
+        if strDatasets <> "":
+            if not bURLextended:
+                url = url + "?"
+            else:
+                url = url + "&"
+            url = url + strDatasets
+            bURLextended = True
+            
+        #URL encode
+        url = urllib.quote_plus(url) # encode the url
+        
         #Set layer stuff
         strStyles="&styles="
         if self.rb100m.isChecked():
@@ -387,16 +576,11 @@ class NBNDialog(QWidget, Ui_nbn):
         self.layers = []
         
     def loginNBN(self):
- 
-        return
         
         if not self.nbnAthenticationCookie is None:
-            self.iface.messageBar().pushMessage("Info", "You are already logged in to the NBN as '" + self.currentNBNUser + "'.", level=QgsMessageBar.WARNING)
+            self.infoMessage("You are already logged in to the NBN as '" + self.currentNBNUser + "'")
             return
-            
-        #response = requests.post('https://data.nbn.org.uk/api/user/login', files=dict(username='burkmarr', password='vespula'))
-        #self.iface.messageBar().pushMessage("Info", "Response from NBN login: " + response.status_code, level=QgsMessageBar.INFO)
-        
+  
         username = self.leUsername.text()
         password = self.lePassword.text()
         cj = cookielib.CookieJar()
@@ -405,17 +589,12 @@ class NBNDialog(QWidget, Ui_nbn):
         try:
             opener.open('https://data.nbn.org.uk/api/user/login', login_data)
         except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "NBN Login failed. HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
             return
         except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "NBN Login failed. Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return
-            
-        #self.iface.messageBar().pushMessage("Info", "NBN login success", level=QgsMessageBar.INFO)
-        
-        #resp = opener.open('http://www.example.com/hiddenpage.php')
-        #print resp.read()
-
+    
         for cookie in cj:
             if cookie.name == 'nbn.token_key':
                 self.nbnAthenticationCookie = cookie
@@ -425,11 +604,9 @@ class NBNDialog(QWidget, Ui_nbn):
         
         
     def logoutNBN(self):
- 
-        return
         
         if self.nbnAthenticationCookie is None:
-            self.iface.messageBar().pushMessage("Info", "Can't logout because you are not logged in to the NBN.", level=QgsMessageBar.WARNING)
+            self.infoMessage("Can't logout because you are not logged in to the NBN")
             return
             
         cj = cookielib.CookieJar()
