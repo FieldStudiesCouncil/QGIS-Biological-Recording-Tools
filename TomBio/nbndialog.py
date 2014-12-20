@@ -29,16 +29,21 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
 from filedialog import FileDialog
-import urllib
-import urllib2
+import urllib, urllib2
 import cookielib
 import json 
 import hashlib, uuid
 import shutil
+from osgr import *
+from envmanager import *
+import threading
+import csv
 
 #import requests
 
 class NBNDialog(QWidget, Ui_nbn):
+
+    displayNBNCSVFile = pyqtSignal(basestring)
 
     def __init__(self, iface, dockwidget):
         QWidget.__init__(self)
@@ -48,6 +53,12 @@ class NBNDialog(QWidget, Ui_nbn):
         self.iface = iface
     
         self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
+        
+        # Get a reference to an osgr object and an osgrLayer object
+        self.osgr = osgr()
+        
+        # Load the environment stuff
+        self.env = envManager()
         
         # WMS
         self.pbSpeciesWMS.clicked.connect(self.WMSFetchSpecies)
@@ -61,13 +72,31 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butHelp.clicked.connect(self.helpFile)
         self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
         self.pbRefreshDesignations.clicked.connect(self.refreshDesignations)
+        self.pbRefreshGroups.clicked.connect(self.refreshGroups)
+        self.pbRefreshAreas.clicked.connect(self.refreshBothAreas)
         self.pbUncheckAll.clicked.connect(self.uncheckAll)
         self.twDatasets.itemClicked.connect(self.datasetTwClick)
         self.twDesignations.itemClicked.connect(self.designationTwClick)
+        self.twGroups.itemClicked.connect(self.groupTwClick)
+        self.twAreas.itemClicked.connect(self.siteTwClick)
         self.twTaxa.itemClicked.connect(self.taxaTwClick)
+        self.cbStartYear.stateChanged.connect(self.checkFilters)
+        self.cbEndYear.stateChanged.connect(self.checkFilters)
+        self.rbAbsence.toggled.connect(self.checkFilters)
+        self.leGridRef.textChanged.connect(self.checkFilters)
+        self.twAreaCategories.itemDoubleClicked.connect(self.readAreaFile)
+        self.pbBuffer.clicked.connect(self.generateBuffer)
+        self.pbClearLastBuffer.clicked.connect(self.removeBuffer)
+        self.rbGR.toggled.connect(self.bufferEnableDisable)
+        
+        self.pbDownloadGridRef.clicked.connect(self.downloadNBNObservations)
+        self.pbSendToBiorec.clicked.connect(self.displayCSV)
+        #self.butOS.clicked.connect(self.osBackdrop)
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
+        self.canvas.selectionChanged.connect(self.checkMapSelectionFilter)
+        self.iface.currentLayerChanged.connect(self.checkMapSelectionFilter)
         
         # Make a coordinate translator. Also need global references to OSGB and canvas CRSs since
         # they cannot be retrieved from a translator object.
@@ -76,14 +105,21 @@ class NBNDialog(QWidget, Ui_nbn):
         self.transformCrs = QgsCoordinateTransform(self.canvas.mapRenderer().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"))
         
         # Inits
+        self.nbnOSLayerName = "NBN OS Backdrop"
         self.layers = []
+        self.buffers = []
         self.tvks = {} #Initialise tvk dictionary
+        self.pbSendToBiorec.setIcon(QIcon( self.pathPlugin % "images/maptaxa.png" ))
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
-        self.pbSpeciesWMS.setIcon(QIcon( self.pathPlugin % "images/nbn.png" ))
-        self.pbDatasetWMS.setIcon(QIcon( self.pathPlugin % "images/nbn.png" ))
-        self.pbDesignationWMS.setIcon(QIcon( self.pathPlugin % "images/nbn.png" ))
+        self.pbSpeciesWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
+        self.pbDatasetWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
+        self.pbDesignationWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
+        self.pbDownloadGridRef.setIcon(QIcon( self.pathPlugin % "images/nbndownload.png" ))
         self.butTaxonSearch.setIcon(QIcon( self.pathPlugin % "images/speciesinventory.png" ))
+        self.pbBuffer.setIcon(QIcon( self.pathPlugin % "images/buffer.png" ))
+        self.pbClearLastBuffer.setIcon(QIcon( self.pathPlugin % "images/bufferclear.png" ))
+        #self.butOS.setIcon(QIcon( self.pathPlugin % "images/os.png" ))
         self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
         self.twTaxa.setHeaderLabel("Matching taxa")
         self.noLoginText = "Not logged in to NBN. Default NBN access will apply."
@@ -94,13 +130,19 @@ class NBNDialog(QWidget, Ui_nbn):
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
         self.readDatasetFile()
         self.readDesignationFile()
+        self.readGroupFile()
+        self.readAreaCategoriesFile()
         self.datasetSelectionChanged()
-        self.designationSelectionChanged()
-        #font = self.lblDatasetFilter.font()
-        #font.setBold(True)
-        #self.lblDatasetFilter.setFont(font)
+        self.checkFilters()
+        self.lblSiteDataset.setText("")
+        self.bufferEnableDisable()
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
+        
+        #Testing
+        #self.leUsername.setText("burkmarr")
+        #self.lePassword.setText("")
+        #self.loginNBN()      
         
     def enum(self, **enums):
         return type('Enum', (), enums)
@@ -110,6 +152,9 @@ class NBNDialog(QWidget, Ui_nbn):
         
     def warningMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
+        
+    def errorMessage(self, strMessage):
+        self.iface.messageBar().pushMessage("Error", strMessage, level=QgsMessageBar.CRITICAL)
         
     def bugTest(self):
         url = ("url=https://gis.nbn.org.uk/SingleSpecies/NHMSYS0000530739&" +
@@ -136,11 +181,74 @@ class NBNDialog(QWidget, Ui_nbn):
             
         self.datasetSelectionChanged()
         
-    def datasetTwClick(self, twItem, iCol):
+    def bufferEnableDisable(self):
+        if self.rbGR.isChecked():
+            self.sbEasting.setEnabled(False)
+            self.sbNorthing.setEnabled(False)
+            self.lePointBufferGR.setEnabled(True)
+        else:
+            self.sbEasting.setEnabled(True)
+            self.sbNorthing.setEnabled(True)
+            self.lePointBufferGR.setEnabled(False)
+           
+    def generateBuffer(self):
+    
+        if self.rbGR.isChecked():
+            #Get grid mid point of GR
+            gridRef = self.lePointBufferGR.text().strip()
+            ret = self.osgr.enFromGR(gridRef)
+            if ret[0] == 0:
+                self.warningMessage(ret[3])
+                return
+                
+            sName = gridRef
+            
+            easting = ret[0]
+            northing = ret[1]
+        else:
+            easting = self.sbEasting.value()
+            northing = self.sbNorthing.value()
+            
+            sName = str(easting) + "/" + str(northing)
+            
+        sName = sName + " " + str(self.sbBuffer.value()) + "m"
         
+        geom = self.osgr.circleGeom(easting, northing, self.sbBuffer.value())
+        
+        # Create layer 
+        self.vl = QgsVectorLayer("Polygon?crs=epsg:27700", sName, "memory")
+        self.pr = self.vl.dataProvider()
+        self.buffers.append(self.vl.id())
+
+        # Symbology
+        props = { 'color' : '255,0,0,100', 'color_border' : '0,0,0,200', 'style' : 'solid', 'style_border' : 'solid' }
+        s = QgsFillSymbolV2.createSimple(props)
+        self.vl.setRendererV2( QgsSingleSymbolRendererV2( s ) )
+
+        # Add to map layer registry
+        QgsMapLayerRegistry.instance().addMapLayer(self.vl)    
+        
+        # Add geometry to layer
+        fet = QgsFeature()
+        fet.setGeometry(geom)
+        self.vl.startEditing()
+        self.vl.addFeatures([fet])
+        self.vl.commitChanges()
+        self.vl.updateExtents()
+
+        # Zoom to buffer extent
+        self.iface.actionZoomToLayer().trigger()
+        
+        self.checkMapSelectionFilter()
+        
+    def datasetTwClick(self, twItem, iCol):
+              
         for iDataset in range(twItem.childCount()):
             twiDataset = twItem.child(iDataset)
             twiDataset.setCheckState(0, twItem.checkState(0))
+            
+        if twItem.childCount() > 0:
+            twItem.setExpanded(twItem.checkState(0) == Qt.Checked)
             
         self.datasetSelectionChanged()
         
@@ -156,6 +264,8 @@ class NBNDialog(QWidget, Ui_nbn):
                     twiTaxa = twiGroup.child(iTaxa)
                     if not twiTaxa == twItem:
                         twiTaxa.setCheckState(0, Qt.Unchecked)
+                        
+        self.checkFilters()
         
     def designationTwClick(self, twItem, iCol):
         
@@ -168,10 +278,10 @@ class NBNDialog(QWidget, Ui_nbn):
                 if not twiDesignation == twItem:
                     twiDesignation.setCheckState(0, Qt.Unchecked)
             
-        self.designationSelectionChanged()
-            
+        self.checkFilters()
+        
     def datasetSelectionChanged(self):
-    
+        
         iChecked = 0
         for iProvider in range(self.twDatasets.topLevelItemCount()):
             twiProvider = self.twDatasets.topLevelItem(iProvider)
@@ -181,23 +291,245 @@ class NBNDialog(QWidget, Ui_nbn):
                     iChecked += 1
                     
         if iChecked == 0:
-            self.lblDatasetFilter.setText("No dataset filter will be applied.")
+            self.lblDatasetFilter.setText("No datasets selected.")
         else:
-            self.lblDatasetFilter.setText("Filter will be applied for " + str(iChecked) + " selected datasets.")
+            self.lblDatasetFilter.setText(str(iChecked) + " datasets selected.")
             
-    def designationSelectionChanged(self):
+        self.checkFilters()
+         
+    def groupTwClick(self, twItem, iCol):
+        
+        #If current item is checked, uncheck all others
+        #Only one group can be checked.
+        
+        if twItem.checkState(0) == Qt.Checked:
+            for iGroup in range(self.twGroups.topLevelItemCount()):
+                twiGroup = self.twGroups.topLevelItem(iGroup)
+                if not twiGroup == twItem:
+                    twiGroup.setCheckState(0, Qt.Unchecked)
+        
+        self.checkFilters()        
+        
+    def siteTwClick(self, twItem, iCol):
+        
+        #If current item is checked, uncheck all others
+        #Only one site can be checked.
+        
+        if twItem.checkState(0) == Qt.Checked:
+            for iSite in range(self.twAreas.topLevelItemCount()):
+                twiSite = self.twAreas.topLevelItem(iSite)
+                if not twiSite == twItem:
+                    twiSite.setCheckState(0, Qt.Unchecked)
+        
+        self.checkFilters()
+         
+    def refreshGroups(self):
+        
+        self.twGroups.clear()
+        
+        try:
+            data = urllib2.urlopen('https://data.nbn.org.uk/api/taxonOutputGroups').read()
+        except urllib2.HTTPError, e:
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            return
+        except urllib2.URLError, e:
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            return
+
+        # Write the json data to a file
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "taxongroups.json"))
+        with open(datafile, 'w') as jsonfile:
+            jsonfile.write(data)
+            
+        # Rebuild designation tree
+        self.readGroupFile()
+        
+        self.checkFilters()
+        
+    def refreshAreaCategories(self):
+        
+        self.twAreaCategories.clear()
+        
+        try:
+            data = urllib2.urlopen('https://data.nbn.org.uk/api/siteBoundaryCategories').read()
+        except urllib2.HTTPError, e:
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            return
+        except urllib2.URLError, e:
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            return
+
+        # Write the json data to a file
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "siteboundarycats.json"))
+        with open(datafile, 'w') as jsonfile:
+            jsonfile.write(data)
+            
+        # Rebuild area category tree
+        self.readAreaCategoriesFile()
+        
+    def refreshBothAreas(self):
+        self.refreshAreaCategories()
+        self.refreshAreas()
+        
+    def refreshAreas(self):
+        
+        self.twAreas.clear()
+        
+        twis = self.twAreaCategories.selectedItems()
+        if len(twis) == 0:
+            #self.infoMessage("First select a site boundary dataset.")
+            return
+            
+        twi = twis[0]
+        nbnKey = twi.toolTip(0)
+        
+        try:
+            data = urllib2.urlopen('https://data.nbn.org.uk/api/siteBoundaryDatasets/%s/siteBoundaries' % nbnKey).read()
+        except urllib2.HTTPError, e:
+            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+            return
+        except urllib2.URLError, e:
+            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            return
+
+        # Write the json data to a file
+        datafile = self.pathPlugin % ("NBNCache%s%s%s" % (os.path.sep, nbnKey, ".json"))
+        with open(datafile, 'w') as jsonfile:
+            jsonfile.write(data)
+            
+        # Rebuild area tree
+        self.readAreaFile()
     
-        iChecked = 0
-        for iDesignation in range(self.twDesignations.topLevelItemCount()):
-            twiDesignation = self.twDesignations.topLevelItem(iDesignation)
-            if twiDesignation.checkState(0) == Qt.Checked:
-                iChecked += 1
-                    
-        if iChecked == 0:
-            self.lblDesignationFilter.setText("No designation filter will be applied.")
-        else:
-            self.lblDesignationFilter.setText("Filter will be applied for " + str(iChecked) + " selected designation.")
+    def readGroupFile(self):
     
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "taxongroups.json"))
+        if not os.path.isfile(datafile):
+            self.infoMessage("NBN group file not found.")
+            return
+        try:
+            with open(datafile) as f:
+                jsonData = json.load(f)
+        except:
+            self.warningMessage("NBN group file failed to load. Use the refresh button to generate a new one.")
+            return
+          
+        """
+        groups = {}
+       
+        for jGroup in jsonData:
+                 
+            try:
+                keyParent = jGroup["parentTaxonGroupKey"]
+            except:
+                keyParent = "NoParentKey"
+                
+            key = jGroup["key"]
+            name = jGroup["name"]
+            
+            if keyParent in groups:
+                parentDict = groups[keyParent]
+            else:
+                parentDict = groups[keyParent] = {}
+                
+            parentDict[name] = key
+            
+        #Iterate in the desired order
+        for keyParent in sorted(groups.keys()):
+            parentDict = groups[keyParent]
+            for nameKey in sorted(parentDict.keys()):
+                key = parentDict[nameKey]
+
+                # Create a tree item for the group
+                twiGroup = QTreeWidgetItem(self.twGroups)
+                twiGroup.setText(0, nameKey)
+                twiGroup.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiGroup.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+                twiGroup.setToolTip(0, key)
+                self.twGroups.addTopLevelItem(twiGroup)
+        """
+        for jGroup in jsonData:
+                 
+            # Create a tree item for the group
+            twiGroup = QTreeWidgetItem(self.twGroups)
+            twiGroup.setText(0, jGroup["name"])
+            twiGroup.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            twiGroup.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+            twiGroup.setToolTip(0, jGroup["key"])
+            self.twGroups.addTopLevelItem(twiGroup)
+                
+        self.twGroups.sortItems(0, Qt.AscendingOrder)
+    
+    def readAreaCategoriesFile(self):
+    
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "siteboundarycats.json"))
+        if not os.path.isfile(datafile):
+            self.infoMessage("NBN site boundary category file not found. Use the refresh button to generate a new one.")
+            return
+        try:
+            with open(datafile) as f:
+                jsonData = json.load(f)
+        except:
+            self.warningMessage("NBN site boundary category file failed to load. Use the refresh button to generate a new one.")
+            return
+
+        for jAC in jsonData:
+                 
+            # Create a top-level tree item for the dataset category
+            twiAC = QTreeWidgetItem(self.twAreaCategories)
+            twiAC.setText(0, jAC["name"])
+            self.twAreaCategories.addTopLevelItem(twiAC)
+            
+            for jDataset in jAC["siteBoundaryDatasets"]:
+                # Create a tree item for the dataset
+                twiDataset = QTreeWidgetItem(twiAC)
+                twiDataset.setText(0, jDataset["title"])
+                twiDataset.setToolTip(0, str(jDataset["datasetKey"]))
+                self.twAreaCategories.addTopLevelItem(twiDataset)
+        
+    def readAreaFile(self):
+    
+        self.twAreas.clear()
+        QCoreApplication.processEvents()
+        
+        twis = self.twAreaCategories.selectedItems()
+        
+        if len(twis) == 0:
+            return
+        
+        if twis[0].childCount() > 0:
+            return
+
+        twi = twis[0]
+        nbnKey = twi.toolTip(0)
+        nbnName = twi.text(0)
+        
+        
+        datafile = self.pathPlugin % ("NBNCache%s%s%s" % (os.path.sep, nbnKey, ".json"))
+        if not os.path.isfile(datafile):
+            self.refreshAreas()
+            #self.infoMessage("File not found for '%s'. Use the site refresh button to generate a new one." % nbnName)
+            return
+        try:
+            with open(datafile) as f:
+                jsonData = json.load(f)
+        except:
+            self.warningMessage("File not found for '%s' failed to load. Use the refresh button to generate a new one." % nbnName)
+            return
+        
+        self.lblSiteDataset.setText("%s:" % nbnName)
+        
+        for jSite in jsonData:
+                 
+            # Create a tree item for the group
+            twiSite = QTreeWidgetItem(self.twAreas)
+            twiSite.setText(0, jSite["name"])
+            twiSite.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            twiSite.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+            twiSite.setToolTip(0, str(jSite["identifier"]))
+            self.twAreas.addTopLevelItem(twiSite)
+                
+        self.twAreas.sortItems(0, Qt.AscendingOrder)
+        
     def refreshDesignations(self):
         
         self.twDesignations.clear()
@@ -210,8 +542,6 @@ class NBNDialog(QWidget, Ui_nbn):
         except urllib2.URLError, e:
             self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return
-        
-        jsonData = json.loads(data)
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "designations.json"))
@@ -220,8 +550,9 @@ class NBNDialog(QWidget, Ui_nbn):
             
         # Rebuild designation tree
         self.readDesignationFile()
-        self.designationSelectionChanged()
-    
+  
+        self.checkFilters()
+        
     def readDesignationFile(self):
     
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "designations.json"))
@@ -263,7 +594,7 @@ class NBNDialog(QWidget, Ui_nbn):
             self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
             return
         
-        jsonData = json.loads(data)
+        #jsonData = json.loads(data)
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
@@ -411,8 +742,28 @@ class NBNDialog(QWidget, Ui_nbn):
             twiName.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
             self.twTaxa.addTopLevelItem(twiName)           
  
-    def WMSFetchDesignation(self):
-       
+    def getSelectedTaxonOutputGroup(self):
+        
+        #Selected taxon output group
+        for iGroup in range(self.twGroups.topLevelItemCount()):
+            twiGroup = self.twGroups.topLevelItem(iGroup)
+            if twiGroup.checkState(0) == Qt.Checked:
+                return twiGroup.toolTip(0)
+                
+        return None
+        
+    def getSelectedSite(self):
+        
+        #Selected site
+        for iSite in range(self.twAreas.topLevelItemCount()):
+            twiSite = self.twAreas.topLevelItem(iSite)
+            if twiSite.checkState(0) == Qt.Checked:
+                return twiSite.toolTip(0)
+                
+        return None
+        
+    def getSelectedDesignation(self):
+        
         #Selected designation
         iDesignationCount = 0
         for iDesignation in range(self.twDesignations.topLevelItemCount()):
@@ -422,10 +773,20 @@ class NBNDialog(QWidget, Ui_nbn):
                 selectedDesignationKey = twiDesignation.text(0)
                 strName = twiDesignation.text(0)
                             
+                return (strName, selectedDesignationKey)
+        return ()
+        
+    def WMSFetchDesignation(self):
+                            
+        ret = self.getSelectedDesignation()
+     
         #Check item in treeview is selected
-        if iDesignationCount == 0:
+        if len(ret) == 0:
             self.iface.messageBar().pushMessage("Info", "First select a designation.", level=QgsMessageBar.INFO)
             return
+        else:
+            strName = ret[0]
+            selectedDesignationKey = ret[1]
             
         #selectedDesignationKey = "NOTABLE" # For testing
         
@@ -437,9 +798,10 @@ class NBNDialog(QWidget, Ui_nbn):
         
         self.WMSFetch(url, strName, self.WMSType.designation)
         
-    def WMSFetchDataset(self):
-       
-        #Selected dataset
+    def getSelectedDatasets(self):
+        
+        ret = {}
+        # Selected datasets
         iDatasetCount = 0
         for iProvider in range(self.twDatasets.topLevelItemCount()):
             twiProvider = self.twDatasets.topLevelItem(iProvider)
@@ -449,14 +811,24 @@ class NBNDialog(QWidget, Ui_nbn):
                     iDatasetCount += 1
                     selectedDatasetKey = twiDataset.toolTip(0)
                     strName = twiDataset.text(0)
-                            
+                    
+                    ret[selectedDatasetKey] = strName
+        return ret
+                    
+    def WMSFetchDataset(self):
+       
+        datasets = self.getSelectedDatasets()
+         
         #Check item in treeview is selected
-        if iDatasetCount == 0:
+        if len(datasets) == 0:
             self.iface.messageBar().pushMessage("Info", "First select a dataset.", level=QgsMessageBar.INFO)
             return
-        elif iDatasetCount > 1:
+        elif len(datasets) > 1:
             self.iface.messageBar().pushMessage("Info", "More than one dataset selected. You can only use one for the dataset species density map.", level=QgsMessageBar.INFO)
             return
+            
+        selectedDatasetKey = datasets.keys()[0]
+        strName = datasets[selectedDatasetKey]
             
         #selectedDatasetKey = "GA001349" # For testing
         
@@ -468,7 +840,7 @@ class NBNDialog(QWidget, Ui_nbn):
         
         self.WMSFetch(url, strName, self.WMSType.dataset)
         
-    def WMSFetchSpecies(self):
+    def getSelectedTVK(self):
        
         iCount = 0
         for iGroup in range(self.twTaxa.topLevelItemCount()):
@@ -481,11 +853,17 @@ class NBNDialog(QWidget, Ui_nbn):
                     
         #Check item in treeview is selected
         if iCount == 0:
+            return None
+        else:
+            return selectedTVK
+        
+    def WMSFetchSpecies(self):
+        
+        selectedTVK = self.getSelectedTVK()
+        if selectedTVK is None:
             self.iface.messageBar().pushMessage("Info", "First check a taxon code (TVK).", level=QgsMessageBar.INFO)
             return
-        
-        #selectedTVK = "NHMSYS0000530739" # For testing
-        
+           
         #Get the map from NBN
         url = 'https://gis.nbn.org.uk/SingleSpecies/'
         
@@ -495,6 +873,12 @@ class NBNDialog(QWidget, Ui_nbn):
         #Name
         strName = self.nameFromTVK(selectedTVK)
         
+        #Get the OS map if requested and not already displayed
+        if self.cbOS.isChecked():
+            if len(QgsMapLayerRegistry.instance().mapLayersByName(self.nbnOSLayerName)) == 0:
+                self.osBackdrop(selectedTVK)
+        
+        #Get the species map
         self.WMSFetch(url, strName, self.WMSType.species)
 
     def WMSFetch(self, url, strName, wmsType):
@@ -556,7 +940,7 @@ class NBNDialog(QWidget, Ui_nbn):
                 url = url + strDatasets
                 bURLextended = True
             
-        #URL encode
+        #URL encode      
         url = urllib.quote_plus(url) # encode the url
         
         #Set layer stuff
@@ -596,7 +980,7 @@ class NBNDialog(QWidget, Ui_nbn):
             strLayers = "&layers=Grid-10km"
             strName = strNamePrefix + " NBN hectad (auto)"
             self.addWMSRaster(url, strLayers, strStyles, strName, wmsType, 250000, 100000000)
-       
+                 
         if strName.endswith("auto") or strName.endswith("(auto)"):
             #self.canvas.extentsChanged.emit() #Doesn't seem to invoke the web service, perhaps because the extents haven't actually changed
             rectExtent = self.canvas.extent()
@@ -604,6 +988,13 @@ class NBNDialog(QWidget, Ui_nbn):
             self.canvas.refresh()
             self.canvas.setExtent(rectExtent)
             self.canvas.refresh()
+            
+    def osBackdrop(self, tvk="NBNSYS0000530739"):
+    
+        url = urllib.quote_plus('https://gis.nbn.org.uk/SingleSpecies/%s' % tvk) 
+        strStyles="&styles="
+        strLayers = "&layers=OS-Scale-Dependent"
+        self.addWMSRaster(url, strLayers, strStyles, self.nbnOSLayerName, self.WMSType.species)
             
     def addWMSRaster(self, url, strLayers, strStyles, strName, wmsType, minExtent=0, maxExtent=0):
     
@@ -628,7 +1019,8 @@ class NBNDialog(QWidget, Ui_nbn):
             rlayer.toggleScaleBasedVisibility(True)
         """
         
-        self.layers.append(rlayer.id())
+        if strName != self.nbnOSLayerName:
+            self.layers.append(rlayer.id())
         QgsMapLayerRegistry.instance().addMapLayer(rlayer)
         if not wmsType == self.WMSType.species:
             self.iface.legendInterface().setLayerExpanded(rlayer, False)
@@ -636,9 +1028,14 @@ class NBNDialog(QWidget, Ui_nbn):
         return rlayer
             
     def checkTransform(self):
-        if self.canvasCrs != self.canvas.mapRenderer().destinationCrs():
-            self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
-            self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs)
+        
+        try:
+            # Not sure why, but this sometimes crashes after another failure in module
+            if self.canvasCrs != self.canvas.mapRenderer().destinationCrs():
+                self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
+                self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs)
+        except:
+            pass
         
     def mapExtentsChanged(self):
    
@@ -739,13 +1136,22 @@ class NBNDialog(QWidget, Ui_nbn):
                 pass
             self.layers = self.layers[:-1]
             
+    def removeBuffer(self):
+        if len(self.buffers) > 0:
+            layerID = self.buffers[-1]
+            try:
+                QgsMapLayerRegistry.instance().removeMapLayer(layerID)
+            except:
+                pass
+            self.buffers = self.buffers[:-1]
+            
     def removeMaps(self):
         for layerID in self.layers:
             try:
                 QgsMapLayerRegistry.instance().removeMapLayer(layerID)
             except:
                 pass
-        self.layers = []
+        self.layers = [] 
         
     def loginNBN(self):
         
@@ -796,3 +1202,373 @@ class NBNDialog(QWidget, Ui_nbn):
         self.lblLoginStatus.setText (self.noLoginText)
         self.currentNBNUser = ""
         self.nbnAthenticationCookie = None
+        
+    def downloadNBNObservations(self):
+        """
+        The filters applicable to this resource are as follows;
+
+          *  Year Filters
+               *  startYear (...&startYear=2000&...)
+               *  endYear (...&endYear=2012&...)
+          *  Taxonomic Filters
+               *  ptvk (....&ptvk=[NHMSYS0020706144, NBNSYS0000176784,....]&....)
+               *  designation (...&designation=BERN-A1&...)
+               *  taxonOutputGroup (...&taxonOutputGroup=NHMSYS0000079976&...)
+          *  Dataset Filters
+               *  datasetKey (...&datasetKey=[GA000466,....]&...)
+          *  Spatial Filters
+               *  featureID AND spatialRelationship (within / overlaps) (...&featureID=GA0008850&spatialRelationship=within&...)
+               *  gridRef (OSGB, OSI, 10km down to 100m sqaures) (...&gridRef=TA2172&...)
+               *  polygon (WKT WGS-84 polygon string) (...&polygon=...&...)
+          *  Other Filters
+               * absence (...&absence=true&...)
+               * sensitive (...&sensitive=true&...)
+        """
+        
+        #Initialise filter parameters
+        startYear = None
+        endYear = None
+        ptvk = None
+        designation = None
+        taxonOutputGroup = None
+        datasetKey = None
+        gridRef = None
+        polygon = None
+        absence = None
+
+        # Update filter display
+        self.checkFilters()
+        
+        # Check that user is logged in
+        if self.nbnAthenticationCookie is None:
+            self.infoMessage("You must be logged in to the NBN to use this service.")
+            return   
+    
+        # Build params dictionary
+        params = {}
+        
+        # startYear
+        if self.cbStartYear.checkState() == Qt.Checked:
+            startYear = self.sbStartYear.value()
+            params["startYear"] = startYear
+            
+        # endYear
+        if self.cbEndYear.checkState() == Qt.Checked:
+            endYear = self.sbEndYear.value()
+            params["endYear"] = endYear
+            
+        # Year validity check
+        if not startYear is None and not endYear is None:
+            if startYear > endYear:
+                self.infoMessage("End year, if specified, must come after start year (or be equal to it), if specified.")
+                return
+        
+        # ptvk
+        ptvk = self.getSelectedTVK() # Returns None if none selected
+        if not ptvk is None:
+            params["ptvk"] = ptvk
+            
+        # designation
+        ret = self.getSelectedDesignation()
+        if len(ret) > 0:
+            designation = ret[1]
+            params["designation"] = designation
+            
+        # taxonOutputGroup
+        taxonOutputGroup = self.getSelectedTaxonOutputGroup()
+        if not taxonOutputGroup is None:
+            params["taxonOutputGroup"] = taxonOutputGroup
+            
+        # datasetKey
+        selectedDatasets = self.getSelectedDatasets()
+        
+        # It should be possible to select more than one dataset (if another
+        # filter is specified, but this does not appear to currently work
+        # 17th Dec 2014
+        if len(selectedDatasets) > 1:
+            self.infoMessage("Currently, only one dataset can  be specified for each download query.")
+            return
+            
+        if len(selectedDatasets) > 0:
+            datasetKey = ""
+            for key in selectedDatasets.keys():
+                if datasetKey <> "":
+                    datasetKey = datasetKey + ","
+                datasetKey = datasetKey + key
+            params["datasetKey"] = datasetKey
+            
+            #self.infoMessage("datasetKey=" + params["datasetKey"])
+            
+        # featureID
+        featureID = self.getSelectedSite()
+        if not featureID is None:
+            params["featureID"] = featureID
+            params["spatialRelationship"] = "overlaps"
+            
+        # gridRef
+        
+        #params["spatialRelationship"] = "within"
+        
+        if self.leGridRef.text().strip() <> "":
+            gridRef = self.leGridRef.text().strip()
+            
+            ret = self.osgr.checkGR(gridRef)
+            
+            if ret[0] == 0:
+                self.warningMessage(ret[1])
+                return
+                
+            if ret[0] < 100 or ret[0] > 10000 or ret[0] == 5000:
+                self.warningMessage("Grid reference, if specified, must be 6 fig, monad, tetrad or hectad.")
+                return
+                
+            params["gridRef"] = gridRef
+            
+        # polygon
+        polygon = self.getSelectedFeatureWKT()
+        if not polygon is None:
+            #self.infoMessage("WKT: " + polygon)
+            params["polygon"] = polygon
+            
+        # absence
+        if self.rbAbsence.isChecked():
+            absence = "true"
+            params["absence"] = absence
+                     
+        # Check that the a valid combination of filters has been specified
+        """
+        You must supply at least one of the following filters;
+          *  A Taxonomic Filter
+          *  Spatial Filter
+          *  Dataset filter
+        """
+        bValidFilters = False
+        for param in params.keys():
+            if param == "ptvk":
+                bValidFilters = True
+                break
+            if param == "datasetKey":
+                bValidFilters = True
+                break
+            if param == "polygon":
+                bValidFilters = True
+                break
+            if param == "featureID":
+                bValidFilters = True
+                break
+            if param == "gridRef":
+                bValidFilters = True
+                break
+                
+        if not bValidFilters:
+            self.infoMessage("You must specify at least one of the following filters: taxon, dataset, polygon, Site or grid reference.")
+            return
+            
+        #Get a location for the output file.
+        self.env.loadEnvironment()
+        
+        if os.path.exists(self.env.getEnvValue("nbn.downloadfolder")):
+            strInitPath = self.env.getEnvValue("nbn.downloadfolder")
+        else:
+            strInitPath = ""
+            
+        dlg = QFileDialog
+        fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")
+        if not fileName:
+            return
+            
+        # Set current tab to last (download) tab
+        self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
+        
+        # Start asynchronous thread
+        download = AsyncNBNDownload(self, fileName, params)
+        download.error.connect(self.downloadError)
+        download.start()
+        
+    def checkFilters(self):
+
+        # Start year
+        self.cbIndStartYear.setChecked(self.cbStartYear.isChecked())
+        # End year
+        self.cbIndEndYear.setChecked(self.cbEndYear.isChecked())
+        # Taxon
+        self.cbIndTaxon.setChecked(self.getSelectedTVK() is not None)
+        # Designation
+        self.cbIndDesignation.setChecked(len(self.getSelectedDesignation()) > 0)
+        # Taxon group
+        self.cbIndGroup.setChecked(self.getSelectedTaxonOutputGroup() is not None)
+        # Dataset
+        self.cbIndDataset.setChecked(len(self.getSelectedDatasets()) > 0)
+            
+        # Site
+        self.cbIndSite.setChecked(self.getSelectedSite() is not None)
+       
+        # gridRef
+        self.cbIndGridRef.setChecked(self.leGridRef.text().strip() <> "")
+          
+        # polygon
+        self.cbIndPolygon.setChecked(self.getSelectedFeatureWKT() is not None)
+        
+        # Absence
+        self.cbIndAbsence.setChecked(self.rbAbsence.isChecked())
+
+    def downloadError(self, strError):
+
+        self.errorMessage(strError)
+        
+    def displayCSV(self):
+    
+        #Check that single file is selected in list
+        if len(self.lwDownloaded.selectedItems()) != 1:
+            self.infoMessage("First select a single CSV file from the list")
+            return
+            
+        lwiSelected = self.lwDownloaded.selectedItems()[0]
+        csvFile = lwiSelected.toolTip()
+        
+        #Emit signal that will cause biorec tool to display file
+        self.displayNBNCSVFile.emit(csvFile)
+                        
+    def getSelectedFeatureWKT(self):
+        
+        ret = None
+        filterGeom = None
+        
+        layer = self.iface.activeLayer()
+
+        try:
+            if layer is not None:
+                if layer.type() == QgsMapLayer.VectorLayer:
+                    selectedFeatures = layer.selectedFeatures()
+                    if len(selectedFeatures) == 1:
+                        feature = selectedFeatures[0]
+                        if feature.geometry().wkbType() == QGis.WKBPolygon:
+                            filterGeom = feature.geometry()
+        except:
+            filterGeom = None
+        
+        if filterGeom is not None:
+            # If the CRS of the layer is not WGS84, then
+            # convert geometry, otherwise use as is.
+            if layer.crs() != QgsCoordinateReferenceSystem("EPSG:4326"):
+                tcrs = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem("EPSG:4326"))
+                filterGeom.transform(tcrs)
+
+            ret = filterGeom.exportToWkt()
+            
+        return ret  
+        
+    def checkMapSelectionFilter(self):
+        # Whenever the map selection changes, update the  
+        # polygon filter indicator accordingly.
+        
+        if self.getSelectedFeatureWKT() is None:
+            self.cbIndPolygon.setChecked(False)
+        else:
+            self.cbIndPolygon.setChecked(True)
+        
+class AsyncNBNDownload(QObject, threading.Thread):
+    
+    error = pyqtSignal(basestring)
+
+    def __init__(self, nbnDialog, csv, params):
+        threading.Thread.__init__(self)
+        QObject.__init__(self)
+        self.csv = csv
+        self.nbnDialog = nbnDialog
+        self.params = params
+        
+    def run(self):
+ 
+        # Add file to listbox
+        splitName = os.path.split(self.csv)
+        self.nbnDialog.lwDownloaded.addItem(splitName[1])
+        lwi = self.nbnDialog.lwDownloaded.item(self.nbnDialog.lwDownloaded.count()-1)
+        lwi.setToolTip(self.csv)
+        
+        # NBN Authentication
+        cj = cookielib.CookieJar()
+        cj.set_cookie(self.nbnDialog.nbnAthenticationCookie)
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        
+        lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/download.png" ))
+        
+        # Download the data from NBN
+        try:
+            if len(self.params) == 1 and (self.params.keys()[0] == "ptvk" or self.params.keys()[0] == "datasetKey"):      
+                # If only a tvk or dataset key passed, we use specific endpoints for them
+                endpoint = 'https://data.nbn.org.uk/api/taxonObservations/' + self.params.values()[0]
+                data = opener.open(endpoint).read()
+            else:
+                # Otherwise we use the general combined filter endpoint
+                params = urllib.urlencode(self.params)
+                data = opener.open('https://data.nbn.org.uk/api/taxonObservations', params).read()
+        except urllib2.HTTPError, e:
+            self.error.emit("HTTP error: %s" % str(e))
+            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
+            return
+        except urllib2.URLError, e:
+            self.error.emit("Network error: %s" % str(e))
+            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
+            return
+        except Exception, e:
+            self.error.emit("Error: %s" % str(e))
+            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
+            return
+            
+        lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/eggtimer.jpg" ))
+        
+        
+        
+        # Write the json data to csv
+        try:
+            # If csv is to be enriched with dataset names, create datasets dictionary from file
+            datasets={}
+            if self.nbnDialog.cbDatasetNames.isChecked():
+                datafile = self.nbnDialog.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
+                if os.path.isfile(datafile):
+                    with open(datafile) as f:
+                        jsonDatasets = json.load(f)       
+                    for dataset in jsonDatasets:
+                        datasets[dataset["key"]] = dataset["title"]
+
+            jsonData = json.loads(data)
+
+            with open(self.csv, 'wb') as csvfile:
+                #csvw = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                csvw = csv.writer(csvfile, dialect='excel')
+                headerRow = []
+                for jRecord in jsonData:
+                    # Have to go through entire file because different records
+                    # have different attributes. So to get all names, parse
+                    # all records.
+                    headerRow = list(set(headerRow + jRecord.keys()))
+                    
+                if len(datasets) > 0:
+                    headerRow.append("datasetName")
+                    
+                csvw.writerow(headerRow)
+                
+                for jRecord in jsonData:
+                    attrRow = []
+                    for header in headerRow:
+                        if header in jRecord.keys():
+                            attrRow.append(jRecord[header])
+                        elif header == "datasetName":
+                            attrRow.append(datasets[jRecord["datasetKey"]])
+                        else:
+                            attrRow.append("")
+                        
+                    csvw.writerow([unicode(s).encode("utf-8") for s in attrRow])
+                        
+            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/tick.jpg" ))
+        except Exception, e:
+            self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
+            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
+            return
+            
+        
+        
+        
+        
+         

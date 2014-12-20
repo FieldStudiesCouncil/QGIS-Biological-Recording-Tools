@@ -5,6 +5,9 @@
 #mapmashup.regfolder: C:\Users\fsc\Documents\GIS Datafiles\MashupReg
 #mapmashup.stylefilefolder: C:\Users\fsc\Documents\Temp\Styles
 
+# Default directories for NBN tool
+#nbn.downloadfolder: C:\Users\fsc\Documents\GIS Demo\NBN
+
 # Default directories for Biorec tool
 # Uncomment and replace paths with those relevant to your own file system
 

@@ -46,11 +46,10 @@ class BiorecDialog(QWidget, Ui_Biorec):
         #self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
         self.pathPlugin = os.path.dirname( __file__ ) 
         
-        self.butBrowse.clicked.connect(self.BrowseForCsv)
-        
         self.model = QStandardItemModel(self)
         self.tvRecords.setModel(self.model)
         
+        self.butBrowse.clicked.connect(self.browseCSV)
         self.butMap.clicked.connect(self.MapRecords)
         self.butShowAll.clicked.connect(self.showAll)
         self.butHideAll.clicked.connect(self.hideAll)
@@ -294,7 +293,11 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.leStyleFile.setText(fileName)
             self.leStyleFile.setToolTip(fileName)
             
-    def BrowseForCsv(self):
+    def browseCSV(self):
+    
+        self.setCSV(None)
+        
+    def setCSV(self, nbnFile):
         
         #Reload env
         self.env.loadEnvironment()
@@ -304,8 +307,14 @@ class BiorecDialog(QWidget, Ui_Biorec):
         else:
             strInitPath = ""
             
-        dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Browse for biological record file", strInitPath, "Record Files (*.csv)")
+        if nbnFile is None:
+            dlg = QFileDialog
+            fileName = dlg.getOpenFileName(self, "Browse for biological record file", strInitPath, "Record Files (*.csv)")
+        else:
+            fileName = nbnFile
+            
+        #self.infoMessage("File: " + fileName)
+
         if fileName:
                  
             #Initialise the tree model
@@ -323,7 +332,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             # Load the CSV and set controls
             self.leFilename.setText(os.path.basename(fileName))
             self.leFilename.setToolTip(fileName)
-            self.loadCsv(fileName)
+            self.loadCsv(fileName, (not nbnFile is None))
             
             #self.iface.messageBar().pushMessage("Info", "csv loaded.", level=QgsMessageBar.INFO)
             
@@ -467,7 +476,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.cboGroupingCol.addItem(item)
         self.cboAbundanceCol.addItem(item)
         
-    def loadCsv(self, fileName):
+    def loadCsv(self, fileName, isNBNCSV):
     
         #Reload the environment
         self.env.loadEnvironment()
@@ -491,13 +500,21 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 self.addItemToFieldLists(field.name())
             
             # Set default value for GridRef column
-            for colGridRef in self.env.getEnvValues("biorec.gridrefcol"):
+            if isNBNCSV:
                 index = 1
                 for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == colGridRef:
+                    if field.name() == "location":
                         self.cboGridRefCol.setCurrentIndex(index)
                         break
                     index += 1
+            else:
+                for colGridRef in self.env.getEnvValues("biorec.gridrefcol"):
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == colGridRef:
+                            self.cboGridRefCol.setCurrentIndex(index)
+                            break
+                        index += 1
                     
             # Set default value for X column
             for colX in self.env.getEnvValues("biorec.xcol"):
@@ -518,13 +535,21 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     index += 1
                     
             # Set default value for Taxon column
-            for colTaxon in self.env.getEnvValues("biorec.taxoncol"):
+            if isNBNCSV:
                 index = 1
                 for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == colTaxon:
+                    if field.name() == "pTaxonName":
                         self.cboTaxonCol.setCurrentIndex(index)
                         break
                     index += 1
+            else:
+                for colTaxon in self.env.getEnvValues("biorec.taxoncol"):
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == colTaxon:
+                            self.cboTaxonCol.setCurrentIndex(index)
+                            break
+                        index += 1
                     
             # Set default value for Grouping column
             for colGrouping in self.env.getEnvValues("biorec.groupingcol"):

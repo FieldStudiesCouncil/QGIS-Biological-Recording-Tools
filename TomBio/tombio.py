@@ -134,8 +134,15 @@ class TomBio:
             self.guiNbn = NBNDialog(self.iface, self.dwNbn)
             self.dwNbn.setWidget(self.guiNbn)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwNbn)
+            self.guiNbn.displayNBNCSVFile.connect(self.displayNBNCSVFile)
         else:
             self.dwNbn.setVisible(True)
+            
+    def displayNBNCSVFile(self, strCSV):
+        self.dwNbn.setVisible(False)
+        self.showBiorecDialog()
+        #self.iface.messageBar().pushMessage("Info", "CSV: " + strCSV, level=QgsMessageBar.INFO)
+        self.guiBiorec.setCSV(strCSV)
             
     def showMapmashupDialog(self):
         if self.dwMapmashup is None:
