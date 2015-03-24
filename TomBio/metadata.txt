@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed initially at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.0.0
+version=2.0.1
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,12 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.0.0
+changelog=2.0.1
+	- Fixed bug which prevented NBN data download if a data
+	provider could not be located. Incorporated a warning to
+	user if style file applied by biological recording tool 
+	when a point layer is generated.
+  2.0.0
 	- Added comprehensive NBN record download facilities which
 	include the ability to select records based on a taxon,
 	dataset, known site (e.g. LRC, VC or NNR boundary), 

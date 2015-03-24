@@ -1555,7 +1555,11 @@ class AsyncNBNDownload(QObject, threading.Thread):
                         if header in jRecord.keys():
                             attrRow.append(jRecord[header])
                         elif header == "datasetName":
-                            attrRow.append(datasets[jRecord["datasetKey"]])
+                            try:
+                                #If the dataset is missing, the line below will fail
+                                attrRow.append(datasets[jRecord["datasetKey"]])
+                            except Exception, e:
+                                attrRow.append("Dataset not found. Try refreshing Tom.bio NBN dataset filter.")
                         else:
                             attrRow.append("")
                         

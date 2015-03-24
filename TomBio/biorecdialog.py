@@ -848,6 +848,10 @@ class BiorecDialog(QWidget, Ui_Biorec):
         # Create the map layer
         styleFile = None
         if self.cbApplyStyle.isChecked():
+ 
+            if self.cboMapType.currentIndex() == 0:
+                self.iface.messageBar().pushMessage("Warning", "Applied style file to points layer. Points will not be visible if no style for points defined.", level=QgsMessageBar.WARNING)
+                
             if os.path.exists( self.leStyleFile.text()):
                 styleFile = self.leStyleFile.text()
                 
