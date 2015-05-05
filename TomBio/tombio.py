@@ -160,7 +160,13 @@ class TomBio:
             self.dwBiorec.setWidget(self.guiBiorec)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwBiorec)
         else:
-            self.dwBiorec.setVisible(True)
+            #self.dwBiorec.setVisible(True)
+            
+            self.dwBiorec.setVisible(False)
+            self.dwBiorec = custDockWidget("FSC Tom.bio - Biological record display", self.iface.mainWindow())
+            self.guiBiorec = BiorecDialog(self.iface, self.dwBiorec)
+            self.dwBiorec.setWidget(self.guiBiorec)
+            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwBiorec)
             
     def showEnvDialog(self):
         if self.guiEnv is None:

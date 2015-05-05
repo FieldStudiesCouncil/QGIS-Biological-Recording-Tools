@@ -683,11 +683,12 @@ class BiorecDialog(QWidget, Ui_Biorec):
         layerIDs = []
         for layer in self.layers:
             layerIDs.append(layer.getVectorLayer())
-            
+
         try:
             QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
-        except:
-            pass
+        except Exception, e:
+            #self.iface.messageBar().pushMessage("Error", "Error adding layers to map: %s" % e, level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Problem adding layers. Clear bio.rec layers with 'remove all map layers' button and try again.", level=QgsMessageBar.CRITICAL)
             
         # Make sure none of the layers expanded
         for layer in self.layers:
@@ -815,6 +816,9 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.layers = []
         QgsMapLayerRegistry.instance().removeMapLayers(layerIDs)
         self.progBatch.setValue(0)
+        
+    #def removeAllLayers(self):
+    #    QgsMapLayerRegistry.instance().removeAllMapLayers()
         
     def cancelBatch(self):
         self.cancelBatchMap = True

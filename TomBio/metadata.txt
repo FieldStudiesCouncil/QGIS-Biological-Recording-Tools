@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed initially at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.0.1
+version=2.0.2
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,13 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.0.1
+changelog=2.0.2
+	- Accounted for a problem that caused new layers from biological
+	records tool to fail to load if a previous layer generated
+	by the tool is manually removed from the map. This can be
+	fixed clearing all layers using tool's button, so a new
+	error trap and associated message added to indicate this.
+  2.0.1
 	- Fixed bug which prevented NBN data download if a data
 	provider could not be located. Incorporated a warning to
 	user if style file applied by biological recording tool 
