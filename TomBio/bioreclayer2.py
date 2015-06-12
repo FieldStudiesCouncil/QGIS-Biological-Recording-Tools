@@ -324,6 +324,8 @@ class biorecLayer2(QObject):
         self.pr.addAttributes([QgsField("GridRef", QVariant.String)])
         self.pr.addAttributes([QgsField("Records", QVariant.Int)])
         self.pr.addAttributes([QgsField("Abundance", QVariant.Int)])
+        self.pr.addAttributes([QgsField("Richness", QVariant.Int)])
+        self.pr.addAttributes([QgsField("Taxa", QVariant.String)])
             
         self.vl.startEditing()
         
@@ -384,7 +386,7 @@ class biorecLayer2(QObject):
             fetDict = fetsDict[gr]
             fet = QgsFeature()
             fet.setGeometry(fetDict[0])
-            attrs = [gr, fetDict[1], fetDict[2]]
+            attrs = [gr, fetDict[1], fetDict[2], fetDict[3], fetDict[4]]
             fet.setAttributes(attrs)
             fets.append(fet)
                 
@@ -397,6 +399,7 @@ class biorecLayer2(QObject):
     def makeAtlasFeatures(self, iter, gridPrecision, symbol, bFilterTaxaV2=False):
     
         fetsDict = {}
+        taxaDict = {}
         
         for feature in iter:
             
@@ -485,12 +488,18 @@ class biorecLayer2(QObject):
                     
                     if not geom is None:
                         if fetsDict.get(gr, None) == None:
-                            fetsDict[gr] = [geom, 1, abundance]
+                            fetsDict[gr] = [geom, 1, abundance, 1, taxon]
+                            taxaDict[gr] = [taxon]
                         else:
                             #Records
                             fetsDict[gr][1]+=1
                             #Abundance
                             fetsDict[gr][2]+=abundance
+                            #Richness & Taxa
+                            if not taxon in taxaDict[gr]:
+                                taxaDict[gr].append(taxon)
+                                fetsDict[gr][3]+=1 
+                                fetsDict[gr][4]+="#"+taxon
                             
         return fetsDict
         

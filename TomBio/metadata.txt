@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed initially at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.0.2
+version=2.0.3
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,14 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.0.2
+changelog=2.0.3
+    - Added facility for the Biological Records tool to generate
+	two extra attributes for atlas layers - 'richness' and 'taxa'.
+	Richness is a count of the number of taxa which contribute to
+	the records and 'taxa' is a string of all taxa names separated
+	by the hash symbol. The latter allows you to use QGIS categorical
+	styling to create coincidence maps for biological records.
+  2.0.2
 	- Accounted for a problem that caused new layers from biological
 	records tool to fail to load if a previous layer generated
 	by the tool is manually removed from the map. This can be
