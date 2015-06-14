@@ -45,14 +45,36 @@ class EnvDialog(QWidget, Ui_Env):
         # Load the environment stuff
         self.env = envManager()
         self.pteEnvironment.setPlainText(self.env.getTextEnv())
+        self.leExternalEnvFile.setText(self.env.getExternalFilePath())
+        self.leExternalEnvFile.setEnabled(False)
+        
         self.exampleText = self.env.getTextExample()
         self.pteExample.setPlainText(self.exampleText)
+        self.pbSaveToNewEnvFile.clicked.connect(self.saveToNewEnvFile)
+        self.pbExternalEnvFile.clicked.connect(self.browseEnvFile)
         
         self.bbButtons.accepted.connect(self.okayClicked)
         self.bbButtons.rejected.connect(self.cancelClicked)
         
         self.pteExample.textChanged.connect(self.editingExample)
-        
+
+    def browseEnvFile(self):
+    
+        dlg = QFileDialog
+        fileName = dlg.getOpenFileName(self, "Open environment file", "", "Text Files (*.txt)")
+        if fileName:
+            self.leExternalEnvFile.setText(fileName)
+            self.env.setExternalEnvFile(fileName, True)
+            self.pteEnvironment.setPlainText(self.env.getTextEnv())
+                
+    def saveToNewEnvFile(self):
+    
+        dlg = QFileDialog
+        fileName = dlg.getSaveFileName(self, "Specify location for environment file", "", "Text Files (*.txt)")
+        if fileName:
+            self.leExternalEnvFile.setText(fileName)
+            self.env.setExternalEnvFile(fileName, False)
+            
     def editingExample(self):
     
         self.iface.messageBar().pushMessage("Warning", "You are editing the example environment file - changes will not be saved", level=QgsMessageBar.WARNING, duration=1)

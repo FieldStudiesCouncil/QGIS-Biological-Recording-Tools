@@ -72,8 +72,6 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.env = envManager()
         
         # Inits
-        self.leImageFolder.setText(self.env.getEnvValue("mapmashup.imgfolder"))
-        self.leRegistrationFolder.setText(self.env.getEnvValue("mapmashup.regfolder"))
         self.layers = []
         self.tempFiles = []
         self.butLoadImage.setIcon(QIcon( self.pathPlugin % "images/mashup.png" ))
@@ -81,6 +79,13 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
         self.butTransparentColour.setStyleSheet("QWidget { background-color: #FFFFFF }")
+    
+    def showEvent(self, ev):
+        # Load the environment stuff
+        self.env = envManager()
+        self.leImageFolder.setText(self.env.getEnvValue("mapmashup.imgfolder"))
+        self.leRegistrationFolder.setText(self.env.getEnvValue("mapmashup.regfolder"))
+        return QWidget.showEvent(self, ev)    
         
     def _glob(self, path, *exts):
         """

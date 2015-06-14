@@ -488,7 +488,7 @@ class biorecLayer2(QObject):
                     
                     if not geom is None:
                         if fetsDict.get(gr, None) == None:
-                            fetsDict[gr] = [geom, 1, abundance, 1, taxon]
+                            fetsDict[gr] = [geom, 1, abundance, 1, ""]
                             taxaDict[gr] = [taxon]
                         else:
                             #Records
@@ -497,10 +497,19 @@ class biorecLayer2(QObject):
                             fetsDict[gr][2]+=abundance
                             #Richness & Taxa
                             if not taxon in taxaDict[gr]:
-                                taxaDict[gr].append(taxon)
                                 fetsDict[gr][3]+=1 
-                                fetsDict[gr][4]+="#"+taxon
+                                taxaDict[gr].append(taxon)
+                                #fetsDict[gr][4]+="#"+taxon
                             
+        #Sort taxaDict to ensure that the taxa attribute includes taxa in 
+        #same order for all grid references.
+        for gr in fetsDict.keys():
+            taxaDict[gr].sort()
+            for taxon in taxaDict[gr]:
+                fetsDict[gr][4]+="#"+taxon
+            #Trim off first hash
+            fetsDict[gr][4]=fetsDict[gr][4][1:]
+            
         return fetsDict
         
     def includeTaxon(self, taxon):

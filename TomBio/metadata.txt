@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed initially at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.0.3
+version=2.0.4
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,15 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.0.3
+changelog=2.0.4
+	- Added ability to store environment options in a file that
+	is external to the plugin folder. The 'internal' environment
+	options folder gets deleted/replaced whenever the plugin is
+	updated, so this is to overcome that problem. Added support
+	for NBN username and password environment options. Fixed a 
+	bug with generation of values for 'taxa' column of atlas 
+	maps.
+  2.0.3
     - Added facility for the Biological Records tool to generate
 	two extra attributes for atlas layers - 'richness' and 'taxa'.
 	Richness is a count of the number of taxa which contribute to

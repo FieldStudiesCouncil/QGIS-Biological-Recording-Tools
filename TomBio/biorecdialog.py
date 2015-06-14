@@ -99,9 +99,6 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.butShowAll.setIcon(QIcon( self.pathPlugin % "images/layershow.png" ))
         self.butHideAll.setIcon(QIcon( self.pathPlugin % "images/layerhide.png" ))
         
-        # Defaults
-        self.leImageFolder.setText(self.env.getEnvValue("biorec.atlasimagefolder"))
-        
         if self.testImageCreation():
             #self.iface.messageBar().pushMessage("Info", "2.4 or above", level=QgsMessageBar.INFO)
             self.qgisVersion = ">2"
@@ -117,6 +114,12 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.lblOutputCRS.setText("")
         self.lastWaitMessage = None
         self.cbMatchCRS.setChecked(True)
+        
+    def showEvent(self, ev):
+        # Load the environment stuff
+        self.env = envManager()
+        self.leImageFolder.setText(self.env.getEnvValue("biorec.atlasimagefolder"))
+        return QWidget.showEvent(self, ev)        
     
     def infoMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)

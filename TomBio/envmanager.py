@@ -28,17 +28,26 @@ class envManager():
     
     def __init__(self):
         
-        self.iniFile = os.path.join(os.path.dirname( __file__ ), "iniBioRec.txt")
+        self.iniFileInternal = os.path.join(os.path.dirname( __file__ ), "iniBioRec.txt")
         self.iniFileDefault = os.path.join(os.path.dirname( __file__ ), "iniBioRecDefault.txt")
-        if not os.path.exists(self.iniFile):
+        self.iniExternal = ""
+        
+        #If the internal iniFileInternal exists, see if it references an external file
+        if os.path.exists(self.iniFileInternal):
+            self.iniFile = self.iniFileInternal
+            self.loadEnvironment()
+            self.iniExternal = self.getEnvValue("external-env-file")
+            if os.path.exists(self.iniExternal):
+                self.iniFile = self.iniExternal
+        else:
             if os.path.exists(self.iniFileDefault):
-                copyfile(self.iniFileDefault, self.iniFile) 
-            
+                copyfile(self.iniFileDefault, self.iniFileInternal)
+                self.iniFile = self.iniFileInternal
+                
         self.loadEnvironment()
         
     def loadEnvironment(self):
         
-        #self.pteEnvironment.appendPlainText(fileEnv)
         if os.path.isfile(self.iniFile):
             self.textEnv = open(self.iniFile).read()
         else:
@@ -49,6 +58,11 @@ class envManager():
         f = open(self.iniFile, 'w')
         f.write(self.textEnv)
         f.close()
+        
+        if self.iniFile != self.iniFileInternal:
+            f = open(self.iniFileInternal, 'w')
+            f.write("external-env-file: " + self.iniFile)
+            f.close()         
         
     def getTextEnv(self):
         return self.textEnv
@@ -78,7 +92,18 @@ class envManager():
             if line.startswith(search):
                 ret.append(line[len(search):])
         return ret
+        
+    def getExternalFilePath(self):
+        return self.iniExternal
     
     def isValueAssignedToLabel(self, envLabel, envValue):
         # Returns True if the value is assigned to the label
         pass
+        
+    def setExternalEnvFile(self, envFile, bBrowse):
+        self.iniFile = envFile
+        if bBrowse:
+            self.loadEnvironment()
+        else:
+            self.saveEnvironment()
+        

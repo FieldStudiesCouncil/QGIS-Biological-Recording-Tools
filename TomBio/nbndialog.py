@@ -138,11 +138,13 @@ class NBNDialog(QWidget, Ui_nbn):
         self.bufferEnableDisable()
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
-        
-        #Testing
-        #self.leUsername.setText("burkmarr")
-        #self.lePassword.setText("")
-        #self.loginNBN()      
+            
+    def showEvent(self, ev):
+        # Load the environment stuff
+        self.env = envManager()
+        self.leUsername.setText(self.env.getEnvValue("nbn.username"))
+        self.lePassword.setText(self.env.getEnvValue("nbn.password"))
+        return QWidget.showEvent(self, ev)        
         
     def enum(self, **enums):
         return type('Enum', (), enums)
