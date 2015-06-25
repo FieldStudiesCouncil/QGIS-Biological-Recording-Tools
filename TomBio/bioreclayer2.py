@@ -269,7 +269,7 @@ class biorecLayer2(QObject):
                 geom = None
                 if self.iColGr > -1:
                     try:
-                        gr = str(feature.attributes()[self.iColGr])
+                        gr = str(feature.attributes()[self.iColGr]).strip()
                     except:
                         gr = "NULL"
                         
@@ -281,11 +281,11 @@ class biorecLayer2(QObject):
                             geom = self.osgr.geomFromGR(gr, "square")
                 else:
                     try:
-                        strX = str(feature.attributes()[self.iColX])
+                        strX = str(feature.attributes()[self.iColX]).strip()
                     except:
                         strX = "NULL"
                     try:
-                        strY = str(feature.attributes()[self.iColY])
+                        strY = str(feature.attributes()[self.iColY]).strip()
                     except:
                         strY = "NULL"
                         
@@ -403,6 +403,8 @@ class biorecLayer2(QObject):
         
         for feature in iter:
             
+            taxon = ""
+            
             if bFilterTaxaV2:
                 try:
                     taxon = str(feature.attributes()[self.iColTaxa])
@@ -422,7 +424,7 @@ class biorecLayer2(QObject):
                     yOriginal = None
                     # Geocoding from OS grid ref
                     try:
-                        grOriginal = str(feature.attributes()[self.iColGr])
+                        grOriginal = str(feature.attributes()[self.iColGr]).strip()
                     except:
                         grOriginal = "NULL"
                         
