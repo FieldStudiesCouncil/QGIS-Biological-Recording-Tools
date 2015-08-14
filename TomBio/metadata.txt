@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed initially at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.0.6
+version=2.0.7
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,9 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.0.6
+changelog=2.0.7
+	- Dealt with an introduced bug preventing NBN login.
+  2.0.6
     - Re-packaged missing info file for NBN tool.
   2.0.5
     - Bug fixes. Stopped crash on atlas map without taxa. Cope

@@ -1172,7 +1172,13 @@ class NBNDialog(QWidget, Ui_nbn):
             self.iface.messageBar().pushMessage("Error", "NBN Login failed. HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
             return
         except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "NBN Login failed. Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
+            strErr = ""
+            try:
+                strErr = e.reason.args[1]
+            except:
+                strErr = "Unspecified network error."
+                
+            self.iface.messageBar().pushMessage("Error", "NBN Login failed. Network error: %s" % strErr, level=QgsMessageBar.CRITICAL)
             return
     
         for cookie in cj:
