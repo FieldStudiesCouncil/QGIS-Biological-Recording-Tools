@@ -888,7 +888,7 @@ class NBNDialog(QWidget, Ui_nbn):
         bURLextended = False
         
         #Set user login stuff
-        if not self.leUsername.text() == "":
+        if not self.leUsername.text() == "" and not self.lePassword.text() == "":
             url = url + "?username=" + self.leUsername.text()
             hashed_password = hashlib.md5(self.lePassword.text()).hexdigest()
             url = url + "&userkey=" + hashed_password

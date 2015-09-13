@@ -8,7 +8,7 @@ BiorecDialog
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council
         email                : richardb@field-studies-council.org
- ***************************************************************************/
+ ***************************************************************************
 
 /***************************************************************************
  *                                                                         *
@@ -44,7 +44,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.iface = iface
 
         #self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
-        self.pathPlugin = os.path.dirname( __file__ ) 
+        #self.pathPlugin = os.path.dirname( __file__ ) 
         
         self.model = QStandardItemModel(self)
         self.tvRecords.setModel(self.model)
@@ -138,18 +138,32 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
     def testImageCreation(self):
         
+        imgPath = self.pathPlugin % "/test"
+        
         try:
-            imgPath = self.pathPlugin % "/test"
             pixmap = QPixmap(self.canvas.mapSettings().outputSize().width(), 
                 self.canvas.mapSettings().outputSize().height())
             self.canvas.saveAsImage(imgPath + ".png", pixmap)
-           
             os.remove(imgPath + ".png")
-            os.remove(imgPath + ".pngw")
-            return True
+            qgisV2plus = True
         except:
-            return False
- 
+            qgisV2plus = False
+            
+        try:
+            os.remove(imgPath + ".pngw")
+        except:
+            pass
+            
+        try:
+            # To overcome problem with Linux which is case sensitive and
+            # generates the registration files with the extension (.PNGw)
+            # (as discovered by Paul Tyers on Preston Montford course, August 2015)
+            os.remove(imgPath + ".PNGw") 
+        except:
+            pass
+        
+        return qgisV2plus
+        
     def helpFile(self):
         if self.guiFile is None:
             self.guiFile = FileDialog(self.iface, self.infoFile)
@@ -879,7 +893,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         else:
             validName = self.makeValidFilename(name)
             try:
-                image.save(imgFolder + "\\" + validName + ".png")
+                image.save(imgFolder + os.path.sep + validName + ".png")
             except:
                 if not self.imageError:
                     e = sys.exc_info()[0]
@@ -896,17 +910,30 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 self.folderError = True
         else:
             validName = self.makeValidFilename(layer.getName())
-            imgFile = imgFolder + "\\" + validName + ".png"
-            
+            imgFile = imgFolder + os.path.sep + validName + ".png"
             try:
                 self.canvas.saveAsImage(imgFile) 
-                # Don't need the registration file, so delete it
-                os.remove(imgFolder + "\\" + validName + ".pngw")
+                
             except:
                 if not self.imageError:
                     e = sys.exc_info()[0]
                     self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
                     self.imageError = True
+                    
+            # Don't need the registration file, so delete it
+            try:
+                os.remove(imgFolder + os.path.sep + validName + ".pngw")
+            except:
+                pass
+               
+            try:
+                # To overcome problem with Linux which is case sensitive and
+                # generates the registration files with the extension (.PNGw)
+                # (as discovered by Paul Tyers on Preston Montford course, August 2015)
+                os.remove(imgFolder + os.path.sep + validName + ".PNGw")
+            except:
+                pass
+                
                 
     def createComposerImage(self, layer):
     
@@ -918,7 +945,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 self.folderError = True
         else:
             validName = self.makeValidFilename(layer.getName())
-            imgFile = imgFolder + "\\" + validName + ".png"
+            imgFile = imgFolder + os.path.sep + validName + ".png"
             
             #try:
             if len(self.iface.activeComposers()) > 0:
@@ -943,7 +970,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 c.render(imagePainter, targetArea, sourceArea)
                 imagePainter.end()
 
-                imageC.save(imgFolder + "\\" + validName + "-composer.png")
+                imageC.save(imgFolder + os.path.sep + validName + "-composer.png")
             """
             except:
                 if not self.imageError:
