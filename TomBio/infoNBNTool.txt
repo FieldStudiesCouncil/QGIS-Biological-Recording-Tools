@@ -1,9 +1,3 @@
-Dynamic Layers vs Dynamic sub-layers
-
-The 'dynamic sub-layers' option should create one layer from the NBN and set the visibility of the sub-layers depending on the scale. This works well for versions of QGIS before 2.4. From that version onwards, including the current QGIS 2.6 version, only the yellow hectad sub-layer is shown in the map, whatever the zoom level. It seems as though QGIS' handling of sub-layers has stopped working correctly. I will look into this using the QGIS technical help groups.
-
-In the meantime, for version 2.4 of QGIS onwards, you can use the 'dynamic layers' option instead. The main difference is that you get four layers instead of one - each with a single layer whose visibility gets set according to the zoom level.
-
 Hanging on zoom?
 
 We are aware that in Windows XP, QGIS may hang easily when zooming with an NBN WMS map displayed. This has been reported for QGIS versions 2.4 and version 2.6. Windows 7 and Windows 8 appear to be okay. If you zoom carefully with XP, ensuring that you wait for the map to refresh before zooming again, you can avoid hanging. If you are an XP user, you may find it easier to avoid accidental multiple zooms if you turn off the mouse-wheel zoom from the QGIS settings menu (settings, options, map tools: set mouse wheel action to nothing). 

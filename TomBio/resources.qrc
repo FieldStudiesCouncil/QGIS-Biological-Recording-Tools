@@ -20,4 +20,7 @@
 	<qresource prefix="/plugins/TomBio" >
         <file>images/speciesinventory.png</file>
     </qresource>
+	<qresource prefix="/plugins/TomBio" >
+        <file>images/tombio.png</file>
+    </qresource>
 </RCC>

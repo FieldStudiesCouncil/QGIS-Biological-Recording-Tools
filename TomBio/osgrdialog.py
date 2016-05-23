@@ -169,6 +169,7 @@ class OsgrDialog(QWidget, Ui_osgr):
     # Only do the grid poly if map CRS is OSGB or if the the grid is of
     # a user defined, precision.
     if not self.isOSGB() and not self.isUserDefinedGrid():
+        self.warningMessage("The project map CRS must be OSGB *or* you must be using a user-defined grid size")
         return
         
     layer = self.iface.activeLayer()
@@ -202,7 +203,7 @@ class OsgrDialog(QWidget, Ui_osgr):
   def GenerateSquares(self, xMin, yMin, xMax, yMax, selectedFeatures=[], trans=None):
   
     if not self.isOSGB() and not self.isUserDefinedGrid():
-        self.infoMessage("The project map CRS must be OSGB *or* you must be using a user-defined grid size")
+        self.warningMessage("The project map CRS must be OSGB *or* you must be using a user-defined grid size")
         return
         
     if self.precision == 0:
@@ -329,6 +330,7 @@ class OsgrDialog(QWidget, Ui_osgr):
     if (tool != self.clickTool):
         self.cbGROnClick.setChecked(False)
         self.cbGRShowSquare.setChecked(False)
+        #pass
     if (tool != self.dragTool):
         self.butGridTool.setChecked(False)
         #self.butGridTool.setIcon(QIcon( self.pathPlugin % "images/osgr.png" ))

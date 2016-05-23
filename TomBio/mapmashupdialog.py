@@ -48,6 +48,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         
         self.butLoadImage.clicked.connect(self.fromClipboard)
         self.butLoadImageFile.clicked.connect(self.loadImageFile)
+        self.butLoadImageBrowse.clicked.connect(self.loadImageFileBrowse)
         self.butBrowseImg.clicked.connect(self.BrowseImageFolder)
         self.butBrowseReg.clicked.connect(self.BrowseRegistrationFolder)
         self.leRegistrationFolder.textChanged.connect(self.listRegistrations)
@@ -76,6 +77,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.tempFiles = []
         self.butLoadImage.setIcon(QIcon( self.pathPlugin % "images/mashup.png" ))
         self.butLoadImageFile.setIcon(QIcon( self.pathPlugin % "images/mashup2.png" ))
+        self.butLoadImageBrowse.setIcon(QIcon( self.pathPlugin % "images/mashup3.png" ))
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
         self.butTransparentColour.setStyleSheet("QWidget { background-color: #FFFFFF }")
@@ -136,7 +138,22 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
     def loadImageFile(self):
         self.loadImage()
         
-    def loadImage(self, image=None):
+    def loadImageFileBrowse(self):
+    
+        #Reload env
+        self.env.loadEnvironment()
+        
+        dirImages = self.leImageFolder.text()
+        #Check if image folder exists
+        if not os.path.isdir(dirImages):
+            dirImages = ""
+    
+        dlg = QFileDialog
+        fileName = dlg.getOpenFileName(self, "Browse for image file", dirImages, "All Files (*.*)")
+        if fileName:
+            self.loadImage(None, fileName)
+        
+    def loadImage(self, image=None, imageFile=None):
    
         #Is a registration file selected?
         if self.cboRegistrations.count() == 0:
@@ -149,12 +166,18 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             self.iface.messageBar().pushMessage("Info", "The specified image folder - '" + dirImages + "' - cannot be found.", level=QgsMessageBar.INFO)
             return
     
-        #Create temporary iamge filename 
+        #Create temporary image filename 
         f = tempfile.NamedTemporaryFile(dir=dirImages)
         imageTemp = f.name + ".png"
         f.close()
             
-        if image is None:
+        if not image is None:
+            # Copy clipboard image to temp file
+            image.save(imageTemp)
+        elif not imageFile is None:
+            # Copy the passed image to temp file
+            copyfile(imageFile, imageTemp)
+        else:
             # Get most recent image in image folder and copy to temp file
             imageFiles = self._glob(dirImages, ".gif", ".png", "jpg", ".tif", ".bmp", "jpeg", ".tiff")
             if len(imageFiles) == 0:
@@ -165,9 +188,6 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             if recentImage == "":
                 return
             copyfile(recentImage, imageTemp)
-        else:
-            # Copy clipboard image to temp file
-            image.save(imageTemp)
         
         # Copy the wld file to image folder and give it the same name as the image
         regFileOut = imageTemp[:-4] + ".wld"

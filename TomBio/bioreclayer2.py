@@ -87,7 +87,7 @@ class biorecLayer2(QObject):
         
     def setColTaxa(self, iColTaxa):
         self.iColTaxa = iColTaxa
-        
+
     def setColAb(self, iColAb):
         self.iColAb = iColAb
         
@@ -187,27 +187,43 @@ class biorecLayer2(QObject):
             return id
             
     def addFieldsToTable(self, mapType):
+    
         # This procedure makes a map of either points or squares - one for each record.
         
-        # Set up output map layer with attributes of types 
-        # specified by in environment file.
         for field in self.csvLayer.dataProvider().fields():
             attr = field.name()
+            fieldType = field.typeName()
             if attr != "":
-                #self.pteLog.appendPlainText("Col " + attr)
                 bIsNumeric = False
-                for colNumeric in self.env.getEnvValues("biorec.intcol"):
-                    if attr == colNumeric:
-                        self.pr.addAttributes([QgsField(attr, QVariant.Int)])
-                        bIsNumeric = True
-                        break
-                for colNumeric in self.env.getEnvValues("biorec.dblcol"):
-                    if attr == colNumeric:
-                        self.pr.addAttributes([QgsField(attr, QVariant.Double)])
-                        bIsNumeric = True
-                        break
+                if fieldType == "integer":
+                    self.pr.addAttributes([QgsField(attr, QVariant.Int)])
+                    bIsNumeric = True
+
+                if fieldType == "double":
+                    self.pr.addAttributes([QgsField(attr, QVariant.Double)])
+                    bIsNumeric = True
+
                 if not bIsNumeric: 
                     self.pr.addAttributes([QgsField(attr, QVariant.String)])
+
+        # Set up output map layer with attributes of types 
+        # specified by in environment file.
+        #for field in self.csvLayer.dataProvider().fields():
+            #attr = field.name()
+            #if attr != "":)
+                #bIsNumeric = False
+                #for colNumeric in self.env.getEnvValues("biorec.intcol"):
+                    #if attr == colNumeric:
+                        #self.pr.addAttributes([QgsField(attr, QVariant.Int)])
+                        #bIsNumeric = True
+                        #break
+                #for colNumeric in self.env.getEnvValues("biorec.dblcol"):
+                    #if attr == colNumeric:
+                        #self.pr.addAttributes([QgsField(attr, QVariant.Double)])
+                        #bIsNumeric = True
+                        #break
+                #if not bIsNumeric: 
+                    #self.pr.addAttributes([QgsField(attr, QVariant.String)])
 
         self.vl.startEditing()   
         
@@ -216,9 +232,11 @@ class biorecLayer2(QObject):
         if len(self.taxa) == 1:
             # Taxa selected, so get 
             taxonFieldName = self.csvLayer.dataProvider().fields()[self.iColTaxa].name()
+
             # No indexing in set class so can't use self.taxa[0]
-            for taxon in self.taxa:
-                strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
+            for taxon in self.taxa: 
+                #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
+                strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
 
             bNoFilterMethod = False     
             try:      
@@ -254,7 +272,7 @@ class biorecLayer2(QObject):
         
             if bFilterTaxaV2:
                 try:
-                    taxon = str(feature.attributes()[self.iColTaxa])
+                    taxon = str(feature.attributes()[self.iColTaxa]).strip()
                 except:
                     taxon = "invalid"
                 
@@ -279,7 +297,7 @@ class biorecLayer2(QObject):
                             geom = self.osgr.geomFromGR(gr, "point")
                         else:
                             geom = self.osgr.geomFromGR(gr, "square")
-                else:
+                elif self.iColX > -1:
                     try:
                         strX = str(feature.attributes()[self.iColX]).strip()
                     except:
@@ -311,7 +329,15 @@ class biorecLayer2(QObject):
                             if errMap != self.translationError:
                                 #self.warningMessage(errMap)
                                 self.translationError = errMap
-                                
+                else:
+                    #Get the geometry from the map layer
+                    pnt = feature.geometry().asPoint()
+                    x = pnt.x()
+                    y = pnt.y()
+                    
+                    ret = self.projection.xyToPoint(x, y)
+                    geom = ret[0]
+                    
                 if geom != None:
                     fet = QgsFeature()
                     fet.setGeometry(geom)
@@ -323,9 +349,11 @@ class biorecLayer2(QObject):
         # This procedure makes an atlas map
         self.pr.addAttributes([QgsField("GridRef", QVariant.String)])
         self.pr.addAttributes([QgsField("Records", QVariant.Int)])
-        self.pr.addAttributes([QgsField("Abundance", QVariant.Int)])
+        if self.env.getEnvValue("biorec.outtrim") != "true":
+            self.pr.addAttributes([QgsField("Abundance", QVariant.Int)])
         self.pr.addAttributes([QgsField("Richness", QVariant.Int)])
-        self.pr.addAttributes([QgsField("Taxa", QVariant.String)])
+        if self.env.getEnvValue("biorec.outtrim") != "true":
+            self.pr.addAttributes([QgsField("Taxa", QVariant.String)])
             
         self.vl.startEditing()
         
@@ -386,7 +414,10 @@ class biorecLayer2(QObject):
             fetDict = fetsDict[gr]
             fet = QgsFeature()
             fet.setGeometry(fetDict[0])
-            attrs = [gr, fetDict[1], fetDict[2], fetDict[3], fetDict[4]]
+            if self.env.getEnvValue("biorec.outtrim") != "true":
+                attrs = [gr, fetDict[1], fetDict[2], fetDict[3], fetDict[4]]
+            else:
+                attrs = [gr, fetDict[1], fetDict[3]]
             fet.setAttributes(attrs)
             fets.append(fet)
                 
@@ -430,7 +461,7 @@ class biorecLayer2(QObject):
                         
                     if grOriginal == "NULL":
                         grOriginal = None
-                else:
+                elif self.iColX > -1:
                     grOriginal = None
                     # Geocoding from x and y
                     try:
@@ -452,7 +483,12 @@ class biorecLayer2(QObject):
                         except:
                             xOriginal = None
                             yOriginal = None
-               
+                else:
+                    #Get the geometry from the map layer
+                    pnt = feature.geometry().asPoint()
+                    xOriginal = pnt.x()
+                    yOriginal = pnt.y()
+                       
                 if not (self.iColGr > -1 and grOriginal == None) and not (self.iColGr == -1 and xOriginal == None):
 
                     # Get a value for abundance

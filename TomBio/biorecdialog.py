@@ -22,6 +22,7 @@ BiorecDialog
 
 from ui_biorec import Ui_Biorec
 import os
+import ntpath
 import csv
 import sys
 from filedialog import FileDialog
@@ -46,15 +47,15 @@ class BiorecDialog(QWidget, Ui_Biorec):
         #self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
         #self.pathPlugin = os.path.dirname( __file__ ) 
         
-        self.model = QStandardItemModel(self)
-        self.tvRecords.setModel(self.model)
+        #self.model = QStandardItemModel(self)
+        #self.tvRecords.setModel(self.model)
         
         self.butBrowse.clicked.connect(self.browseCSV)
         self.butMap.clicked.connect(self.MapRecords)
         self.butShowAll.clicked.connect(self.showAll)
         self.butHideAll.clicked.connect(self.hideAll)
         self.butGenTree.clicked.connect(self.listTaxa)
-        self.butSaveImage.clicked.connect(self.batchImageGenerate)
+        self.butSaveImage.clicked.connect(self.batchGeneration)
         self.butRemoveMap.clicked.connect(self.removeMap)
         self.butRemoveMaps.clicked.connect(self.removeMaps)
         self.butExpand.clicked.connect(self.expandAll)
@@ -66,13 +67,14 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.pbCancel.clicked.connect(self.cancelBatch)
         self.butHelp.clicked.connect(self.helpFile)
         self.cboTaxonCol.currentIndexChanged.connect(self.enableDisableTaxa)
-        self.cboGridRefCol.currentIndexChanged.connect(self.enableDisableGridRef)
-        self.cboXCol.currentIndexChanged.connect(self.enableDisableXY)
-        self.cboYCol.currentIndexChanged.connect(self.enableDisableXY)
-        self.pbInputCRS.clicked.connect(self.selectInputCRS)
-        self.pbOutputCRS.clicked.connect(self.selectOutputCRS)
         self.cboMapType.currentIndexChanged.connect(self.checkMapType)
+        self.mlcbSourceLayer.layerChanged.connect(self.layerSelected)
+        self.fcbGridRefCol.fieldChanged.connect(self.enableDisableGridRef)
+        self.fcbXCol.fieldChanged.connect(self.enableDisableXY)
+        self.fcbYCol.fieldChanged.connect(self.enableDisableXY)
         self.cbMatchCRS.stateChanged.connect(self.matchCRSClick)
+        self.pswInputCRS.crsChanged.connect(self.inputCrsSelected)
+        self.cboOutputFormat.currentIndexChanged.connect(self.outputFormatChanged)
         
         # Load the environment stuff
         self.env = envManager()
@@ -98,22 +100,33 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.butSaveImage.setIcon(QIcon( self.pathPlugin % "images/saveimage.png" ))
         self.butShowAll.setIcon(QIcon( self.pathPlugin % "images/layershow.png" ))
         self.butHideAll.setIcon(QIcon( self.pathPlugin % "images/layerhide.png" ))
-        
-        if self.testImageCreation():
-            #self.iface.messageBar().pushMessage("Info", "2.4 or above", level=QgsMessageBar.INFO)
-            self.qgisVersion = ">2"
-        else:
-            #self.iface.messageBar().pushMessage("Info", "2.0", level=QgsMessageBar.INFO)
-            self.qgisVersion = "2"
+   
 
         #Inits
         self.blockGR = False
         self.blockXY = False
         self.dsbGridSize.setEnabled(False)
-        self.lblInputCRS.setText("")
-        self.lblOutputCRS.setText("")
         self.lastWaitMessage = None
         self.cbMatchCRS.setChecked(True)
+        self.isNBNCSV = None
+        self.qgsOutputCRS.setEnabled(False)
+        
+        self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapRenderer().destinationCrs())
+        
+        self.mlcbSourceLayer.setFilters( QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.NoGeometry )
+        #Programmatic selection of fields not currently working properly so can't set the filters
+        #self.fcbGridRefCol.setFilters( QgsFieldProxyModel.String )
+        #self.fcbXCol.setFilters( QgsFieldProxyModel.Numeric )
+        #self.fcbYCol.setFilters( QgsFieldProxyModel.Numeric )
+        
+        self.layerSelected()
+        
+    def outputFormatChanged(self):
+        format = self.cboOutputFormat.currentText()
+        if (format == "GeoJSON") or (format == "Shapefile"):
+            self.qgsOutputCRS.setEnabled(True)
+        else:
+            self.qgsOutputCRS.setEnabled(False)
         
     def showEvent(self, ev):
         # Load the environment stuff
@@ -128,42 +141,15 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
         
     def waitMessage(self, str1="", str2=""):
-       
+        
+        iface.messageBar().popWidget(self.lastWaitMessage)
         if str1 <> "":
             widget = iface.messageBar().createMessage(str1, str2)
-            self.lastWaitMessage = iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
-            qApp.processEvents() 
-        else:
-            iface.messageBar().popWidget(self.lastWaitMessage)
-        
-    def testImageCreation(self):
-        
-        imgPath = self.pathPlugin % "/test"
-        
-        try:
-            pixmap = QPixmap(self.canvas.mapSettings().outputSize().width(), 
-                self.canvas.mapSettings().outputSize().height())
-            self.canvas.saveAsImage(imgPath + ".png", pixmap)
-            os.remove(imgPath + ".png")
-            qgisV2plus = True
-        except:
-            qgisV2plus = False
-            
-        try:
-            os.remove(imgPath + ".pngw")
-        except:
-            pass
-            
-        try:
-            # To overcome problem with Linux which is case sensitive and
-            # generates the registration files with the extension (.PNGw)
-            # (as discovered by Paul Tyers on Preston Montford course, August 2015)
-            os.remove(imgPath + ".PNGw") 
-        except:
-            pass
-        
-        return qgisV2plus
-        
+            self.lastWaitMessage = iface.messageBar().pushWidget(widget, QgsMessageBar.INFO)
+            qApp.processEvents()
+        #else:
+            #iface.messageBar().popWidget(self.lastWaitMessage)
+         
     def helpFile(self):
         if self.guiFile is None:
             self.guiFile = FileDialog(self.iface, self.infoFile)
@@ -173,7 +159,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
     def checkMapType(self):
     
         if self.cboMapType.currentText().startswith("User-defined"):
-            if self.cboGridRefCol.currentIndex() > 0:
+            if self.fcbGridRefCol.currentField() != "":
                 self.infoMessage("Can't set a user-defined grid size when using OS grid references as input")
                 self.cboMapType.setCurrentIndex(0)
             else:
@@ -184,11 +170,11 @@ class BiorecDialog(QWidget, Ui_Biorec):
             
         if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
         
-            if self.lblInputCRS.text() != "EPSG:27700":
+            if self.pswInputCRS.crs().authid() != "EPSG:27700":
                 self.infoMessage("Only points or user-defined grid for input data that are not OSGB (EPSG:27700)")
                 self.cboMapType.setCurrentIndex(0)
             
-        if self.cboMapType.currentText() == "Records as grid squares" and self.cboGridRefCol.currentIndex() == 0:
+        if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":
             
             self.infoMessage("'Records as grid squares' only available for input as OS grid references")
             self.cboMapType.setCurrentIndex(0)
@@ -196,86 +182,109 @@ class BiorecDialog(QWidget, Ui_Biorec):
     def enableDisableGridRef(self):
     
         self.blockGR = True
-        
-        if self.cboGridRefCol.currentIndex() > 0 and not self.blockXY:
-            self.cboXCol.setCurrentIndex(0)
-            self.cboYCol.setCurrentIndex(0)
+       
+        if self.csvLayer != None:
+            if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:
+                #QGis.GeometryType.NoGeometry = 4
+                #QGis.GeometryType.UnknownGeometry = 3
+
+                self.fcbGridRefCol.setEnabled(True)
+                self.lblGridRefCol.setEnabled(True)
+                self.fcbXCol.setEnabled(True)
+                self.lblXCol.setEnabled(True)
+                self.fcbYCol.setEnabled(True)
+                self.lblYCol.setEnabled(True)
+                
+                if self.fcbGridRefCol.currentField() != "" and not self.blockXY:
+                    
+                    self.fcbXCol.setField(None)
+                    self.fcbYCol.setField(None)
+                    
+                if self.fcbGridRefCol.currentField() != "":
+
+                    self.pswInputCRS.setEnabled(False)
+                    self.lblInputCRS.setEnabled(False)
+                    self.pswInputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
+                    self.pswOutputCRS.setEnabled(False)
+                    self.lblOutputCRS.setEnabled(False)
+                    self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
             
-        if self.cboGridRefCol.currentIndex() > 0:
-            self.pbInputCRS.setEnabled(False)
-            self.lblInputCRS.setText("EPSG:27700")
-            self.pbOutputCRS.setEnabled(False)
-            self.lblOutputCRS.setText("EPSG:27700")
-            
-            if self.cboMapType.currentText().startswith("User-defined"):
-                self.cboMapType.setCurrentIndex(0)
+                    if self.cboMapType.currentText().startswith("User-defined"):
+                        self.cboMapType.setCurrentIndex(0)
+                        
+                else:
+                    self.pswInputCRS.setEnabled(True)
+                    self.lblInputCRS.setEnabled(True)
+                    self.pswOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+                    self.lblOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+                    pass
+                    
+                bClear = False
+            else:
+                self.pswInputCRS.setEnabled(False)
+                self.lblInputCRS.setEnabled(False)
+                bClear = True
         else:
-            self.pbInputCRS.setEnabled(True)
-            self.pbOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+            bClear = True
+            
+        if bClear:
+            self.fcbGridRefCol.setField(None)
+            self.fcbXCol.setField(None)
+            self.fcbYCol.setField(None)
+            self.fcbGridRefCol.setEnabled(False)
+            self.lblGridRefCol.setEnabled(False)
+            self.fcbXCol.setEnabled(False)
+            self.lblXCol.setEnabled(False)
+            self.fcbYCol.setEnabled(False)
+            self.lblYCol.setEnabled(False)
      
         self.checkMapType()
-        
+       
         self.blockGR = False
         
     def enableDisableXY(self):
     
         self.blockXY = True
         
-        if (self.cboXCol.currentIndex() > 0 or self.cboYCol.currentIndex() > 0) and not self.blockGR:
-            self.cboGridRefCol.setCurrentIndex(0)
-            
+        if (self.fcbXCol.currentField() != "" or self.fcbYCol.currentField() != "") and not self.blockGR:
+            self.fcbGridRefCol.setField(None)
+
+        self.enableDisableGridRef()
+        
         self.checkMapType()
         
         self.blockXY = False
 
     def matchCRSClick(self):
        
-        if self.cboGridRefCol.currentIndex() > 0:
-            self.pbOutputCRS.setEnabled(False)
+        if self.fcbGridRefCol.currentField() != "":
+            self.pswOutputCRS.setEnabled(False)
+            self.lblOutputCRS.setEnabled(False)
         else:
-            self.pbOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
-            
+            self.pswOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+            self.lblOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
         if self.cbMatchCRS.isChecked():
-            self.lblOutputCRS.setText(self.lblInputCRS.text())
+            self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
             
     def enableDisableTaxa(self):
     
         if self.cboTaxonCol.currentIndex() == 0:
             self.cboGroupingCol.setCurrentIndex(0)
             self.cboGroupingCol.setEnabled(False)
-            self.cbIsScientific.setChecked(False)
-            self.cbIsScientific.setEnabled(False)
             self.lblGroupingCol.setEnabled(False)
+            self.cbIsScientific.setChecked(False)
+            self.cbIsScientific.setEnabled(False)     
         else:
             self.cboGroupingCol.setEnabled(True)
             self.cbIsScientific.setEnabled(True)
             self.lblGroupingCol.setEnabled(True)
             
-    def selectInputCRS(self):
+    def inputCrsSelected(self, crs):
     
-        crs = self.selectCRS()
-        if not crs == None:
-            self.lblInputCRS.setText(crs)
-            
-            if self.cbMatchCRS.isChecked():
-                self.lblOutputCRS.setText(crs)
-            
+        if self.cbMatchCRS.isChecked():
+            self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
+        
         self.checkMapType()
-            
-    def selectOutputCRS(self):
-    
-        crs = self.selectCRS()
-        if not crs == None:
-            self.lblOutputCRS.setText(crs)
-            
-    def selectCRS(self):
-    
-        crsSelector = QgsGenericProjectionSelector()
-        crsSelector.exec_()
-        if crsSelector.selectedCrsId() == 0:
-            return None
-        else:
-            return str(crsSelector.selectedAuthId())
             
     def browseImageFolder(self):
     
@@ -331,28 +340,11 @@ class BiorecDialog(QWidget, Ui_Biorec):
             fileName = nbnFile
             
         #self.infoMessage("File: " + fileName)
-
-        if fileName:
-                 
-            #Initialise the tree model
-            self.initTreeView()
         
-            # Clear all current values
-            self.model.clear()
-            self.cboGridRefCol.clear()
-            self.cboXCol.clear()
-            self.cboYCol.clear()
-            self.cboTaxonCol.clear()
-            self.cboGroupingCol.clear()
-            self.cboAbundanceCol.clear()
-            
+        if fileName != "":
             # Load the CSV and set controls
-            self.leFilename.setText(os.path.basename(fileName))
-            self.leFilename.setToolTip(fileName)
             self.loadCsv(fileName, (not nbnFile is None))
-            
-            #self.iface.messageBar().pushMessage("Info", "csv loaded.", level=QgsMessageBar.INFO)
-            
+          
     def initTreeView(self):
     
         #Initialise the tree model
@@ -387,7 +379,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             if iColGrouping > -1:
 
                 try:
-                    group = str(feature.attributes()[iColGrouping])
+                    group = str(feature.attributes()[iColGrouping]).strip()
                 except:
                     group = "invalid"
                     
@@ -403,7 +395,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 parent = tree
             
             try:
-                taxon = str(feature.attributes()[iColTaxon])
+                taxon = str(feature.attributes()[iColTaxon]).strip()
             except:
                 taxon = "invalid"
                 
@@ -486,15 +478,14 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.setChildrenItems(self.tvTaxa.model().item(i,0), Qt.Unchecked)
               
     def addItemToFieldLists(self, item):
-        self.cboGridRefCol.addItem(item)
-        self.cboXCol.addItem(item)
-        self.cboYCol.addItem(item)
         self.cboTaxonCol.addItem(item)
         self.cboGroupingCol.addItem(item)
         self.cboAbundanceCol.addItem(item)
         
     def loadCsv(self, fileName, isNBNCSV):
     
+        self.isNBNCSV = isNBNCSV
+        
         #Reload the environment
         self.env.loadEnvironment()
         
@@ -503,155 +494,193 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         self.waitMessage("Loading", fileName)
         try:
-            self.csvLayer = QgsVectorLayer(uri, "biorecCSV", "delimitedtext")
+            lyr =  QgsVectorLayer(uri, os.path.basename(fileName), "delimitedtext")
+            #Add to registry
+            QgsMapLayerRegistry.instance().addMapLayer(lyr)
         except:
-            self.csvLayer = None
+            lyr = None
+            
         self.waitMessage()
         
-        if self.csvLayer == None:
+        if lyr == None:
             self.warningMessage("Couldn't open CSV file: '%s'" % (fileName))
         else:
-            #Add the fields to the relevant drop-down lists
-            self.addItemToFieldLists("")
-            for field in self.csvLayer.dataProvider().fields():
-                self.addItemToFieldLists(field.name())
+            #Set in layer selection list.
+            self.mlcbSourceLayer.setLayer(lyr)
             
-            # Set default value for GridRef column
-            if isNBNCSV:
-                index = 1
+    def layerSelected(self):
+        
+        if self.csvLayer != self.mlcbSourceLayer.currentLayer():
+            # Clear all current values for standard combo boxes
+            self.cboTaxonCol.clear()
+            self.cboGroupingCol.clear()
+            self.cboAbundanceCol.clear()
+            # Clear taxon tree
+            self.initTreeView()
+        
+            self.csvLayer = self.mlcbSourceLayer.currentLayer()
+            
+            if self.csvLayer != None:
+                self.pswInputCRS.setCrs(self.csvLayer.crs())
+                if self.cbMatchCRS.isChecked():
+                    self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
+            
+            
+            #Need to enable field selectors in order to set values
+            self.fcbGridRefCol.setEnabled(True)
+            self.lblGridRefCol.setEnabled(True)
+            self.fcbXCol.setEnabled(True)
+            self.lblXCol.setEnabled(True)
+            self.fcbYCol.setEnabled(True)
+            self.lblYCol.setEnabled(True)
+            self.fcbGridRefCol.setLayer(self.csvLayer)
+            self.fcbXCol.setLayer(self.csvLayer)
+            self.fcbYCol.setLayer(self.csvLayer)
+            
+           
+                
+            if self.csvLayer != None:
+                #Initialise the tree model
+                self.initTreeView()
+            
+                #Add the fields to the relevant drop-down lists
+                self.addItemToFieldLists("")
                 for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == "location":
-                        self.cboGridRefCol.setCurrentIndex(index)
-                        break
-                    index += 1
-            else:
-                for colGridRef in self.env.getEnvValues("biorec.gridrefcol"):
+                    self.addItemToFieldLists(field.name())
+                
+                # Set default value for GridRef column
+                if self.isNBNCSV:
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
-                        if field.name() == colGridRef:
-                            self.cboGridRefCol.setCurrentIndex(index)
+                        if field.name() == "location":
+                            self.fcbGridRefCol.setField(field.name())
                             break
                         index += 1
-                    
-            # Set default value for X column
-            for colX in self.env.getEnvValues("biorec.xcol"):
-                index = 1
-                for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == colX:
-                        self.cboXCol.setCurrentIndex(index)
-                        break
-                    index += 1
-                    
-            # Set default value for Y column
-            for colY in self.env.getEnvValues("biorec.ycol"):
-                index = 1
-                for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == colY:
-                        self.cboYCol.setCurrentIndex(index)
-                        break
-                    index += 1
-                    
-            # Set default value for Taxon column
-            if isNBNCSV:
-                index = 1
-                for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == "pTaxonName":
-                        self.cboTaxonCol.setCurrentIndex(index)
-                        break
-                    index += 1
-            else:
-                for colTaxon in self.env.getEnvValues("biorec.taxoncol"):
+                else:
+                    for colGridRef in self.env.getEnvValues("biorec.gridrefcol"):
+                        index = 1
+                        for field in self.csvLayer.dataProvider().fields():
+                            if field.name() == colGridRef:
+                                self.fcbGridRefCol.setField(field.name())
+
+                                break
+                            index += 1
+
+                # Set default value for X column
+                for colX in self.env.getEnvValues("biorec.xcol"):
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
-                        if field.name() == colTaxon:
+                        if field.name() == colX:
+                            self.fcbXCol.setField(field.name())
+                            break
+                        index += 1
+                        
+                # Set default value for Y column
+                for colY in self.env.getEnvValues("biorec.ycol"):
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == colY:#
+                            self.fcbYCol.setField(field.name())
+                            break
+                        index += 1
+                        
+                # Set default value for Taxon column
+                if self.isNBNCSV:
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == "pTaxonName":
                             self.cboTaxonCol.setCurrentIndex(index)
                             break
                         index += 1
-                    
-            # Set default value for Grouping column
-            for colGrouping in self.env.getEnvValues("biorec.groupingcol"):
-                index = 1
-                for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == colGrouping:
-                        self.cboGroupingCol.setCurrentIndex(index)
-                        break
-                    index += 1
-                    
-            # Set default value for Abundance column
-            for colAbundance in self.env.getEnvValues("biorec.abundancecol"):
-                index = 1
-                for field in self.csvLayer.dataProvider().fields():
-                    if field.name() == colAbundance:
-                        self.cboAbundanceCol.setCurrentIndex(index)
-                        break
-                    index += 1
-            
-            # Set scientific names checkbox if set in environment
-            if self.env.getEnvValue("biorec.scientificnames") == "True":
-                self.cbIsScientific.setChecked(True)
-            else:
-                self.cbIsScientific.setChecked(False)      
-                
-            # Make first few records available for user to inspect
-            fields = []
-            for field in self.csvLayer.dataProvider().fields():
-                fields.append(field.name())
-            self.model.setHorizontalHeaderLabels(fields)
-           
-            rowCount = 0
-            iter = self.csvLayer.getFeatures()
-            for feature in iter:
-                rowCount += 1
-                
-                if rowCount > 10:
-                    #Only output the first ten rows
-                    break
                 else:
-                    #Output a row
-                    items = []
-                    for field in feature.attributes():
-                        try:
-                            items.append(QStandardItem(str(field)))
-                        except:
-                            items.append(QStandardItem(""))
-                    """
-                    items = [
-                        QStandardItem(str(field))
-                        for field in feature.attributes()
-                    ]
-                    """
-                    self.model.appendRow(items)
+                    for colTaxon in self.env.getEnvValues("biorec.taxoncol"):
+                        index = 1
+                        for field in self.csvLayer.dataProvider().fields():
+                            if field.name() == colTaxon:
+                                self.cboTaxonCol.setCurrentIndex(index)
+                                break
+                            index += 1
+                        
+                # Set default value for Grouping column
+                for colGrouping in self.env.getEnvValues("biorec.groupingcol"):
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == colGrouping:
+                            self.cboGroupingCol.setCurrentIndex(index)
+                            break
+                        index += 1
+                        
+                # Set default value for Abundance column
+                for colAbundance in self.env.getEnvValues("biorec.abundancecol"):
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == colAbundance:
+                            self.cboAbundanceCol.setCurrentIndex(index)
+                            break
+                        index += 1
+                
+                # Set scientific names checkbox if set in environment
+                if self.env.getEnvValue("biorec.scientificnames") == "True":
+                    self.cbIsScientific.setChecked(True)
+                else:
+                    self.cbIsScientific.setChecked(False)
+                    
+                    
+                #If the maketree environment variable is set, then
+                #automatically create tree
+                #Take this out because it can really slow things down when layers
+                #automatically selected from drop-down.
+                #if self.env.getEnvValue("biorec.maketree") == "True":
+                    #self.listTaxa(True) 
+
+            self.enableDisableTaxa()
+            self.enableDisableGridRef()
+            self.enableDisableXY()
             
-        self.enableDisableTaxa()
-        self.enableDisableGridRef()
-        self.enableDisableXY()
-        
-        #If the maketree environment variable is set, then
-        #automatically create tree
-        if self.env.getEnvValue("biorec.maketree") == "True":
-            self.listTaxa(True) 
-        
     def MapRecords(self):
               
+        # Before creating new layers, for current list of layers, remove any from the list which are not 
+        # listed in map registry. This accounts for people removing layers direct from registry.
+        tmpLayers = []
+        for layer in self.layers:
+            try:
+                regLayer = QgsMapLayerRegistry.instance().mapLayer(layer.getVectorLayer().id())
+                layerFound = True
+            except Exception, e:
+                layerFound = False
+            
+            if layerFound:
+                tmpLayers.append(layer)
+                
+        self.layers = list(tmpLayers)
+        
+        # Initialise progress bar
         self.progBatch.setValue(0)
         
-        # Return if no grid reference or X & Y fields selected
-        if self.cboGridRefCol.currentIndex() == 0 and (self.cboXCol.currentIndex() == 0 or self.cboYCol.currentIndex() == 0):
-            self.iface.messageBar().pushMessage("Info", "You must select either an OS grid ref column or both X and Y columns", level=QgsMessageBar.INFO)
-            return
+        # Return if no grid reference or X & Y fields selected - but only for layers without geometry
+        if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:
+            #QGis.GeometryType.NoGeometry = 4
+            #QGis.GeometryType.UnknownGeometry = 3
+            
+            self.fcbGridRefCol.currentField() == ""
+            
+            if self.fcbGridRefCol.currentField() == "" and (self.fcbXCol.currentField() == "" or self.fcbYCol.currentField() == ""):
+                self.iface.messageBar().pushMessage("Info", "You must select either an OS grid ref column or both X and Y columns for CSV layers", level=QgsMessageBar.INFO)
+                return
             
         # Return if Grid ref selected with user-defined grid
-        if self.cboGridRefCol.currentIndex() > 0 and self.cboMapType.currentText().startswith("User-defined"):
+        if self.fcbGridRefCol.currentField() != "" and self.cboMapType.currentText().startswith("User-defined"):
             self.iface.messageBar().pushMessage("Info", "You cannot specify a user-defined grid with input of OS grid references", level=QgsMessageBar.INFO)
             return
-            
+           
+        
         # Return if X & Y selected but no input CRS
-        if self.cboXCol.currentIndex() > 0 and self.lblInputCRS.text() == "":
+        if self.fcbXCol.currentField() != "" and self.pswInputCRS.crs().authid() == "":
             self.iface.messageBar().pushMessage("Info", "You must specify an input CRS if specifying X and Y columns", level=QgsMessageBar.INFO)
             return
             
         # Return if X & Y selected but no output CRS
-        if self.cboXCol.currentIndex() > 0 and self.lblOutputCRS.text() == "":
+        if self.fcbXCol.currentField() != "" and self.pswOutputCRS.crs().authid() == "":
             self.iface.messageBar().pushMessage("Info", "You must specify an output CRS if specifying X and Y columns", level=QgsMessageBar.INFO)
             return
             
@@ -661,7 +690,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             return
         
         # Return X & Y input selected, but not records as points or user-defined grid selected
-        if self.cboXCol.currentIndex() > 0 and self.lblInputCRS.text() != "EPSG:27700":
+        if self.fcbXCol.currentField() != "" and self.pswInputCRS.crs().authid() != "EPSG:27700":
             if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText()== ("Records as points"):
                 self.iface.messageBar().pushMessage("Info", "For CRS other than OSGB, you must create records as points or a user-defined atlas",level=QgsMessageBar.INFO)
                 return
@@ -701,16 +730,140 @@ class BiorecDialog(QWidget, Ui_Biorec):
         for layer in self.layers:
             layerIDs.append(layer.getVectorLayer())
 
-        try:
-            QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
-        except Exception, e:
-            #self.iface.messageBar().pushMessage("Error", "Error adding layers to map: %s" % e, level=QgsMessageBar.CRITICAL)
-            self.iface.messageBar().pushMessage("Error", "Problem adding layers. Clear bio.rec layers with 'remove all map layers' button and try again.", level=QgsMessageBar.CRITICAL)
+        QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
+        
+        #try:
+        #    QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
+        #except Exception, e:
+        #    self.iface.messageBar().pushMessage("Error", "Problem adding layers. Clear bio.rec layers with 'remove all map layers' button and try again.", level=QgsMessageBar.CRITICAL)
             
         # Make sure none of the layers expanded
         for layer in self.layers:
             layer.setExpanded(False)
     
+    def batchGeneration(self):
+    
+        if len(self.layers) == 0:
+            self.infoMessage("There are no temporary biorec layers to work with.")
+            return
+                
+        format = self.cboOutputFormat.currentText()
+        if (format == "GeoJSON") or (format == "Shapefile"):
+            self.batchLayer(format)
+        elif (format == "Image"):
+            self.batchImageGenerate()
+        elif (format == "Composer image") or (format == "Composer PDF"):
+            self.batchPrintComposer()
+           
+    def batchPrintComposer(self):
+        
+        #Generate image from print composer
+        
+        #Get the first active composer
+        #Could not find a way to list the composers currently associated with the project by name
+        try:
+            c = self.iface.activeComposers()[0].composition()
+        except:
+            self.warningMessage("Cannot connect to a print composer. Make sure that a print composer is available.")
+            return
+            
+        #Check that only one temp layer is visible
+        iVisibleLayers = 0
+        for tmplyr in self.layers:
+            lyr = tmplyr.getVectorLayer()
+            if self.iface.legendInterface().isLayerVisible(lyr):
+                iVisibleLayers += 1
+        
+        if iVisibleLayers != 1:
+            self.warningMessage("You must have one, and only one, temp layer visible. You have %s visible layers." % str(iVisibleLayers))
+            return
+            
+        #Set the output folder
+        imgFolder = self.leImageFolder.text()
+
+        #Get the current visible layer 
+        iLyr = 0
+        for tmplyr in self.layers:
+            lyr = tmplyr.getVectorLayer()
+            iLyr+=1
+            if self.iface.legendInterface().isLayerVisible(lyr):
+                currentLayer = lyr
+                break
+
+        validName = self.makeValidFilename(currentLayer.name())
+        #Remove 'TEMP ' from start of name.
+        validName = validName[5:]
+        outputFileName = imgFolder + os.path.sep + validName
+               
+        #Get the taxon name from the layer
+        nameReplace = currentLayer.name()
+        suffixes = ["10 km atlas", "5 km atlas", "2 km atlas", "1 km atlas", "100 m atlas", "10 m atlas"]
+        for suffix in suffixes:
+            if nameReplace.find(suffix) > -1:
+                nameReplace = nameReplace[5:nameReplace.find(suffix)-1]
+                
+        #self.infoMessage("#" + nameReplace + "#")
+        
+        #For each text item, replace the token #name# with the main part of the layer name 
+        #(usually based on the species for which the layer was generated)
+        #Item.scene() ensures that the item is being used (not deleted)
+        textItems = [item for item in c.items() if item.type() == QgsComposerItem.ComposerLabel and item.scene()]
+        #First save the original text item values
+        originalText=[]
+        for textItem in textItems:
+            originalText.append(textItem.text())
+        #Now replace the #name# tokens
+        for textItem in textItems:
+            textItem.setText(textItem.text().replace('#name#', nameReplace))
+            c.refreshItems()
+
+        #Save image from print composer
+        self.waitMessage("Generating output", "Creating output for " + nameReplace)
+        if self.cboOutputFormat.currentText() == "Composer image":
+            image = c.printPageAsRaster(0)
+            image.save(outputFileName + ".png")
+        else:
+            c.exportAsPDF(outputFileName + ".pdf")
+        self.waitMessage()
+        
+        #Reset the print composer's label items text to the original values
+        iTextItem = 0
+        for textItem in textItems:
+            textItem.setText(originalText[iTextItem])
+            c.refreshItems()
+            iTextItem += 1
+        
+        #Uncheck this layer and check the next one
+        iface.legendInterface().setLayerVisible(currentLayer, False)
+
+        if iLyr < len(self.layers):
+            nextLyr = self.layers[iLyr].getVectorLayer()
+        else:
+            nextLyr = self.layers[0].getVectorLayer()
+            
+        iface.legendInterface().setLayerVisible(nextLyr, True)
+        
+    def batchLayer(self, format):
+    
+        #Check that an output CRS has been set
+        if self.qgsOutputCRS.crs().authid() == "":
+            self.warningMessage("You must first specify a valid output CRS")
+            return
+            
+        self.progBatch.setValue(0)
+        self.progBatch.setMaximum(len(self.layers))
+        
+        i=0
+        for layer in self.layers:
+            if not self.cancelBatchMap:
+                i=i+1
+                self.progBatch.setValue(i)
+                self.infoMessage("Saving layer " + layer.getName() + " as " + format)   
+                self.saveTempToLayer(layer, format)
+
+        self.progBatch.setValue(0)
+        self.cancelBatchMap = False
+        
     def batchImageGenerate(self):
           
         if len(self.layers) == 0:
@@ -718,62 +871,29 @@ class BiorecDialog(QWidget, Ui_Biorec):
             
         self.progBatch.setValue(0)
         self.progBatch.setMaximum(len(self.layers))
-        
-        """
-        if self.hideAll():
-            i=0
-            for layer in self.layers:
-                if not self.cancelBatchMap:
-                    i=i+1
-                    self.progBatch.setValue(i)
-                    layer.setVisibility(True)
-                    self.createComposerImage(layer)
-                    layer.setVisibility(False)
-                
-        self.progBatch.setValue(0)
-        self.cancelBatchMap = False          
-        return
-        """
-        
-        if self.qgisVersion == ">2":
-            # Version 2.4 and above
-            layerIDs = []
-            for layer in self.layers:
-                layerIDs.append(layer.getID())
-                
-            displayedLayerIDs = self.canvas.mapSettings().layers()
-            backdropLayerIDs = [item for item in displayedLayerIDs if item not in layerIDs]
-            settings = self.canvas.mapSettings()
-            i=0
-            for layer in self.layers:
-                if not self.cancelBatchMap:
-                    i=i+1
-                    self.progBatch.setValue(i)
-                    layersRender = [layer.getID()] + backdropLayerIDs
-                    settings.setLayers(layersRender)
-                    job = QgsMapRendererParallelJob(settings)
-                    job.start()
-                    job.waitForFinished()
-                    image = job.renderedImage()
-                    self.saveMapImage(image, layer.getName())
-                    qApp.processEvents()
 
-        else:
-            # Version 2.0
-            # Make all the layers invisible
-            # In turn set each layer to visible
-            # generate image, and then make invisible again
-            if self.hideAll():
-                i=0
-                for layer in self.layers:
-                    if not self.cancelBatchMap:
-                        i=i+1
-                        self.progBatch.setValue(i)
-                        layer.setVisibility(True)
-                        self.createMapImage(layer)
-                        layer.setVisibility(False)
-                        #qApp.processEvents()
-        
+        # Version 2.4 and above
+        layerIDs = []
+        for layer in self.layers:
+            layerIDs.append(layer.getID())
+            
+        displayedLayerIDs = self.canvas.mapSettings().layers()
+        backdropLayerIDs = [item for item in displayedLayerIDs if item not in layerIDs]
+        settings = self.canvas.mapSettings()
+        i=0
+        for layer in self.layers:
+            if not self.cancelBatchMap:
+                i=i+1
+                self.progBatch.setValue(i)
+                layersRender = [layer.getID()] + backdropLayerIDs
+                settings.setLayers(layersRender)
+                job = QgsMapRendererParallelJob(settings)
+                job.start()
+                job.waitForFinished()
+                image = job.renderedImage()
+                self.saveMapImage(image, layer.getName())
+                qApp.processEvents()
+
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
         
@@ -839,7 +959,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
     def cancelBatch(self):
         self.cancelBatchMap = True
-       
+   
     def createMapLayer(self, selectedTaxa):
         
         # Initialsie the map layer
@@ -847,23 +967,31 @@ class BiorecDialog(QWidget, Ui_Biorec):
         layer.setTaxa(selectedTaxa)
         layer.setColTaxa(self.cboTaxonCol.currentIndex() - 1)
         layer.setColAb(self.cboAbundanceCol.currentIndex() - 1)
-        layer.setColGr(self.cboGridRefCol.currentIndex() - 1)
-        layer.setColX(self.cboXCol.currentIndex() - 1)
-        layer.setColY(self.cboYCol.currentIndex() - 1)
+
+        layer.setColGr(self.fcbGridRefCol.currentIndex())
+        layer.setColX(self.fcbXCol.currentIndex())
+        layer.setColY(self.fcbYCol.currentIndex())
+        
         layer.setTransparency(self.hsLayerTransparency.value())
-        layer.setCrs(self.lblInputCRS.text(), self.lblOutputCRS.text())
+        #layer.setCrs(self.lblInputCRS.text(), self.lblOutputCRS.text())
+        layer.setCrs(self.pswInputCRS.crs().authid(), self.pswOutputCRS.crs().authid())
         layer.setGridSize(self.dsbGridSize.value())
         
         # Name the layer
         if len(selectedTaxa) == 1:
             layerName = selectedTaxa[0]
         else:
-            layerName = self.leFilename.text()[:-4]
+            layerName = self.csvLayer.name()
+            
+        if layerName.lower().endswith(".csv"):
+            layerName = layerName[:-4]
             
         mapType = self.cboMapType.currentText()
         if '(' in mapType:
             layerName = layerName + " " + mapType[:mapType.index('(')-1 ]
    
+        # Prepend map layer name with 'TEMP'
+        layerName = "TEMP " + layerName
         layer.setName(layerName)
         
         # Create the map layer
@@ -882,6 +1010,30 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         self.layers.append(layer)
         
+    def saveTempToLayer(self, layer, format):
+
+        imgFolder = self.leImageFolder.text()
+        outCRS = QgsCoordinateReferenceSystem(self.qgsOutputCRS.crs().authid())
+        
+        if not os.path.exists(imgFolder):
+            if not self.folderError:
+                self.iface.messageBar().pushMessage("Error", "Output folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.folderError = True
+        else:
+            validName = self.makeValidFilename(layer.getName())
+            #Remove 'TEMP ' from start of name.
+            validName = validName[5:]
+            filePath = imgFolder + os.path.sep + validName
+            
+            if format == "GeoJSON":
+                formatArg =  "GeoJSON"
+            elif format == "Shapefile":
+                formatArg =  "ESRI Shapefile"
+                
+            error = QgsVectorFileWriter.writeAsVectorFormat(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg)
+            if error != QgsVectorFileWriter.NoError:
+                self.iface.messageBar().pushMessage("Error", "Layer generation error: %s" % error, level=QgsMessageBar.WARNING)
+                
     def saveMapImage(self, image, name):
         
         imgFolder = self.leImageFolder.text()
@@ -892,6 +1044,9 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 self.folderError = True
         else:
             validName = self.makeValidFilename(name)
+            #Remove 'TEMP ' from start of name.
+            validName = validName[5:]
+            
             try:
                 image.save(imgFolder + os.path.sep + validName + ".png")
             except:
@@ -951,7 +1106,8 @@ class BiorecDialog(QWidget, Ui_Biorec):
             if len(self.iface.activeComposers()) > 0:
             
                 c = self.iface.activeComposers()[0].composition()
-                #c.refreshItems()
+                c.refreshItems()
+                
                 dpi = c.printResolution()
                 dpmm = dpi / 25.4
                 width = int(dpmm * c.paperWidth())
@@ -971,6 +1127,20 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 imagePainter.end()
 
                 imageC.save(imgFolder + os.path.sep + validName + "-composer.png")
+                
+                printer = QPrinter()
+                printer.setOutputFormat(QPrinter.PdfFormat)
+                printer.setOutputFileName(imgFolder + os.path.sep + validName + ".pdf")
+                printer.setPaperSize(QSizeF(c.paperWidth(), c.paperHeight()), QPrinter.Millimeter)
+                printer.setFullPage(True)
+                printer.setColorMode(QPrinter.Color)
+                printer.setResolution(c.printResolution())
+
+                pdfPainter = QPainter(printer)
+                paperRectMM = printer.pageRect(QPrinter.Millimeter)
+                paperRectPixel = printer.pageRect(QPrinter.DevicePixel)
+                c.render(pdfPainter, paperRectPixel, paperRectMM)
+                pdfPainter.end()
             """
             except:
                 if not self.imageError:

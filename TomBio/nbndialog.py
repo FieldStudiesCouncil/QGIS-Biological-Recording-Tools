@@ -797,6 +797,7 @@ class NBNDialog(QWidget, Ui_nbn):
         
         #Designation
         url = url + selectedDesignationKey
+        #self.infoMessage(url)
         
         self.WMSFetch(url, strName, self.WMSType.designation)
         
@@ -947,27 +948,27 @@ class NBNDialog(QWidget, Ui_nbn):
         
         #Set layer stuff
         strStyles="&styles="
-        if self.cbGridSize.currentIndex() == 5:
+        if self.cbGridSize.currentIndex() == 4:
             strLayers = "&layers=Grid-100m"
             strName = strName + " NBN 100 m"
             self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-        elif self.cbGridSize.currentIndex() == 4:
+        elif self.cbGridSize.currentIndex() == 3:
             strLayers = "&layers=Grid-1km"
             strName = strName + " NBN monad"
             self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-        elif self.cbGridSize.currentIndex() == 3:
+        elif self.cbGridSize.currentIndex() == 2:
             strLayers = "&layers=Grid-2km"
             strName = strName + " NBN tetrad"
             self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-        elif self.cbGridSize.currentIndex() == 2:
+        elif self.cbGridSize.currentIndex() == 1:
             strLayers = "&layers=Grid-10km"
             strName = strName + " NBN hectad"
             self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-        elif self.cbGridSize.currentIndex() == 1:
-            strLayers = "&layers=Grid-10km&layers=Grid-2km&layers=Grid-1km&layers=Grid-100m"
-            strStyles="&styles=&styles=&styles=&styles="
-            strName = strName + " NBN auto"
-            self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
+        #elif self.cbGridSize.currentIndex() == 1:
+        #    strLayers = "&layers=Grid-10km&layers=Grid-2km&layers=Grid-1km&layers=Grid-100m"
+        #    strStyles="&styles=&styles=&styles=&styles="
+        #    strName = strName + " NBN auto"
+        #    self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
         else:
             strNamePrefix = strName
             strLayers = "&layers=Grid-100m"

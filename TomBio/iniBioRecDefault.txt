@@ -3,10 +3,8 @@
 
 #mapmashup.imgfolder: C:\Users\fsc\Documents\Temp
 #mapmashup.regfolder: C:\Users\fsc\Documents\GIS Datafiles\MashupReg
-#mapmashup.stylefilefolder: C:\Users\fsc\Documents\Temp\Styles
 
 # Default NBN tool options
-#nbn.downloadfolder: C:\Users\fsc\Documents\GIS Demo\NBN
 #nbn.username: fredbloggs
 #nbn.password: bloggsfred
 
