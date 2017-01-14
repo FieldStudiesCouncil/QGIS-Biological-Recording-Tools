@@ -114,6 +114,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapRenderer().destinationCrs())
         
         self.mlcbSourceLayer.setFilters( QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.NoGeometry )
+        self.mlcbTaxonMetaDataLayer.setFilters( QgsMapLayerProxyModel.NoGeometry )
         #Programmatic selection of fields not currently working properly so can't set the filters
         #self.fcbGridRefCol.setFilters( QgsFieldProxyModel.String )
         #self.fcbXCol.setFilters( QgsFieldProxyModel.Numeric )
@@ -794,28 +795,57 @@ class BiorecDialog(QWidget, Ui_Biorec):
         #Remove 'TEMP ' from start of name.
         validName = validName[5:]
         outputFileName = imgFolder + os.path.sep + validName
+
                
         #Get the taxon name from the layer
-        nameReplace = currentLayer.name()
+        nameReplace = currentLayer.name()[5:]
         suffixes = ["10 km atlas", "5 km atlas", "2 km atlas", "1 km atlas", "100 m atlas", "10 m atlas"]
         for suffix in suffixes:
             if nameReplace.find(suffix) > -1:
-                nameReplace = nameReplace[5:nameReplace.find(suffix)-1]
+                nameReplace = nameReplace[0:nameReplace.find(suffix)-1]
                 
-        #self.infoMessage("#" + nameReplace + "#")
-        
-        #For each text item, replace the token #name# with the main part of the layer name 
-        #(usually based on the species for which the layer was generated)
+        #For each text item, replace the tokens, e.g. #name#, with corresponding text. 
+
+        #Get all text items from the layout.
         #Item.scene() ensures that the item is being used (not deleted)
         textItems = [item for item in c.items() if item.type() == QgsComposerItem.ComposerLabel and item.scene()]
-        #First save the original text item values
+
+        #Save the original text item values so that they can be reset afterwards
         originalText=[]
         for textItem in textItems:
             originalText.append(textItem.text())
-        #Now replace the #name# tokens
+
+        #Now replace the #name# tokens with the 'nameReplace' text derived from
+        #the layer name - usually based on the taxon name.
         for textItem in textItems:
             textItem.setText(textItem.text().replace('#name#', nameReplace))
             c.refreshItems()
+
+        #If TaxonMetaDataLayer has been set and checkbox set to use it, then set a filter to select
+        #only the rows (should be only one) that match the current taxon (derived from layer name).
+        #Then for each field in the TaxonMetaDataLayer, check to see if each of the fields in the
+        #TaxaonMetaDataLayer has been used as a token in any checkboxes and, if so, replace the token
+        #for the value of that field for the species at hand.
+        if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None:
+            metaLayer = self.mlcbTaxonMetaDataLayer.currentLayer()
+            #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
+            strFilter = '"%s" ~ \' *%s *\'' % ("Taxon", nameReplace)
+            #self.infoMessage(strFilter)
+            request = QgsFeatureRequest().setFilterExpression(strFilter)
+            iField = 0
+            for field in metaLayer.dataProvider().fields():
+                strVal = ''
+                iter = metaLayer.getFeatures(request)
+                for feature in iter: #Should only be one (or zero) features
+                    try:
+                        strVal = feature.attributes()[iField].strip()
+                    except:
+                        strVal = ''
+                for textItem in textItems:
+                    if '#' + field.name() + '#' in textItem.text():
+                        textItem.setText(textItem.text().replace('#' + field.name() + '#', strVal))
+                    c.refreshItems()
+                iField += 1
 
         #Save image from print composer
         self.waitMessage("Generating output", "Creating output for " + nameReplace)
@@ -1088,8 +1118,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 os.remove(imgFolder + os.path.sep + validName + ".PNGw")
             except:
                 pass
-                
-                
+                            
     def createComposerImage(self, layer):
     
         imgFolder = self.leImageFolder.text()

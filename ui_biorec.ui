@@ -605,6 +605,32 @@
             </item>
            </layout>
           </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_10">
+            <item>
+             <widget class="QCheckBox" name="cbTaxonMetaData">
+              <property name="minimumSize">
+               <size>
+                <width>131</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>131</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Taxon Metadata Layer</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QgsMapLayerComboBox" name="mlcbTaxonMetaDataLayer"/>
+            </item>
+           </layout>
+          </item>
          </layout>
         </widget>
        </item>

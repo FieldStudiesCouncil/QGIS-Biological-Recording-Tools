@@ -48,9 +48,9 @@ Temporary Items
 *.sln
 *.pyproj
 *.pyc
-resources_rc.py
+#resources_rc.py
 iniBioRec.txt
-ui_*.py
+#ui_*.py
 
 # =========================
 
