@@ -45,6 +45,8 @@ Temporary Items
 # Python
 # =========================
 
+*.sln
+*.pyproj
 *.pyc
 resources_rc.py
 iniBioRec.txt

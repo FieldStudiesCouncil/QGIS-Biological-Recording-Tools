@@ -266,7 +266,7 @@ class biorecLayer2(QObject):
         self.translationError = ""
         
     def makeFeatures(self, iter, mapType, bFilterTaxaV2=False):
-                
+
         fets = []
         for feature in iter:
         
@@ -346,6 +346,7 @@ class biorecLayer2(QObject):
         return fets
         
     def addFieldsToAtlas(self, mapType, symbolType):
+    
         # This procedure makes an atlas map
         self.pr.addAttributes([QgsField("GridRef", QVariant.String)])
         self.pr.addAttributes([QgsField("Records", QVariant.Int)])
@@ -384,7 +385,9 @@ class biorecLayer2(QObject):
             taxonFieldName = self.csvLayer.dataProvider().fields()[self.iColTaxa].name()
             strFilter = ""
             for taxon in self.taxa:  #self.taxa is a set, so can't user self.taxa[0]
-                strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
+                #strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
+                #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
+                strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
                 
             bNoFilterMethod = False
             try:      
@@ -411,6 +414,7 @@ class biorecLayer2(QObject):
         # Now loop through the dictionary and create a feature for each one
         fets=[]
         for gr in fetsDict:
+        
             fetDict = fetsDict[gr]
             fet = QgsFeature()
             fet.setGeometry(fetDict[0])
@@ -428,7 +432,7 @@ class biorecLayer2(QObject):
         self.translationError = ""
         
     def makeAtlasFeatures(self, iter, gridPrecision, symbol, bFilterTaxaV2=False):
-    
+   
         fetsDict = {}
         taxaDict = {}
         
@@ -441,7 +445,7 @@ class biorecLayer2(QObject):
                     taxon = str(feature.attributes()[self.iColTaxa])
                 except:
                     taxon = "invalid"
-
+                    
             if not bFilterTaxaV2:
                 bTaxonOkay = True
             elif bFilterTaxaV2 and taxon in self.taxa:
