@@ -64,7 +64,8 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbSpeciesWMS.clicked.connect(self.WMSFetchSpecies)
         self.pbDatasetWMS.clicked.connect(self.WMSFetchDataset)
         self.pbDesignationWMS.clicked.connect(self.WMSFetchDesignation)
-        self.butTaxonSearch.clicked.connect(self.TaxonSearch)
+        #self.butTaxonSearch.clicked.connect(self.taxonSearchRequested)
+        self.butTaxonSearch.clicked.connect(self.taxonSearch)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.pbLogin.clicked.connect(self.loginNBN)
@@ -138,7 +139,10 @@ class NBNDialog(QWidget, Ui_nbn):
         self.bufferEnableDisable()
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
-            
+
+        ##Blah blahs
+        self.namTaxonSearch = None
+        
     def showEvent(self, ev):
         # Load the environment stuff
         self.env = envManager()
@@ -683,7 +687,85 @@ class NBNDialog(QWidget, Ui_nbn):
         self.guiFile = FileDialog(self.iface, data)
         self.guiFile.setVisible(True)
         
-    def TaxonSearch(self):
+    def taxonSearchFinished(self, reply):
+        
+        #QgsMessageLog.logMessage('\n'.join(dir(reply)), "proxy debug")
+        QgsMessageLog.logMessage(reply.url().toString(), "proxy debug")
+
+        error = reply.error()
+        if error == QNetworkReply.NoError:
+            responseText = reply.readAll().data().decode('utf-8')
+            try:
+                jsonData = json.loads(responseText) 
+            except ValueError:
+                self.warningMessage('The service did not reply properly.')
+            except:
+                self.warningMessage('Unknown error.')
+        else:
+            self.warningMessage(self.getNetworkErrorMessage(error))
+            return
+        reply.deleteLater()
+        reply = None
+
+         #Tree view
+        self.twTaxa.clear()
+        treeNodes = {} #Dictionary
+        jResponseList = jsonData["results"]
+        for jTaxon in jResponseList:
+        
+            if not jTaxon["taxonOutputGroupName"] in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiGroup = QTreeWidgetItem(self.twTaxa)
+                twiGroup.setText(0, jTaxon["taxonOutputGroupName"])
+                twiGroup.setExpanded(False)
+                twiGroup.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiGroup.setIcon(0, QIcon( self.pathPlugin % "images/Group20x16.png" ))
+                self.twTaxa.addTopLevelItem(twiGroup)
+                #Add to dictionary
+                treeNodes[jTaxon["taxonOutputGroupName"]] = twiGroup
+            else:
+                twiGroup = treeNodes[jTaxon["taxonOutputGroupName"]]
+                
+            if not jTaxon["ptaxonVersionKey"] in(treeNodes.keys()):
+                #Create a child tree item for the preferred TVK group
+                twiPTVK = QTreeWidgetItem(twiGroup)
+                twiPTVK.setText(0, jTaxon["ptaxonVersionKey"])
+                #twiPTVK.setText(0, self.nameFromTVK(jTaxon["ptaxonVersionKey"]))
+                #twiPTVK.setIcon(0, QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
+                twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+                twiPTVK.setExpanded(True)
+                self.twTaxa.addTopLevelItem(twiPTVK)
+                #Add to dictionary
+                treeNodes[jTaxon["ptaxonVersionKey"]] = twiPTVK
+            else:
+                twiPTVK = treeNodes[jTaxon["ptaxonVersionKey"]]
+                
+            #Create a new child item for the taxon name
+            twiName = QTreeWidgetItem(twiPTVK)
+            twiName.setText(0, jTaxon["name"])
+            twiName.setIcon(0, QIcon( self.pathPlugin % "images/Synonym20x16.png" ))
+            twiName.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+            self.twTaxa.addTopLevelItem(twiName)
+
+    def taxonSearchRequested(self):
+
+        if self.leTaxonSearch.text() == "":
+            self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
+            return
+
+        if self.namTaxonSearch is None: 
+            self.namTaxonSearch = QgsNetworkAccessManager.instance() 
+            #This must only be called once otherwise multiple connections are
+            #generated which causes the function to be called with an empty
+            #reply object for every time it's been called in the session
+            self.namTaxonSearch.finished.connect(self.taxonSearchFinished)
+
+        url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
+        req = QNetworkRequest(QUrl(url))
+        reply = self.namTaxonSearch.get(req)
+
+    def taxonSearch(self):
     
         if self.leTaxonSearch.text() == "":
             self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
@@ -1476,6 +1558,84 @@ class NBNDialog(QWidget, Ui_nbn):
         else:
             self.cbIndPolygon.setChecked(True)
         
+    def getNetworkErrorMessage(self, error):
+        if error == QNetworkReply.NoError:
+            # No error condition.
+            # Note: When the HTTP protocol returns a redirect no error will be reported.
+            # You can check if there is a redirect with the
+            # QNetworkRequest::RedirectionTargetAttribute attribute.
+            return ''
+
+        if error == QNetworkReply.ConnectionRefusedError:
+            return 'The remote server refused the connection (the server is not accepting requests)'
+
+        if error == QNetworkReply.RemoteHostClosedError :
+            return 'The remote server closed the connection prematurely, before the entire reply was received and processed'
+
+        if error == QNetworkReply.HostNotFoundError :
+            return 'The remote host name was not found (invalid hostname)'
+
+        if error == QNetworkReply.TimeoutError :
+            return 'The connection to the remote server timed out'
+
+        if error == QNetworkReply.OperationCanceledError :
+            return 'The operation was cancelled via calls to abort() or close() before it was finished.'
+
+        if error == QNetworkReply.SslHandshakeFailedError :
+            return 'The SSL/TLS handshake failed and the encrypted channel could not be established. The sslErrors() signal should have been emitted.'
+
+        if error == QNetworkReply.TemporaryNetworkFailureError :
+            return 'The connection was broken due to disconnection from the network, however the system has initiated roaming to another access point.  The request should be resubmitted and will be processed as soon as the connection is re-established.'
+
+        if error == QNetworkReply.ProxyConnectionRefusedError :
+            return 'The connection to the proxy server was refused (the proxy server is not accepting requests)'
+
+        if error == QNetworkReply.ProxyConnectionClosedError :
+            return 'The proxy server closed the connection prematurely, before the entire reply was received and processed'
+
+        if error == QNetworkReply.ProxyNotFoundError :
+            return 'The proxy host name was not found (invalid proxy hostname)'
+
+        if error == QNetworkReply.ProxyTimeoutError :
+            return 'The connection to the proxy timed out or the proxy did not reply in time to the request sent'
+
+        if error == QNetworkReply.ProxyAuthenticationRequiredError :
+            return 'The proxy requires authentication in order to honour the request but did not accept any credentials offered (if any)'
+
+        if error == QNetworkReply.ContentAccessDenied :
+            return 'The access to the remote content was denied (similar to HTTP error 401)'
+
+        if error == QNetworkReply.ContentOperationNotPermittedError :
+            return 'The operation requested on the remote content is not permitted'
+
+        if error == QNetworkReply.ContentNotFoundError :
+            return 'The remote content was not found at the server (similar to HTTP error 404)'
+        if error == QNetworkReply.AuthenticationRequiredError :
+            return 'The remote server requires authentication to serve the content but the credentials provided were not accepted (if any)'
+
+        if error == QNetworkReply.ContentReSendError :
+            return 'The request needed to be sent again, but this failed for example because the upload data could not be read a second time.'
+
+        if error == QNetworkReply.ProtocolUnknownError :
+            return 'The Network Access API cannot honor the request because the protocol is not known'
+
+        if error == QNetworkReply.ProtocolInvalidOperationError :
+            return 'the requested operation is invalid for this protocol'
+
+        if error == QNetworkReply.UnknownNetworkError :
+            return 'An unknown network-related error was detected'
+
+        if error == QNetworkReply.UnknownProxyError :
+            return 'An unknown proxy-related error was detected'
+
+        if error == QNetworkReply.UnknownContentError :
+            return 'An unknown error related to the remote content was detected'
+
+        if error == QNetworkReply.ProtocolFailure :
+            return 'A breakdown in protocol was detected (parsing error, invalid or unexpected responses, etc.)'
+
+        return 'An unknown network-related error was detected'
+
 class AsyncNBNDownload(QObject, threading.Thread):
     
     error = pyqtSignal(basestring)
@@ -1579,9 +1739,4 @@ class AsyncNBNDownload(QObject, threading.Thread):
             self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
             lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
             return
-            
-        
-        
-        
-        
-         
+
