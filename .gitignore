@@ -49,6 +49,7 @@ Temporary Items
 *.pyproj
 *.pyc
 *.suo
+*.vs
 #resources_rc.py
 iniBioRec.txt
 #ui_*.py
