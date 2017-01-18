@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.5.0
+version=2.6.0
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,6 +31,20 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
+changelog=2.6.0
+	- Fixes a problem with the #name# tag used in composers when
+	automatically creating output for multiple TEMP_ layers
+	created with biological records tool ('TEMP_') was left
+	in the text).
+	- Adds new functionality to the automatic composer output
+	generation in biological records tool. Additional tags
+	(other than '#name#') can now be used, e.g. #CommonName#.
+	The name of any special tag used must match a column header
+	in a CSV file opened in QGIS. The name of the taxon (as used
+	for the #name# tag) must be specified in this CSV file under a
+	column called 'Taxon'. The value used to replace the special
+	tag - e.g. #CommonName# - will be the values corresponding
+	to the column (e.g. CommonName) and row for the taxon.
 changelog=2.5.0
 	- Adds the following new functionality.
 	  * Added new online help system with link button from tool.

@@ -64,8 +64,9 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbSpeciesWMS.clicked.connect(self.WMSFetchSpecies)
         self.pbDatasetWMS.clicked.connect(self.WMSFetchDataset)
         self.pbDesignationWMS.clicked.connect(self.WMSFetchDesignation)
-        #self.butTaxonSearch.clicked.connect(self.taxonSearchRequested)
         self.butTaxonSearch.clicked.connect(self.taxonSearch)
+        #self.butTaxonSearch.clicked.connect(self.taxonSearchRequested)
+        #self.butTaxonSearch.clicked.connect(self.taxonSearchTest)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.pbLogin.clicked.connect(self.loginNBN)
@@ -140,7 +141,7 @@ class NBNDialog(QWidget, Ui_nbn):
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
 
-        ##Blah blahs
+        ##for taxonSearchRequested - NOT USED
         self.namTaxonSearch = None
         
     def showEvent(self, ev):
@@ -688,7 +689,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.guiFile.setVisible(True)
         
     def taxonSearchFinished(self, reply):
-        
+        #NOT USED
         #QgsMessageLog.logMessage('\n'.join(dir(reply)), "proxy debug")
         QgsMessageLog.logMessage(reply.url().toString(), "proxy debug")
 
@@ -749,7 +750,7 @@ class NBNDialog(QWidget, Ui_nbn):
             self.twTaxa.addTopLevelItem(twiName)
 
     def taxonSearchRequested(self):
-
+        #NOT USED
         if self.leTaxonSearch.text() == "":
             self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
             return
@@ -764,6 +765,59 @@ class NBNDialog(QWidget, Ui_nbn):
         url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
         req = QNetworkRequest(QUrl(url))
         reply = self.namTaxonSearch.get(req)
+
+    def taxonSearchTest(self):
+        #Uses __sync_request for dealing with proxy internet server
+        if self.leTaxonSearch.text() == "":
+            self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
+            return
+
+        url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
+        res = self.__sync_request(url)
+        responseText = res.data().decode('utf-8')
+        jsonData = json.loads(responseText) 
+        jResponseList = jsonData["results"]
+
+         #Tree view
+        self.twTaxa.clear()
+        treeNodes = {} #Dictionary
+        
+        for jTaxon in jResponseList:
+        
+            if not jTaxon["taxonOutputGroupName"] in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiGroup = QTreeWidgetItem(self.twTaxa)
+                twiGroup.setText(0, jTaxon["taxonOutputGroupName"])
+                twiGroup.setExpanded(False)
+                twiGroup.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiGroup.setIcon(0, QIcon( self.pathPlugin % "images/Group20x16.png" ))
+                self.twTaxa.addTopLevelItem(twiGroup)
+                #Add to dictionary
+                treeNodes[jTaxon["taxonOutputGroupName"]] = twiGroup
+            else:
+                twiGroup = treeNodes[jTaxon["taxonOutputGroupName"]]
+                
+            if not jTaxon["ptaxonVersionKey"] in(treeNodes.keys()):
+                #Create a child tree item for the preferred TVK group
+                twiPTVK = QTreeWidgetItem(twiGroup)
+                twiPTVK.setText(0, jTaxon["ptaxonVersionKey"])
+                #twiPTVK.setText(0, self.nameFromTVK(jTaxon["ptaxonVersionKey"]))
+                #twiPTVK.setIcon(0, QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
+                twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+                twiPTVK.setExpanded(True)
+                self.twTaxa.addTopLevelItem(twiPTVK)
+                #Add to dictionary
+                treeNodes[jTaxon["ptaxonVersionKey"]] = twiPTVK
+            else:
+                twiPTVK = treeNodes[jTaxon["ptaxonVersionKey"]]
+                
+            #Create a new child item for the taxon name
+            twiName = QTreeWidgetItem(twiPTVK)
+            twiName.setText(0, jTaxon["name"])
+            twiName.setIcon(0, QIcon( self.pathPlugin % "images/Synonym20x16.png" ))
+            twiName.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+            self.twTaxa.addTopLevelItem(twiName)
 
     def taxonSearch(self):
     
@@ -1193,8 +1247,7 @@ class NBNDialog(QWidget, Ui_nbn):
                         elif " hectad " in rlayer.name():
                             self.iface.legendInterface().setLayerVisible(rlayer, True)
                         else:
-                            self.iface.legendInterface().setLayerVisible(rlayer, False)
-            
+                            self.iface.legendInterface().setLayerVisible(rlayer, False)    
             
     def nameFromTVK(self, tvk):
        
@@ -1269,8 +1322,7 @@ class NBNDialog(QWidget, Ui_nbn):
                 self.nbnAthenticationCookie = cookie
                 self.currentNBNUser = self.leUsername.text()
                 self.lblLoginStatus.setText ("You are logged in as '" + self.currentNBNUser + "'")
-        return
-        
+        return    
         
     def logoutNBN(self):
         
@@ -1635,6 +1687,47 @@ class NBNDialog(QWidget, Ui_nbn):
             return 'A breakdown in protocol was detected (parsing error, invalid or unexpected responses, etc.)'
 
         return 'An unknown network-related error was detected'
+
+    def __sync_request(self, url):
+        #This function taken verbatim from QuickMapServices plugin (extra_sources.py module)
+        #with only lines pertaining to __replies array commented out.
+        #It uses the QgsNetworkAccessManager class which means that calls can be make from
+        #behind a proxy web server if specified in QGIS options. This function uses 
+        #QgsNetworkAccessManager in a synchronous way.
+        _url = QUrl(url)
+        _request = QNetworkRequest(_url)
+        #self.__replies.append(_request)
+
+        QgsNetworkAccessManager.instance().sslErrors.connect(self.__supress_ssl_errors)
+
+        _reply = QgsNetworkAccessManager.instance().get(_request)
+
+        # wait
+        loop = QEventLoop()
+        _reply.finished.connect(loop.quit)
+        loop.exec_()
+        _reply.finished.disconnect(loop.quit)
+        QgsNetworkAccessManager.instance().sslErrors.disconnect(self.__supress_ssl_errors)
+        loop = None
+
+        error = _reply.error()
+        if error != QNetworkReply.NoError:
+            raise Exception(error)
+
+        result_code = _reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+
+        result = _reply.readAll()
+        #self.__replies.append(_reply)
+        _reply.deleteLater()
+
+        if result_code in [301, 302, 307]:
+            redirect_url = _reply.attribute(QNetworkRequest.RedirectionTargetAttribute)
+            return self.__sync_request(redirect_url)
+        else:
+            return result
+
+    def __supress_ssl_errors(self, reply, errors):
+        reply.ignoreSslErrors()
 
 class AsyncNBNDownload(QObject, threading.Thread):
     
