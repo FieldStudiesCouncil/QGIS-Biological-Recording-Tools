@@ -45,7 +45,7 @@ changelog=2.6.0
 	column called 'Taxon'. The value used to replace the special
 	tag - e.g. #CommonName# - will be the values corresponding
 	to the column (e.g. CommonName) and row for the taxon.
-changelog=2.5.0
+  2.5.0
 	- Adds the following new functionality.
 	  * Added new online help system with link button from tool.
 	  * Ability to use existing point layers in the Biological 
