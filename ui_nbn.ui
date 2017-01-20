@@ -7,13 +7,64 @@
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>510</height>
+    <height>560</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>TomBio</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_15">
+  <property name="styleSheet">
+   <string notr="true">#pbAttention{
+    background-color: red;
+    border-style: outset;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: beige;
+    font: bold 12px;
+    min-width: 10em;
+    padding: 6px;
+}
+#pbAttention:pressed {
+    background-color: rgb(224, 0, 0);
+    border-style: inset;
+}</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_9">
+   <item>
+    <widget class="QPushButton" name="pbAttention">
+     <property name="minimumSize">
+      <size>
+       <width>156</width>
+       <height>30</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>30</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#pbAttention {
+    background-color: red;
+    border-style: outset;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: beige;
+    font: bold 12px;
+    min-width: 10em;
+    padding: 6px;
+}
+#pbAttention:pressed {
+    background-color: rgb(224, 0, 0);
+    border-style: inset;
+}</string>
+     </property>
+     <property name="text">
+      <string>Attention! Changes to NBN web services</string>
+     </property>
+    </widget>
+   </item>
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="minimumSize">

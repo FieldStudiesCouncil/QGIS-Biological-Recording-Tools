@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_nbn.ui'
 #
-# Created: Sat Jan 14 14:57:12 2017
+# Created: Thu Jan 19 20:44:35 2017
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,9 +26,42 @@ except AttributeError:
 class Ui_nbn(object):
     def setupUi(self, nbn):
         nbn.setObjectName(_fromUtf8("nbn"))
-        nbn.resize(412, 510)
-        self.horizontalLayout_15 = QtGui.QHBoxLayout(nbn)
-        self.horizontalLayout_15.setObjectName(_fromUtf8("horizontalLayout_15"))
+        nbn.resize(412, 560)
+        nbn.setStyleSheet(_fromUtf8("#pbAttention{\n"
+"    background-color: red;\n"
+"    border-style: outset;\n"
+"    border-width: 2px;\n"
+"    border-radius: 10px;\n"
+"    border-color: beige;\n"
+"    font: bold 12px;\n"
+"    min-width: 10em;\n"
+"    padding: 6px;\n"
+"}\n"
+"#pbAttention:pressed {\n"
+"    background-color: rgb(224, 0, 0);\n"
+"    border-style: inset;\n"
+"}"))
+        self.verticalLayout_9 = QtGui.QVBoxLayout(nbn)
+        self.verticalLayout_9.setObjectName(_fromUtf8("verticalLayout_9"))
+        self.pbAttention = QtGui.QPushButton(nbn)
+        self.pbAttention.setMinimumSize(QtCore.QSize(156, 30))
+        self.pbAttention.setMaximumSize(QtCore.QSize(16777215, 30))
+        self.pbAttention.setStyleSheet(_fromUtf8("#pbAttention {\n"
+"    background-color: red;\n"
+"    border-style: outset;\n"
+"    border-width: 2px;\n"
+"    border-radius: 10px;\n"
+"    border-color: beige;\n"
+"    font: bold 12px;\n"
+"    min-width: 10em;\n"
+"    padding: 6px;\n"
+"}\n"
+"#pbAttention:pressed {\n"
+"    background-color: rgb(224, 0, 0);\n"
+"    border-style: inset;\n"
+"}"))
+        self.pbAttention.setObjectName(_fromUtf8("pbAttention"))
+        self.verticalLayout_9.addWidget(self.pbAttention)
         self.tabWidget = QtGui.QTabWidget(nbn)
         self.tabWidget.setMinimumSize(QtCore.QSize(280, 230))
         self.tabWidget.setTabPosition(QtGui.QTabWidget.North)
@@ -793,7 +826,7 @@ class Ui_nbn(object):
         self.horizontalLayout_16.addWidget(self.pbSendToBiorec)
         self.verticalLayout_10.addLayout(self.horizontalLayout_16)
         self.tabWidget.addTab(self.tab_4, _fromUtf8(""))
-        self.horizontalLayout_15.addWidget(self.tabWidget)
+        self.verticalLayout_9.addWidget(self.tabWidget)
 
         self.retranslateUi(nbn)
         self.tabWidget.setCurrentIndex(0)
@@ -803,6 +836,7 @@ class Ui_nbn(object):
 
     def retranslateUi(self, nbn):
         nbn.setWindowTitle(_translate("nbn", "TomBio", None))
+        self.pbAttention.setText(_translate("nbn", "Attention! Changes to NBN web services", None))
         self.groupBox_3.setTitle(_translate("nbn", "NBN Grid Map (WMS)", None))
         self.label_4.setText(_translate("nbn", "Grid size:", None))
         self.cbGridSize.setToolTip(_translate("nbn", "<html><head/><body><p>Specify the grid map resolution</p></body></html>", None))

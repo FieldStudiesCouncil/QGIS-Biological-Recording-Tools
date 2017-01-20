@@ -72,6 +72,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbLogin.clicked.connect(self.loginNBN)
         self.pbLogout.clicked.connect(self.logoutNBN)
         self.butHelp.clicked.connect(self.helpFile)
+        self.pbAttention.clicked.connect(self.nbnAttentionFile)
         self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
         self.pbRefreshDesignations.clicked.connect(self.refreshDesignations)
         self.pbRefreshGroups.clicked.connect(self.refreshGroups)
@@ -90,10 +91,8 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbBuffer.clicked.connect(self.generateBuffer)
         self.pbClearLastBuffer.clicked.connect(self.removeBuffer)
         self.rbGR.toggled.connect(self.bufferEnableDisable)
-        
         self.pbDownloadGridRef.clicked.connect(self.downloadNBNObservations)
         self.pbSendToBiorec.clicked.connect(self.displayCSV)
-        #self.butOS.clicked.connect(self.osBackdrop)
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
@@ -121,6 +120,8 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butTaxonSearch.setIcon(QIcon( self.pathPlugin % "images/speciesinventory.png" ))
         self.pbBuffer.setIcon(QIcon( self.pathPlugin % "images/buffer.png" ))
         self.pbClearLastBuffer.setIcon(QIcon( self.pathPlugin % "images/bufferclear.png" ))
+        self.pbAttention.setIcon(QIcon( self.pathPlugin % "images/warning.png" ))
+        self.pbAttention.setText("NBN changes coming - click for details")
         #self.butOS.setIcon(QIcon( self.pathPlugin % "images/os.png" ))
         self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
         self.twTaxa.setHeaderLabel("Matching taxa")
@@ -130,6 +131,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.nbnAthenticationCookie = None
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
+        self.nbnAttentionFile = os.path.join(os.path.dirname( __file__ ), "nbnAttention.txt")
         self.readDatasetFile()
         self.readDesignationFile()
         self.readGroupFile()
@@ -656,11 +658,15 @@ class NBNDialog(QWidget, Ui_nbn):
         
     def helpFile(self):
         
-        #self.nbnTaxonObservations()
-        #return
+        #if self.guiFile is None:
+        self.guiFile = FileDialog(self.iface, self.infoFile)
         
-        if self.guiFile is None:
-            self.guiFile = FileDialog(self.iface, self.infoFile)
+        self.guiFile.setVisible(True)
+
+    def nbnAttentionFile(self):
+        
+        #if self.guiFile is None:
+        self.guiFile = FileDialog(self.iface, self.nbnAttentionFile)
         
         self.guiFile.setVisible(True)
         
