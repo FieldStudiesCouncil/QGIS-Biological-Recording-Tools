@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_nbn.ui'
 #
-# Created: Thu Jan 19 20:44:35 2017
+# Created: Sun Jan 22 13:16:05 2017
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -47,7 +47,7 @@ class Ui_nbn(object):
         self.pbAttention.setMinimumSize(QtCore.QSize(156, 30))
         self.pbAttention.setMaximumSize(QtCore.QSize(16777215, 30))
         self.pbAttention.setStyleSheet(_fromUtf8("#pbAttention {\n"
-"    background-color: red;\n"
+"    background-color: #F57900;\n"
 "    border-style: outset;\n"
 "    border-width: 2px;\n"
 "    border-radius: 10px;\n"
@@ -57,7 +57,7 @@ class Ui_nbn(object):
 "    padding: 6px;\n"
 "}\n"
 "#pbAttention:pressed {\n"
-"    background-color: rgb(224, 0, 0);\n"
+"    background-color: #F79537;\n"
 "    border-style: inset;\n"
 "}"))
         self.pbAttention.setObjectName(_fromUtf8("pbAttention"))

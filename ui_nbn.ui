@@ -46,7 +46,7 @@
      </property>
      <property name="styleSheet">
       <string notr="true">#pbAttention {
-    background-color: red;
+    background-color: #F57900;
     border-style: outset;
     border-width: 2px;
     border-radius: 10px;
@@ -56,7 +56,7 @@
     padding: 6px;
 }
 #pbAttention:pressed {
-    background-color: rgb(224, 0, 0);
+    background-color: #F79537;
     border-style: inset;
 }</string>
      </property>

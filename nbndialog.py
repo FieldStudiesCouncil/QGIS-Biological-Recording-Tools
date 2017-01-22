@@ -30,13 +30,13 @@ from qgis.gui import *
 from qgis.utils import *
 from filedialog import FileDialog
 import urllib, urllib2
-import cookielib
+#import cookielib
 import json 
 import hashlib, uuid
 import shutil
 from osgr import *
 from envmanager import *
-import threading
+#import threading
 import csv
 
 #import requests
@@ -65,8 +65,6 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbDatasetWMS.clicked.connect(self.WMSFetchDataset)
         self.pbDesignationWMS.clicked.connect(self.WMSFetchDesignation)
         self.butTaxonSearch.clicked.connect(self.taxonSearch)
-        #self.butTaxonSearch.clicked.connect(self.taxonSearchRequested)
-        #self.butTaxonSearch.clicked.connect(self.taxonSearchTest)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.pbLogin.clicked.connect(self.loginNBN)
@@ -142,10 +140,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.bufferEnableDisable()
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
-
-        ##for taxonSearchRequested - NOT USED
-        self.namTaxonSearch = None
-        
+     
     def showEvent(self, ev):
         # Load the environment stuff
         self.env = envManager()
@@ -336,19 +331,19 @@ class NBNDialog(QWidget, Ui_nbn):
         
         self.twGroups.clear()
         
-        try:
-            data = urllib2.urlopen('https://data.nbn.org.uk/api/taxonOutputGroups').read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+        url = 'https://data.nbn.org.uk/api/taxonOutputGroups'
+        res = self.restRequest(url)
+
+        if res is None:
             return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
+
+        #responseText = res.data().decode('utf-8')
+        responseText = res.data()
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "taxongroups.json"))
         with open(datafile, 'w') as jsonfile:
-            jsonfile.write(data)
+            jsonfile.write(responseText)
             
         # Rebuild designation tree
         self.readGroupFile()
@@ -358,20 +353,20 @@ class NBNDialog(QWidget, Ui_nbn):
     def refreshAreaCategories(self):
         
         self.twAreaCategories.clear()
-        
-        try:
-            data = urllib2.urlopen('https://data.nbn.org.uk/api/siteBoundaryCategories').read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+       
+        url = 'https://data.nbn.org.uk/api/siteBoundaryCategories'
+        res = self.restRequest(url)
+
+        if res is None:
             return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
+
+        #responseText = res.data().decode('utf-8')
+        responseText = res.data()
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "siteboundarycats.json"))
         with open(datafile, 'w') as jsonfile:
-            jsonfile.write(data)
+            jsonfile.write(responseText)
             
         # Rebuild area category tree
         self.readAreaCategoriesFile()
@@ -391,20 +386,20 @@ class NBNDialog(QWidget, Ui_nbn):
             
         twi = twis[0]
         nbnKey = twi.toolTip(0)
-        
-        try:
-            data = urllib2.urlopen('https://data.nbn.org.uk/api/siteBoundaryDatasets/%s/siteBoundaries' % nbnKey).read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+      
+        url = 'https://data.nbn.org.uk/api/siteBoundaryDatasets/%s/siteBoundaries' % nbnKey
+        res = self.restRequest(url)
+
+        if res is None:
             return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
+
+        #responseText = res.data().decode('utf-8')
+        responseText = res.data()
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s%s" % (os.path.sep, nbnKey, ".json"))
         with open(datafile, 'w') as jsonfile:
-            jsonfile.write(data)
+            jsonfile.write(responseText)
             
         # Rebuild area tree
         self.readAreaFile()
@@ -543,20 +538,21 @@ class NBNDialog(QWidget, Ui_nbn):
         
         self.twDesignations.clear()
         
-        try:
-            data = urllib2.urlopen('https://data.nbn.org.uk/api/designations').read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+        url = 'https://data.nbn.org.uk/api/designations'
+        res = self.restRequest(url)
+
+        if res is None:
             return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
+
+        #responseText = res.data().decode('utf-8')
+        responseText = res.data()
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "designations.json"))
         with open(datafile, 'w') as jsonfile:
-            jsonfile.write(data)
-            
+            jsonfile.write(responseText)
+            #json.dump(responseText, jsonfile)
+
         # Rebuild designation tree
         self.readDesignationFile()
   
@@ -594,21 +590,19 @@ class NBNDialog(QWidget, Ui_nbn):
         
         self.twDatasets.clear()
         
-        try:
-            data = urllib2.urlopen('https://data.nbn.org.uk/api/datasets').read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
+        url = 'https://data.nbn.org.uk/api/datasets'
+        res = self.restRequest(url)
+
+        if res is None:
             return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
-        
-        #jsonData = json.loads(data)
+
+        #responseText = res.data().decode('utf-8')
+        responseText = res.data()
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
         with open(datafile, 'w') as jsonfile:
-            jsonfile.write(data)
+            jsonfile.write(responseText)
             
         # Rebuild dataset tree
         self.readDatasetFile()
@@ -668,118 +662,19 @@ class NBNDialog(QWidget, Ui_nbn):
         #if self.guiFile is None:
         self.guiFile = FileDialog(self.iface, self.nbnAttentionFile)
         
-        self.guiFile.setVisible(True)
+        self.guiFile.setVisible(True)    
         
-    def nbnTaxonObservations(self):
-        
-        if self.nbnAthenticationCookie is None:
-             return
-             
-        cj = cookielib.CookieJar()
-        cj.set_cookie(self.nbnAthenticationCookie)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-        params = urllib.urlencode({'datasetKey': 'GA000483', 'ptvk': 'NBNSYS0000008679'})
-        try:
-            #data = opener.open('https://data.nbn.org.uk/api/taxonObservations', params).read()
-            data = opener.open('https://data.nbn.org.uk/api/datasets').read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
-            return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
-        
-        self.iface.messageBar().pushMessage("Info", "Success", level=QgsMessageBar.INFO)
-        
-        self.guiFile = FileDialog(self.iface, data)
-        self.guiFile.setVisible(True)
-        
-    def taxonSearchFinished(self, reply):
-        #NOT USED
-        #QgsMessageLog.logMessage('\n'.join(dir(reply)), "proxy debug")
-        QgsMessageLog.logMessage(reply.url().toString(), "proxy debug")
-
-        error = reply.error()
-        if error == QNetworkReply.NoError:
-            responseText = reply.readAll().data().decode('utf-8')
-            try:
-                jsonData = json.loads(responseText) 
-            except ValueError:
-                self.warningMessage('The service did not reply properly.')
-            except:
-                self.warningMessage('Unknown error.')
-        else:
-            self.warningMessage(self.getNetworkErrorMessage(error))
-            return
-        reply.deleteLater()
-        reply = None
-
-         #Tree view
-        self.twTaxa.clear()
-        treeNodes = {} #Dictionary
-        jResponseList = jsonData["results"]
-        for jTaxon in jResponseList:
-        
-            if not jTaxon["taxonOutputGroupName"] in(treeNodes.keys()):
-                #Create a new top level tree item for the taxon group
-                twiGroup = QTreeWidgetItem(self.twTaxa)
-                twiGroup.setText(0, jTaxon["taxonOutputGroupName"])
-                twiGroup.setExpanded(False)
-                twiGroup.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
-                twiGroup.setIcon(0, QIcon( self.pathPlugin % "images/Group20x16.png" ))
-                self.twTaxa.addTopLevelItem(twiGroup)
-                #Add to dictionary
-                treeNodes[jTaxon["taxonOutputGroupName"]] = twiGroup
-            else:
-                twiGroup = treeNodes[jTaxon["taxonOutputGroupName"]]
-                
-            if not jTaxon["ptaxonVersionKey"] in(treeNodes.keys()):
-                #Create a child tree item for the preferred TVK group
-                twiPTVK = QTreeWidgetItem(twiGroup)
-                twiPTVK.setText(0, jTaxon["ptaxonVersionKey"])
-                #twiPTVK.setText(0, self.nameFromTVK(jTaxon["ptaxonVersionKey"]))
-                #twiPTVK.setIcon(0, QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
-                twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-                twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
-                twiPTVK.setExpanded(True)
-                self.twTaxa.addTopLevelItem(twiPTVK)
-                #Add to dictionary
-                treeNodes[jTaxon["ptaxonVersionKey"]] = twiPTVK
-            else:
-                twiPTVK = treeNodes[jTaxon["ptaxonVersionKey"]]
-                
-            #Create a new child item for the taxon name
-            twiName = QTreeWidgetItem(twiPTVK)
-            twiName.setText(0, jTaxon["name"])
-            twiName.setIcon(0, QIcon( self.pathPlugin % "images/Synonym20x16.png" ))
-            twiName.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
-            self.twTaxa.addTopLevelItem(twiName)
-
-    def taxonSearchRequested(self):
-        #NOT USED
-        if self.leTaxonSearch.text() == "":
-            self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
-            return
-
-        if self.namTaxonSearch is None: 
-            self.namTaxonSearch = QgsNetworkAccessManager.instance() 
-            #This must only be called once otherwise multiple connections are
-            #generated which causes the function to be called with an empty
-            #reply object for every time it's been called in the session
-            self.namTaxonSearch.finished.connect(self.taxonSearchFinished)
-
-        url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
-        req = QNetworkRequest(QUrl(url))
-        reply = self.namTaxonSearch.get(req)
-
-    def taxonSearchTest(self):
-        #Uses __sync_request for dealing with proxy internet server
+    def taxonSearch(self):
         if self.leTaxonSearch.text() == "":
             self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
             return
 
         url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
-        res = self.__sync_request(url)
+        res = self.restRequest(url)
+
+        if res is None:
+            return
+
         responseText = res.data().decode('utf-8')
         jsonData = json.loads(responseText) 
         jResponseList = jsonData["results"]
@@ -825,67 +720,6 @@ class NBNDialog(QWidget, Ui_nbn):
             twiName.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
             self.twTaxa.addTopLevelItem(twiName)
 
-    def taxonSearch(self):
-    
-        if self.leTaxonSearch.text() == "":
-            self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
-            return
-        try:
-            #url = 'https://data.nbn.org.uk/api/search/taxa?q=' + self.leTaxonSearch.text()
-            url = 'https://data.nbn.org.uk/api/taxa?q=' + self.leTaxonSearch.text()
-            url = url.replace(' ','%20')
-            data = urllib2.urlopen(url).read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
-            return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
-    
-        jsonData = json.loads(data)
-        jResponseList = jsonData["results"]
-        
-        #Tree view
-        self.twTaxa.clear()
-        treeNodes = {} #Dictionary
-        
-        for jTaxon in jResponseList:
-        
-            if not jTaxon["taxonOutputGroupName"] in(treeNodes.keys()):
-                #Create a new top level tree item for the taxon group
-                twiGroup = QTreeWidgetItem(self.twTaxa)
-                twiGroup.setText(0, jTaxon["taxonOutputGroupName"])
-                twiGroup.setExpanded(False)
-                twiGroup.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
-                twiGroup.setIcon(0, QIcon( self.pathPlugin % "images/Group20x16.png" ))
-                self.twTaxa.addTopLevelItem(twiGroup)
-                #Add to dictionary
-                treeNodes[jTaxon["taxonOutputGroupName"]] = twiGroup
-            else:
-                twiGroup = treeNodes[jTaxon["taxonOutputGroupName"]]
-                
-            if not jTaxon["ptaxonVersionKey"] in(treeNodes.keys()):
-                #Create a child tree item for the preferred TVK group
-                twiPTVK = QTreeWidgetItem(twiGroup)
-                twiPTVK.setText(0, jTaxon["ptaxonVersionKey"])
-                #twiPTVK.setText(0, self.nameFromTVK(jTaxon["ptaxonVersionKey"]))
-                #twiPTVK.setIcon(0, QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
-                twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-                twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
-                twiPTVK.setExpanded(True)
-                self.twTaxa.addTopLevelItem(twiPTVK)
-                #Add to dictionary
-                treeNodes[jTaxon["ptaxonVersionKey"]] = twiPTVK
-            else:
-                twiPTVK = treeNodes[jTaxon["ptaxonVersionKey"]]
-                
-            #Create a new child item for the taxon name
-            twiName = QTreeWidgetItem(twiPTVK)
-            twiName.setText(0, jTaxon["name"])
-            twiName.setIcon(0, QIcon( self.pathPlugin % "images/Synonym20x16.png" ))
-            twiName.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
-            self.twTaxa.addTopLevelItem(twiName)           
- 
     def getSelectedTaxonOutputGroup(self):
         
         #Selected taxon output group
@@ -1258,17 +1092,14 @@ class NBNDialog(QWidget, Ui_nbn):
     def nameFromTVK(self, tvk):
        
         #Get the preferred taxon name for the TVK
-        try:
-            url = 'https://data.nbn.org.uk/api/taxa/' + tvk
-            data = urllib2.urlopen(url).read()
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
-            return ('')
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return ('')
-    
-        jsonData = json.loads(data)
+        url = 'https://data.nbn.org.uk/api/taxa/' + tvk
+        res = self.restRequest(url)
+
+        if res is None:
+            return
+
+        responseText = res.data().decode('utf-8')
+        jsonData = json.loads(responseText) 
         return (jsonData["name"])
         
     def removeMap(self):
@@ -1302,56 +1133,83 @@ class NBNDialog(QWidget, Ui_nbn):
         if not self.nbnAthenticationCookie is None:
             self.infoMessage("You are already logged in to the NBN as '" + self.currentNBNUser + "'")
             return
-  
+
         username = self.leUsername.text()
         password = self.lePassword.text()
-        cj = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-        login_data = urllib.urlencode({'username' : username, 'password' : password})
-        try:
-            opener.open('https://data.nbn.org.uk/api/user/login', login_data)
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "NBN Login failed. HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
-            return
-        except urllib2.URLError, e:
-            strErr = ""
-            try:
-                strErr = e.reason.args[1]
-            except:
-                strErr = "Unspecified network error."
-                
-            self.iface.messageBar().pushMessage("Error", "NBN Login failed. Network error: %s" % strErr, level=QgsMessageBar.CRITICAL)
-            return
-    
-        for cookie in cj:
-            if cookie.name == 'nbn.token_key':
-                self.nbnAthenticationCookie = cookie
-                self.currentNBNUser = self.leUsername.text()
-                self.lblLoginStatus.setText ("You are logged in as '" + self.currentNBNUser + "'")
-        return    
-        
+        postData = QByteArray()
+        postData.append('username=' + username + '&')
+        postData.append('password=' + password)
+
+        url = 'https://data.nbn.org.uk/api/user/login'
+        self.restRequest(url, postData, callType="login")
+
+        return
+      
     def logoutNBN(self):
         
         if self.nbnAthenticationCookie is None:
             self.infoMessage("Can't logout because you are not logged in to the NBN")
             return
-            
-        cj = cookielib.CookieJar()
-        cj.set_cookie(self.nbnAthenticationCookie)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-        try:
-            opener.open('https://data.nbn.org.uk/api/user/logout')
-        except urllib2.HTTPError, e:
-            self.iface.messageBar().pushMessage("Error", "HTTP error: %d" % e.code, level=QgsMessageBar.CRITICAL)
-            return
-        except urllib2.URLError, e:
-            self.iface.messageBar().pushMessage("Error", "Network error: %s" % e.reason.args[1], level=QgsMessageBar.CRITICAL)
-            return
-            
-        self.lblLoginStatus.setText (self.noLoginText)
-        self.currentNBNUser = ""
-        self.nbnAthenticationCookie = None
-        
+
+        url = 'https://data.nbn.org.uk/api/user/logout'
+        self.restRequest(url, callType="logout")
+
+        return
+       
+    def downloadAsyncTest(self, reply):
+
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            QgsMessageLog.logMessage("error generated", "NBN Tool Rest call")
+            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            return None
+
+        # Set the result object
+        result = reply.readAll()
+        QgsMessageLog.logMessage(str(result), "NBN Tool Rest call")
+
+        reply.deleteLater()
+        return
+
+    def downloadNBNObservationsTest(self):
+
+        endpoint = QUrl('https://data.nbn.org.uk/api/taxonObservations/NBNSYS0000008676')
+        request = QNetworkRequest(endpoint)
+
+        #QgsMessageLog.logMessage(str(endpoint), "NBN Tool Rest call")
+
+        cj = QNetworkCookieJar()
+        cj.setAllCookies([self.nbnAthenticationCookie])
+        QgsNetworkAccessManager.instance().setCookieJar(cj)
+
+        #if callType == "download":
+        #    QgsNetworkAccessManager.instance().finished.connect(self.downLoadFinished)
+
+        reply = QgsNetworkAccessManager.instance().get(request)
+
+        #reply.finished.connect(self.downloadAsyncTest(reply))
+        reply.finished.connect(lambda arg=reply: self.downloadAsyncTest(arg))
+        return
+
+        # Wait
+        loop = QEventLoop()
+        reply.finished.connect(loop.quit)
+        loop.exec_()
+        reply.finished.disconnect(loop.quit)
+        loop = None
+
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            QgsMessageLog.logMessage("error generated", "NBN Tool Rest call")
+            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            return None
+
+        # Set the result object
+        result = reply.readAll()
+        QgsMessageLog.logMessage(str(result), "NBN Tool Rest call")
+
+        reply.deleteLater()
+
     def downloadNBNObservations(self):
         """
         The filters applicable to this resource are as follows;
@@ -1529,10 +1387,7 @@ class NBNDialog(QWidget, Ui_nbn):
         # Set current tab to last (download) tab
         self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
         
-        # Start asynchronous thread
-        download = AsyncNBNDownload(self, fileName, params)
-        download.error.connect(self.downloadError)
-        download.start()
+        self.runDownload(fileName, params)
         
     def checkFilters(self):
 
@@ -1560,11 +1415,7 @@ class NBNDialog(QWidget, Ui_nbn):
         
         # Absence
         self.cbIndAbsence.setChecked(self.rbAbsence.isChecked())
-
-    def downloadError(self, strError):
-
-        self.errorMessage(strError)
-        
+ 
     def displayCSV(self):
     
         #Check that single file is selected in list
@@ -1617,6 +1468,7 @@ class NBNDialog(QWidget, Ui_nbn):
             self.cbIndPolygon.setChecked(True)
         
     def getNetworkErrorMessage(self, error):
+        #NOT USED
         if error == QNetworkReply.NoError:
             # No error condition.
             # Note: When the HTTP protocol returns a redirect no error will be reported.
@@ -1694,115 +1546,68 @@ class NBNDialog(QWidget, Ui_nbn):
 
         return 'An unknown network-related error was detected'
 
-    def __sync_request(self, url):
-        #This function taken verbatim from QuickMapServices plugin (extra_sources.py module)
-        #with only lines pertaining to __replies array commented out.
-        #It uses the QgsNetworkAccessManager class which means that calls can be make from
-        #behind a proxy web server if specified in QGIS options. This function uses 
-        #QgsNetworkAccessManager in a synchronous way.
-        _url = QUrl(url)
-        _request = QNetworkRequest(_url)
-        #self.__replies.append(_request)
+    def runDownload(self, fileName, params):
 
-        QgsNetworkAccessManager.instance().sslErrors.connect(self.__supress_ssl_errors)
-
-        _reply = QgsNetworkAccessManager.instance().get(_request)
-
-        # wait
-        loop = QEventLoop()
-        _reply.finished.connect(loop.quit)
-        loop.exec_()
-        _reply.finished.disconnect(loop.quit)
-        QgsNetworkAccessManager.instance().sslErrors.disconnect(self.__supress_ssl_errors)
-        loop = None
-
-        error = _reply.error()
-        if error != QNetworkReply.NoError:
-            raise Exception(error)
-
-        result_code = _reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-
-        result = _reply.readAll()
-        #self.__replies.append(_reply)
-        _reply.deleteLater()
-
-        if result_code in [301, 302, 307]:
-            redirect_url = _reply.attribute(QNetworkRequest.RedirectionTargetAttribute)
-            return self.__sync_request(redirect_url)
-        else:
-            return result
-
-    def __supress_ssl_errors(self, reply, errors):
-        reply.ignoreSslErrors()
-
-class AsyncNBNDownload(QObject, threading.Thread):
-    
-    error = pyqtSignal(basestring)
-
-    def __init__(self, nbnDialog, csv, params):
-        threading.Thread.__init__(self)
-        QObject.__init__(self)
-        self.csv = csv
-        self.nbnDialog = nbnDialog
-        self.params = params
-        
-    def run(self):
- 
         # Add file to listbox
-        splitName = os.path.split(self.csv)
-        self.nbnDialog.lwDownloaded.addItem(splitName[1])
-        lwi = self.nbnDialog.lwDownloaded.item(self.nbnDialog.lwDownloaded.count()-1)
-        lwi.setToolTip(self.csv)
+        splitName = os.path.split(fileName)
+        self.lwDownloaded.addItem(splitName[1])
+        lwi = self.lwDownloaded.item(self.lwDownloaded.count()-1)
+        lwi.setToolTip(fileName)
         
-        # NBN Authentication
-        cj = cookielib.CookieJar()
-        cj.set_cookie(self.nbnDialog.nbnAthenticationCookie)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        lwi.setIcon(QIcon( self.pathPlugin % "images/download.png" ))
+
+        if len(params) == 1 and (params.keys()[0] == "ptvk" or params.keys()[0] == "datasetKey"):      
+            # If only a tvk or dataset key passed, we use specific endpoints for them
+            endpoint = 'https://data.nbn.org.uk/api/taxonObservations/' + params.values()[0]
+            self.restRequest(endpoint, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
+        else:
+            # Otherwise we use the general combined filter endpoint
+            endpoint = 'https://data.nbn.org.uk/api/taxonObservations/'
+            postData = QByteArray()
+            for key in params.keys():
+                if postData.length() > 0:
+                    postData.append('&')
+                postData.append(key + '=' + params[key])
+            self.restRequest(endpoint, postData, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
+
+    def downLoadFinished(self, downloadInfo):
+
+        QgsMessageLog.logMessage("Download finished fired", "NBN Tool Rest call")
+
+        lwiDownload = downloadInfo["lwi"]
+        fileName = downloadInfo["csv"]
+        reply = downloadInfo["reply"]
         
-        lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/download.png" ))
-        
-        # Download the data from NBN
-        try:
-            if len(self.params) == 1 and (self.params.keys()[0] == "ptvk" or self.params.keys()[0] == "datasetKey"):      
-                # If only a tvk or dataset key passed, we use specific endpoints for them
-                endpoint = 'https://data.nbn.org.uk/api/taxonObservations/' + self.params.values()[0]
-                data = opener.open(endpoint).read()
-            else:
-                # Otherwise we use the general combined filter endpoint
-                params = urllib.urlencode(self.params)
-                data = opener.open('https://data.nbn.org.uk/api/taxonObservations', params).read()
-        except urllib2.HTTPError, e:
-            self.error.emit("HTTP error: %s" % str(e))
-            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
-            return
-        except urllib2.URLError, e:
-            self.error.emit("Network error: %s" % str(e))
-            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
-            return
-        except Exception, e:
-            self.error.emit("Error: %s" % str(e))
-            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
-            return
-            
-        lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/eggtimer.jpg" ))
-        
-        
-        
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            QgsMessageLog.logMessage("error generated", "NBN Tool Rest call")
+            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+            return None
+        else:
+            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/eggtimer.jpg" ))
+
         # Write the json data to csv
+        result = reply.readAll()
+        responseText = result.data() #.decode('utf-8')
+
+        #QgsMessageLog.logMessage("Response text", "NBN Tool Rest call")
+        #QgsMessageLog.logMessage(responseText, "NBN Tool Rest call")
+
         try:
             # If csv is to be enriched with dataset names, create datasets dictionary from file
             datasets={}
-            if self.nbnDialog.cbDatasetNames.isChecked():
-                datafile = self.nbnDialog.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
+            if self.cbDatasetNames.isChecked():
+                datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
                 if os.path.isfile(datafile):
                     with open(datafile) as f:
                         jsonDatasets = json.load(f)       
                     for dataset in jsonDatasets:
                         datasets[dataset["key"]] = dataset["title"]
 
-            jsonData = json.loads(data)
+            jsonData = json.loads(responseText)
 
-            with open(self.csv, 'wb') as csvfile:
+            with open(fileName, 'wb') as csvfile:
                 #csvw = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
                 csvw = csv.writer(csvfile, dialect='excel')
                 headerRow = []
@@ -1833,9 +1638,106 @@ class AsyncNBNDownload(QObject, threading.Thread):
                         
                     csvw.writerow([unicode(s).encode("utf-8") for s in attrRow])
                         
-            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/tick.jpg" ))
+            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
         except Exception, e:
-            self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
-            lwi.setIcon(QIcon( self.nbnDialog.pathPlugin % "images/cross.png" ))
+            QgsMessageLog.logMessage("Failed to write output file", "NBN Tool Rest call")
+            self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % str(e), level=QgsMessageBar.WARNING)
+            #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
+            lwi.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
             return
+
+    def restRequest(self, url, postData=None, callType="data", downloadInfo=None):
+        #This function adapted from __sync_request function in
+        #QuickMapServices plugin (extra_sources.py module)
+        #Also informed by https://github.com/qgis/QGIS/pull/2299/files
+        #and http://nullege.com/codes/search/PyQt4.QtNetwork.QNetworkAccessManager
+
+        endpoint = QUrl(url)
+        request = QNetworkRequest(endpoint)
+
+        QgsMessageLog.logMessage(str(endpoint), "NBN Tool Rest call")
+
+        # Set authentication cookie if set and this is either a call to logout or a call to download data
+        if (callType == "download" or callType == "logout" ) and not self.nbnAthenticationCookie is None:
+            QgsMessageLog.logMessage("setting authentication cookie", "NBN Tool Rest call")
+            cj = QNetworkCookieJar()
+            cj.setAllCookies([self.nbnAthenticationCookie])
+            QgsNetworkAccessManager.instance().setCookieJar(cj)
+
+        if callType == "login":
+            QgsMessageLog.logMessage("setting empty cookiejar", "NBN Tool Rest call")
+            cj = QNetworkCookieJar()
+            QgsNetworkAccessManager.instance().setCookieJar(cj)
+
+        # Set determine if post or get and set accordingly
+        if postData is None:
+            QgsMessageLog.logMessage("Issue get request", "NBN Tool Rest call")
+            reply = QgsNetworkAccessManager.instance().get(request)
+        else:
+            QgsMessageLog.logMessage("Issue post request", "NBN Tool Rest call")
+            reply = QgsNetworkAccessManager.instance().post(request, postData)
+
+        #self.restReplies.append(reply)
+
+        if callType == "download":
+            QgsMessageLog.logMessage("Connecting to downloadFinished", "NBN Tool Rest call")
+            #reply.finished.connect(self.downLoadFinished(reply, lwiDownload))
+            downloadInfo["reply"] = reply
+            #reply.finished.connect(lambda arg=downloadInfo: self.downLoadFinished(arg))
+            #Don't now under what circumstances, but sometimes get an error at the end of execution...
+            #reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
+			#NameError: free variable 'self' referenced before assignment in enclosing scope
+            #So this needs trapping
+            try:
+                reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
+            except Exception, e:
+                QgsMessageLog.logMessage("error generated", "NBN Tool Rest call")
+                downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+                self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %s" % str(e), level=QgsMessageBar.WARNING)
+            return
+
+        # Wait
+        loop = QEventLoop()
+        reply.finished.connect(loop.quit)
+        QgsMessageLog.logMessage("exec loop", "NBN Tool Rest call")
+        loop.exec_()
+        QgsMessageLog.logMessage("loop ended", "NBN Tool Rest call")
+        reply.finished.disconnect(loop.quit)
+        loop = None
+
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            QgsMessageLog.logMessage("error generated", "NBN Tool Rest call")
+            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            return None
+
+        # If the return is a re-direction then execute that redirection
+        resultCode = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        if resultCode in [301, 302, 307]:
+            redirectUrl = reply.attribute(QNetworkRequest.RedirectionTargetAttribute)
+            return self.restRequest(redirectUrl, postData, callType)
+
+        # Set the result object
+        result = reply.readAll()
+        reply.deleteLater()
+
+        # For login calls, save authentication cookie
+        if callType == "login":
+            for cookie in cj.allCookies():
+                #QgsMessageLog.logMessage(str(cookie.name()), "NBN Tool", QgsMessageLog.INFO)
+                #QgsMessageLog.logMessage(str(cookie.value()), "NBN Tool", QgsMessageLog.INFO)
+                if cookie.name() == 'nbn.token_key':
+                    self.nbnAthenticationCookie = cookie
+                    self.currentNBNUser = self.leUsername.text()
+                    self.lblLoginStatus.setText ("You are logged in as '" + self.currentNBNUser + "'")
+        
+        # For logouts
+        if callType == "logout":
+            self.lblLoginStatus.setText (self.noLoginText)
+            self.currentNBNUser = ""
+            self.nbnAthenticationCookie = None
+
+        QgsMessageLog.logMessage("returning result", "NBN Tool Rest call")
+
+        return result
 

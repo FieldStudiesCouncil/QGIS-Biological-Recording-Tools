@@ -1,3 +1,7 @@
+Timing out on NBN downloads?
+
+In QGIS Settings->Options->Networks, increase the value of the timeout property from the default value of 60000 milliseconds (60 seconds, i.e. one minute), to something like 600000 milliseconds (600 seconds, i.e. 10 minutes).
+
 Hanging on zoom?
 
 We are aware that in Windows XP, QGIS may hang easily when zooming with an NBN WMS map displayed. This has been reported for QGIS versions 2.4 and version 2.6. Windows 7 and Windows 8 appear to be okay. If you zoom carefully with XP, ensuring that you wait for the map to refresh before zooming again, you can avoid hanging. If you are an XP user, you may find it easier to avoid accidental multiple zooms if you turn off the mouse-wheel zoom from the QGIS settings menu (settings, options, map tools: set mouse wheel action to nothing). 
