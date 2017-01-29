@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.6.0
+version=2.6.1
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,19 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.6.0
+changelog=2.6.1
+	- Fixes a problem with using the NBN tool from behind a proxy
+	server. You can now set proxy-server settings in the QGIS
+	network options and these will be used by the tool when 
+	connecting to NBN web services. Note that for downloads,
+	you should set the timeout to be something greater than
+	the default of 60 seconds, otherwise downloading of large
+	datasets will time out.
+	- Adds a warning to the interface about a likely interruption
+	to the availability of the NBN tool when the NBN changes
+	it's architecture from NBN Gateway to NBN Atlas at the
+	end of March 2017.
+  2.6.0
 	- Fixes a problem with the #name# tag used in composers when
 	automatically creating output for multiple TEMP_ layers
 	created with biological records tool ('TEMP_') was left
