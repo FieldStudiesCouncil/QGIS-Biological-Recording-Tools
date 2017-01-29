@@ -23,5 +23,5 @@
 
 .gitignore export-ignore
 .gitattributes export-ignore
-.suo export-ignore
+#.suo export-ignore
 .vs export-ignore

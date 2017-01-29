@@ -48,8 +48,8 @@ Temporary Items
 *.sln
 *.pyproj
 *.pyc
-*.suo
 *.vs
+.vs
 #resources_rc.py
 iniBioRec.txt
 #ui_*.py
