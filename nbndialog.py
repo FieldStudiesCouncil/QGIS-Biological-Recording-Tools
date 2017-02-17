@@ -1567,7 +1567,7 @@ class NBNDialog(QWidget, Ui_nbn):
             for key in params.keys():
                 if postData.length() > 0:
                     postData.append('&')
-                postData.append(key + '=' + params[key])
+                postData.append(key + '=' + str(params[key]))
             self.restRequest(endpoint, postData, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
 
     def downLoadFinished(self, downloadInfo):
@@ -1684,12 +1684,14 @@ class NBNDialog(QWidget, Ui_nbn):
             #reply.finished.connect(self.downLoadFinished(reply, lwiDownload))
             downloadInfo["reply"] = reply
             #reply.finished.connect(lambda arg=downloadInfo: self.downLoadFinished(arg))
-            #Don't now under what circumstances, but sometimes get an error at the end of execution...
+            #Don't know under what circumstances, but sometimes get an error at the end of execution...
             #reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
 			#NameError: free variable 'self' referenced before assignment in enclosing scope
             #So this needs trapping
             try:
                 reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
+                #reply.finished.connect(self.downLoadFinished(downloadInfo))
+                #reply.finished.connect(lambda arg=downloadInfo: self.downLoadFinished(arg))
             except Exception, e:
                 QgsMessageLog.logMessage("error generated", "NBN Tool Rest call")
                 downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
