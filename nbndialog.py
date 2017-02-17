@@ -1690,6 +1690,7 @@ class NBNDialog(QWidget, Ui_nbn):
             #So this needs trapping
             try:
                 reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
+
                 #reply.finished.connect(self.downLoadFinished(downloadInfo))
                 #reply.finished.connect(lambda arg=downloadInfo: self.downLoadFinished(arg))
             except Exception, e:
