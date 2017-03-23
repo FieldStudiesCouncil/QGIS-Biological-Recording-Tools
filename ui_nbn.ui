@@ -1111,6 +1111,9 @@
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Matching taxa - check TVK corresponding to species you want.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
+             <property name="indentation">
+              <number>10</number>
+             </property>
              <property name="headerHidden">
               <bool>true</bool>
              </property>

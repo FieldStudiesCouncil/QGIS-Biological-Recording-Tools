@@ -993,7 +993,8 @@ class BiorecDialog(QWidget, Ui_Biorec):
     def createMapLayer(self, selectedTaxa):
         
         # Initialsie the map layer
-        layer = biorecLayer2(self.iface, self.csvLayer, self.pteLog) 
+        layer = biorecLayer2(self.iface, self.csvLayer, self.pteLog)
+
         layer.setTaxa(selectedTaxa)
         layer.setColTaxa(self.cboTaxonCol.currentIndex() - 1)
         layer.setColAb(self.cboAbundanceCol.currentIndex() - 1)

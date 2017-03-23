@@ -185,7 +185,7 @@ class biorecLayer2(QObject):
             except:
                 id = None
             return id
-            
+          
     def addFieldsToTable(self, mapType):
     
         # This procedure makes a map of either points or squares - one for each record.
@@ -237,11 +237,12 @@ class biorecLayer2(QObject):
             for taxon in self.taxa: 
                 #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
+                #QgsMessageLog.logMessage(strFilter, 'biorec')
 
             bNoFilterMethod = False     
             try:      
                 # Only available from 2.2 onwards so catch for backward compatibility
-                request = QgsFeatureRequest().setFilterExpression(strFilter)
+                request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
                 iter = self.csvLayer.getFeatures(request)
                 fets = fets + self.makeFeatures(iter, mapType) 
             except:
@@ -258,7 +259,9 @@ class biorecLayer2(QObject):
             else:
                 # More than one taxa selected
                 fets = self.makeFeatures(iter, mapType, True)
-                   
+            
+        QgsMessageLog.logMessage("number of features is " + str(len(fets)), 'biorec')
+               
         self.vl.addFeatures(fets)
         self.vl.commitChanges()
         self.vl.updateExtents()
@@ -388,11 +391,12 @@ class biorecLayer2(QObject):
                 #strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
                 #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
-                
+                #QgsMessageLog.logMessage(strFilter, 'biorec')
+
             bNoFilterMethod = False
             try:      
                 # Only available from 2.2 onwards so catch for backward compatibility
-                request = QgsFeatureRequest().setFilterExpression(strFilter)
+                request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
                 iter = self.csvLayer.getFeatures(request)
                 #fetsDict.update(self.makeAtlasFeatures(iter, gridPrecision, symbol))
                 fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)

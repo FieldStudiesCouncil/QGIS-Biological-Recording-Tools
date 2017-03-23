@@ -31,6 +31,10 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
+
+#!!!!!!!!!!!!!!!!!!!!!
+#Fixed a problem with bracket characters breaking filtering in species names. 
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!
 changelog=2.6.2
     - Fixes a problem with date filters not working and causing error.
   2.6.1

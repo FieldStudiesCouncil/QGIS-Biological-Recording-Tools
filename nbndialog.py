@@ -54,6 +54,9 @@ class NBNDialog(QWidget, Ui_nbn):
     
         self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
         
+        self.treeNodesExact = {} 
+        self.treeNodesFuzzy = {} 
+
         # Get a reference to an osgr object and an osgrLayer object
         self.osgr = osgr()
         
@@ -140,7 +143,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.bufferEnableDisable()
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
-     
+
     def showEvent(self, ev):
         # Load the environment stuff
         self.env = envManager()
@@ -261,14 +264,13 @@ class NBNDialog(QWidget, Ui_nbn):
         #If current item is checked, uncheck all others
         #Only one taxon can be checked.
         
-        if twItem.checkState(0) == Qt.Checked:
-            for iGroup in range(self.twTaxa.topLevelItemCount()):
-                twiGroup = self.twTaxa.topLevelItem(iGroup)
-                for iTaxa in range(twiGroup.childCount()):
-                    twiTaxa = twiGroup.child(iTaxa)
-                    if not twiTaxa == twItem:
-                        twiTaxa.setCheckState(0, Qt.Unchecked)
-                        
+        for twiKey in self.treeNodesExact:
+            if not self.treeNodesExact[twiKey] == twItem and self.treeNodesExact[twiKey].checkState(0) == Qt.Checked:
+                self.treeNodesExact[twiKey].setCheckState(0, Qt.Unchecked)
+        for twiKey in self.treeNodesFuzzy:
+            if not self.treeNodesFuzzy[twiKey] == twItem and self.treeNodesFuzzy[twiKey].checkState(0) == Qt.Checked:
+                self.treeNodesFuzzy[twiKey].setCheckState(0, Qt.Unchecked)
+
         self.checkFilters()
         
     def designationTwClick(self, twItem, iCol):
@@ -665,6 +667,188 @@ class NBNDialog(QWidget, Ui_nbn):
         self.guiFile.setVisible(True)    
         
     def taxonSearch(self):
+        #NBN Atlas search
+        if self.leTaxonSearch.text() == "":
+            self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
+            return
+
+        url = 'https://species-ws.nbnatlas.org/search?q=' + self.leTaxonSearch.text() + '&pageSize=50&fq=taxonomicStatus:accepted'
+        #url = 'https://species-ws.nbnatlas.org/search?q=' + self.leTaxonSearch.text() + '&pageSize=100'
+        res = self.restRequest(url)
+
+        if res is None:
+            return
+
+        responseText = res.data().decode('utf-8')
+        jsonData = json.loads(responseText) 
+        jResponseList = jsonData["searchResults"]["results"]
+        lightGrey = QBrush(QColor(130,130,130,255))
+
+        #Tree view
+        self.twTaxa.clear()
+        self.treeNodesExact = {}
+        self.treeNodesFuzzy = {} 
+
+        #Create top level items for exact and fuzzy matches
+        twiExact = QTreeWidgetItem(self.twTaxa)
+        twiExact.setText(0, "Exact match")
+        twiExact.setExpanded(False)
+        twiExact.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+
+        twiFuzzy = QTreeWidgetItem(self.twTaxa)
+        twiFuzzy.setText(0, "Fuzzy match")
+        twiFuzzy.setExpanded(False)
+        twiFuzzy.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+
+        for jTaxon in jResponseList:
+        
+            #QgsMessageLog.logMessage(jTaxon["name"], "Atlas search")
+
+            #Is this a fuzzy match or an exact match?
+            if jTaxon["name"].lower() == self.leTaxonSearch.text().lower() or jTaxon["commonNameSingle"].lower() == self.leTaxonSearch.text().lower():
+                treeNodes = self.treeNodesExact
+                twiParent = twiExact
+            else:
+                treeNodes = self.treeNodesFuzzy
+                twiParent = twiFuzzy
+
+            try:
+                tKingdom = jTaxon["kingdom"]
+                if tKingdom is None:
+                    tKingdom = ""
+            except:
+                tKingdom = ""
+
+            try:
+                tPhylum = jTaxon["phylum"]
+                if tPhylum is None:
+                    tPhylum = ""
+            except:
+                tPhylum = ""
+
+            try:
+                tClass = jTaxon["class"]
+                if tClass is None:
+                    tClass = ""
+            except:
+                tClass = ""
+
+            try:
+                tOrder = jTaxon["order"]
+                if tOrder is None:
+                    tOrder = ""
+            except:
+                tOrder = ""
+
+            try:
+                tFamily = jTaxon["family"]
+                if tFamily is None:
+                    tFamily = ""
+            except:
+                tFamily = ""
+
+            if 'commonNameSingle' in jTaxon and jTaxon["commonNameSingle"] <> "":
+                tName = jTaxon["name"] + " (" + jTaxon["commonNameSingle"] + ")"
+            else:
+                tName = jTaxon["name"]
+
+            if tKingdom != "" and not tKingdom in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiKingdom = QTreeWidgetItem(twiParent)
+                twiKingdom.setText(0, tKingdom + ' (Kingdom)')
+                twiKingdom.setExpanded(True)
+                twiKingdom.setForeground(0, lightGrey)
+                twiKingdom.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiKingdom.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                #Add to dictionary
+                treeNodes[tKingdom] = twiKingdom
+            elif tKingdom != "":
+                twiKingdom = treeNodes[tKingdom]
+            if tKingdom != "":
+                twiParent = twiKingdom
+
+            if tPhylum != "" and not tPhylum in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiPhylum = QTreeWidgetItem(twiParent)
+                twiPhylum.setText(0, tPhylum + ' (Phylum)')
+                twiPhylum.setExpanded(True)
+                twiPhylum.setForeground(0, lightGrey)
+                twiPhylum.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiPhylum.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                #self.twTaxa.addTopLevelItem(twiPhylum)
+                #Add to dictionary
+                treeNodes[tPhylum] = twiPhylum
+            elif tPhylum != "":
+                twiPhylum = treeNodes[tPhylum]
+            if tPhylum != "":
+                twiParent = twiPhylum
+
+            if tClass != "" and not tClass in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiClass = QTreeWidgetItem(twiParent)
+                twiClass.setText(0, tClass + ' (Class)')
+                twiClass.setExpanded(True)
+                twiClass.setForeground(0, lightGrey)
+                twiClass.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiClass.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                #self.twTaxa.addTopLevelItem(twiClass)
+                #Add to dictionary
+                treeNodes[tClass] = twiClass
+            elif tClass != "":
+                twiClass = treeNodes[tClass]
+            if tClass != "":
+                twiParent = twiClass
+
+            if tOrder != "" and not tOrder in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiOrder = QTreeWidgetItem(twiParent)
+                twiOrder.setText(0, tOrder + ' (Order)')
+                twiOrder.setExpanded(True)
+                twiOrder.setForeground(0, lightGrey)
+                twiOrder.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiOrder.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                #self.twTaxa.addTopLevelItem(twiOrder)
+                #Add to dictionary
+                treeNodes[tOrder] = twiOrder
+            elif tOrder != "":
+                twiOrder = treeNodes[tOrder]
+            if tOrder != "":
+                twiParent = twiOrder
+
+            if tFamily != "" and not tFamily in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiFamily = QTreeWidgetItem(twiParent)
+                twiFamily.setText(0, tFamily + ' (Family)')
+                twiFamily.setExpanded(True)
+                twiFamily.setForeground(0, lightGrey)
+                twiFamily.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiFamily.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                #self.twTaxa.addTopLevelItem(twiFamily)
+                #Add to dictionary
+                treeNodes[tFamily] = twiFamily
+            elif tFamily != "":
+                twiFamily = treeNodes[tFamily]
+            if tFamily != "":
+                twiParent = twiFamily   
+
+            #Create a child tree item for the preferred TVK group
+            twiPTVK = QTreeWidgetItem(twiParent)
+            twiPTVK.setData(0, Qt.ToolTipRole, jTaxon["guid"])
+            twiPTVK.setText(0, tName)
+            twiPTVK.setIcon(0, QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
+            twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+            twiPTVK.setExpanded(True)
+            #self.twTaxa.addTopLevelItem(twiPTVK)
+            #Add to dictionary
+            treeNodes[jTaxon["guid"]] = twiPTVK
+
+        if twiExact.childCount() > 0:
+            twiExact.setExpanded(True)
+        elif twiFuzzy.childCount() > 0:
+            twiFuzzy.setExpanded(True)
+
+    def taxonSearchOld(self):
         if self.leTaxonSearch.text() == "":
             self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
             return
@@ -822,14 +1006,18 @@ class NBNDialog(QWidget, Ui_nbn):
     def getSelectedTVK(self):
        
         iCount = 0
-        for iGroup in range(self.twTaxa.topLevelItemCount()):
-            twiGroup = self.twTaxa.topLevelItem(iGroup)
-            for iTaxa in range(twiGroup.childCount()):
-                twiTaxa = twiGroup.child(iTaxa)
-                if twiTaxa.checkState(0) == Qt.Checked:
-                    iCount += 1
-                    selectedTVK = twiTaxa.text(0)
-                    
+
+        for twiKey in self.treeNodesExact:
+            if self.treeNodesExact[twiKey].checkState(0) == Qt.Checked:
+                selectedTVK = self.treeNodesExact[twiKey].data(0, Qt.ToolTipRole)
+                iCount += 1
+                break
+        for twiKey in self.treeNodesFuzzy:
+            if self.treeNodesFuzzy[twiKey].checkState(0) == Qt.Checked:
+                selectedTVK = self.treeNodesFuzzy[twiKey].data(0, Qt.ToolTipRole)
+                iCount += 1
+                break
+        
         #Check item in treeview is selected
         if iCount == 0:
             return None
@@ -978,9 +1166,12 @@ class NBNDialog(QWidget, Ui_nbn):
     def addWMSRaster(self, url, strLayers, strStyles, strName, wmsType, minExtent=0, maxExtent=0):
     
         url = 'url=' + url + strLayers + strStyles + "&format=image/png&crs=EPSG:27700" #falls over without the styles argument
+        
+        QgsMessageLog.logMessage("wms URL: " + url, 'web services')
+        
         url = url.replace(' ','%20')      
         rlayer = QgsRasterLayer(url, 'layer', 'wms')
-        
+       
         if not rlayer.isValid():
             self.iface.messageBar().pushMessage("Error", "Layer failed to load. URL: " + url, level=QgsMessageBar.CRITICAL)
             return None

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_nbn.ui'
 #
-# Created: Sun Jan 22 13:16:05 2017
+# Created: Tue Mar 14 13:32:44 2017
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -443,6 +443,7 @@ class Ui_nbn(object):
         self.horizontalLayout.addWidget(self.butTaxonSearch)
         self.verticalLayout_19.addLayout(self.horizontalLayout)
         self.twTaxa = QtGui.QTreeWidget(self.tab_8)
+        self.twTaxa.setIndentation(10)
         self.twTaxa.setHeaderHidden(True)
         self.twTaxa.setColumnCount(1)
         self.twTaxa.setObjectName(_fromUtf8("twTaxa"))
