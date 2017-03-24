@@ -529,6 +529,7 @@ class biorecLayer2(QObject):
                             if self.translationError != err:
                                 #self.warningMessage(err)
                                 self.translationError = err
+
                         gr = ret[0]
                         geom = ret[1]
                     

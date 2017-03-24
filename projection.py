@@ -24,12 +24,16 @@ import re
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
+from envmanager import *
 
 class projection:
 
     def __init__(self, crsInput, crsCanvas):
 
         self.transformCrs = QgsCoordinateTransform(crsInput, crsCanvas)
+
+        # Load the environment stuff
+        self.env = envManager()
         
     def xyToPoint(self, x, y):
     
@@ -82,10 +86,22 @@ class projection:
                 yIn = canvasPoint.y()
                 
         # Get the x and y of the bottom left of the grid square
+
+        # Apply any offsets specified in environment file
+        try:
+            offsetX = float(self.env.getEnvValue("biorec.xGridOffset"))
+        except:
+            offsetX = 0
+
+        try:
+            offsetY = float(self.env.getEnvValue("biorec.yGridOffset"))
+        except:
+            offsetY = 0
+
         if xIn != None and yIn != None:
             try:
-                x = (xIn // gridPrecision) * gridPrecision
-                y = (yIn // gridPrecision) * gridPrecision
+                x = ((xIn - offsetX) // gridPrecision) * gridPrecision + offsetX
+                y = ((yIn - offsetY) // gridPrecision) * gridPrecision + offsetY
                 err = ""
             except:
                 x = None
