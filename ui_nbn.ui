@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>412</width>
+    <width>407</width>
     <height>560</height>
    </rect>
   </property>
@@ -30,41 +30,6 @@
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_9">
-   <item>
-    <widget class="QPushButton" name="pbAttention">
-     <property name="minimumSize">
-      <size>
-       <width>156</width>
-       <height>30</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>30</height>
-      </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#pbAttention {
-    background-color: #F57900;
-    border-style: outset;
-    border-width: 2px;
-    border-radius: 10px;
-    border-color: beige;
-    font: bold 12px;
-    min-width: 10em;
-    padding: 6px;
-}
-#pbAttention:pressed {
-    background-color: #F79537;
-    border-style: inset;
-}</string>
-     </property>
-     <property name="text">
-      <string>Attention! Changes to NBN web services</string>
-     </property>
-    </widget>
-   </item>
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="minimumSize">
@@ -114,73 +79,120 @@
           </size>
          </property>
          <property name="title">
-          <string>NBN Grid Map (WMS)</string>
+          <string>NBN Atlas Map (WMS)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_8">
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
-             <widget class="QLabel" name="label_4">
-              <property name="text">
-               <string>Grid size:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QComboBox" name="cbGridSize">
               <property name="minimumSize">
                <size>
-                <width>120</width>
-                <height>0</height>
+                <width>90</width>
+                <height>28</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>120</width>
+                <width>90</width>
                 <height>16777215</height>
                </size>
               </property>
               <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specify the grid map resolution&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Points for each record or grid squares?&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="currentIndex">
-               <number>1</number>
+               <number>0</number>
               </property>
               <item>
                <property name="text">
-                <string>Dynamic layers</string>
+                <string>Record points</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>10 km squares</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>2 km squares</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>1 km squares</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>100 m squares</string>
+                <string>Atlas squares</string>
                </property>
               </item>
              </widget>
             </item>
             <item>
-             <spacer name="horizontalSpacer_4">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>Transparency:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSlider" name="hsTransparency">
+              <property name="toolTip">
+               <string>Set transparency of layer to be created</string>
+              </property>
+              <property name="value">
+               <number>0</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="tickPosition">
+               <enum>QSlider::TicksBelow</enum>
+              </property>
+              <property name="tickInterval">
+               <number>10</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="cbOutline">
+              <property name="text">
+               <string>Outline</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_13">
+            <item>
+             <widget class="QPushButton" name="pbSpeciesWMS">
+              <property name="minimumSize">
+               <size>
+                <width>90</width>
+                <height>28</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>90</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fetch species distribution map from NBN Web Mapping Service. You can also apply dataset, date and presence/absence filters for this service. More than one dataset can be used in filter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string>Map</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>images/nbngridmap.png</normaloff>images/nbngridmap.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>20</width>
+                <height>20</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_7">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>40</width>
+                <width>13</width>
                 <height>20</height>
                </size>
               </property>
@@ -296,157 +308,14 @@
             </item>
            </layout>
           </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_11">
-            <item>
-             <widget class="QLabel" name="label">
-              <property name="text">
-               <string>Transparency</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSlider" name="hsTransparency">
-              <property name="toolTip">
-               <string>Set transparency of layer to be created</string>
-              </property>
-              <property name="value">
-               <number>0</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="tickPosition">
-               <enum>QSlider::TicksBelow</enum>
-              </property>
-              <property name="tickInterval">
-               <number>10</number>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_13">
-            <item>
-             <widget class="QPushButton" name="pbSpeciesWMS">
-              <property name="minimumSize">
-               <size>
-                <width>90</width>
-                <height>28</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>90</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fetch species distribution map from NBN Web Mapping Service. You can also apply dataset, date and presence/absence filters for this service. More than one dataset can be used in filter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="text">
-               <string>Species      </string>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>images/nbngridmap.png</normaloff>images/nbngridmap.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pbDatasetWMS">
-              <property name="minimumSize">
-               <size>
-                <width>90</width>
-                <height>28</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>90</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fetch dataset species density map from NBN Web Mapping Service. You can also apply date filters for this service.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="text">
-               <string>Dataset     </string>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>images/nbngridmap.png</normaloff>images/nbngridmap.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pbDesignationWMS">
-              <property name="minimumSize">
-               <size>
-                <width>90</width>
-                <height>28</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>90</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fetch designation species density map from NBN Web Mapping Service. You can also apply dataset and date filters for this service. More than one dataset can be used in filter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="text">
-               <string>Designation</string>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>images/nbngridmap.png</normaloff>images/nbngridmap.png</iconset>
-              </property>
-              <property name="iconSize">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_7">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>13</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="cbOS">
-            <property name="text">
-             <string>Display OS Backdrop (species map)</string>
-            </property>
-           </widget>
-          </item>
          </layout>
+         <zorder>butClearLast</zorder>
+         <zorder>butClear</zorder>
+         <zorder>butHelp</zorder>
+         <zorder>butHelp</zorder>
+         <zorder>label</zorder>
+         <zorder>hsTransparency</zorder>
+         <zorder>cbOutline</zorder>
         </widget>
        </item>
        <item>
@@ -465,7 +334,7 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>90</width>
+              <width>100</width>
               <height>28</height>
              </size>
             </property>

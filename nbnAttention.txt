@@ -1,7 +1,0 @@
-The National Biodiversity Network (NBN) is changing to a new architecture - the NBN Gateway will become the NBN Atlas - and the web services, on which this tool relies, will also change. The intended deadline for the switch-over is the end of March 2017. The current web services will apparently be 'switched off' at that point. 
-
-It is our intention to develop this tool in line with the capabilities of the new web services. However, at the time of writing (22/01/2017), details of the new web services are not available, much less test versions against which we can build and test the changes that will be required for this tool. It is not clear when they will be available. 
-
-Because the new web services are unlikely to exactly mirror the functionality of the existing suite of services, we anticipate that a considerable amount of development work will be needed to migrate to the new web services. Given the short period of time in which the availability of new services will overlap the current web services (if at all), it almost certain that there will be a period during which this NBN tool will not be available, for which we apologise.
-
-Rest assured that we will endeavour to create a new version providing comparable functionality and using the new web services as soon as practically possible.
