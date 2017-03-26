@@ -28,3 +28,10 @@ biorec.abundancecol: Abundance
 biorec.abundancecol: Quantity
 biorec.scientificnames: True
 biorec.maketree: True
+
+# Offsets for grid maps from points and grid generation
+# The example offsets below commonly applied to 5 km grid on
+# CRS EPSG:2169 in Luxembourg when creating biological
+# records atlas maps.
+#biorec.xGridOffset: 3000
+#biorec.yGridOffset: 4000
