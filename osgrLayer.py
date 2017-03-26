@@ -43,9 +43,6 @@ class osgrLayer(QObject):
     self.osgr = osgr()
     self.vl = None
 
-    # Load the environment stuff
-    self.env = envManager()
-    
   def getCRS(self):
     if self.vl is None:
         return None
@@ -146,6 +143,7 @@ class osgrLayer(QObject):
        self.vl.startEditing()
     
     # Apply any offsets specified in environment file
+    self.env = envManager()
     try:
         offsetX = float(self.env.getEnvValue("biorec.xGridOffset"))
     except:

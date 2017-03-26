@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.6.2
+version=2.7.0
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,14 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.6.2
+changelog=2.7.0
+    - Fixed a bug with handling of non-alphabetic characters in
+	taxon names (e.g. brackets and periods) - GitHub issue #4.
+	- Added the ability to offset user-defined grids (OSGB Tool)
+	and atlas maps (BioRec Tool) - GitHub issue #5. Offsets are
+	specified in the environment file (see online documentation
+	www.tombio.uk/qgisenvoptions).
+  2.6.2
     - Fixes a problem with date filters not working and causing error.
   2.6.1
 	- Fixes a problem with using the NBN tool from behind a proxy
