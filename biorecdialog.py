@@ -347,13 +347,13 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.loadCsv(fileName, (not nbnFile is None))
           
     def initTreeView(self):
-    
+
         #Initialise the tree model
         modelTree = QStandardItemModel()
         modelTree.itemChanged.connect(self.tvBoxChecked)
         self.tvTaxa.setModel(modelTree)
         self.modelTree = modelTree
-            
+
     def listTaxa(self, suppressMessage=False):
        
         #Init the tree view
@@ -516,6 +516,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.cboTaxonCol.clear()
             self.cboGroupingCol.clear()
             self.cboAbundanceCol.clear()
+
             # Clear taxon tree
             self.initTreeView()
         
@@ -525,7 +526,6 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 self.pswInputCRS.setCrs(self.csvLayer.crs())
                 if self.cbMatchCRS.isChecked():
                     self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
-            
             
             #Need to enable field selectors in order to set values
             self.fcbGridRefCol.setEnabled(True)
@@ -537,9 +537,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.fcbGridRefCol.setLayer(self.csvLayer)
             self.fcbXCol.setLayer(self.csvLayer)
             self.fcbYCol.setLayer(self.csvLayer)
-            
-           
-                
+    
             if self.csvLayer != None:
                 #Initialise the tree model
                 self.initTreeView()
