@@ -33,7 +33,7 @@ email=richardb@field-studies-council.org
 # Uncomment the following line and add your changelog entries:
 changelog=2.7.1
 	- Fixed a bug with the handling of non-standard alphabetic
-	characters in taxon names, e.g. Luì piccolo. See GitHub 
+	characters in taxon names. See GitHub 
 	issue #6.
   2.7.0
     - Fixed a bug with handling of non-alphabetic characters in
