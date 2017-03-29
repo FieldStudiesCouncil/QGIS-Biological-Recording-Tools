@@ -380,7 +380,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             if iColGrouping > -1:
 
                 try:
-                    group = str(feature.attributes()[iColGrouping]).strip()
+                    group = feature.attributes()[iColGrouping].strip()
                 except:
                     group = "invalid"
                     
@@ -394,9 +394,9 @@ class BiorecDialog(QWidget, Ui_Biorec):
                     self.pteLog.appendPlainText("Grouping error " + str(group))
             else:
                 parent = tree
-            
+          
             try:
-                taxon = str(feature.attributes()[iColTaxon]).strip()
+                taxon = feature.attributes()[iColTaxon].strip()
             except:
                 taxon = "invalid"
                 

@@ -274,8 +274,9 @@ class biorecLayer2(QObject):
         for feature in iter:
         
             if bFilterTaxaV2:
+
                 try:
-                    taxon = str(feature.attributes()[self.iColTaxa]).strip()
+                    taxon = feature.attributes()[self.iColTaxa].strip()
                 except:
                     taxon = "invalid"
                 
@@ -290,7 +291,7 @@ class biorecLayer2(QObject):
                 geom = None
                 if self.iColGr > -1:
                     try:
-                        gr = str(feature.attributes()[self.iColGr]).strip()
+                        gr = feature.attributes()[self.iColGr].strip()
                     except:
                         gr = "NULL"
                         
@@ -446,7 +447,7 @@ class biorecLayer2(QObject):
             
             if bFilterTaxaV2:
                 try:
-                    taxon = str(feature.attributes()[self.iColTaxa])
+                    taxon = feature.attributes()[self.iColTaxa]
                 except:
                     taxon = "invalid"
                     
