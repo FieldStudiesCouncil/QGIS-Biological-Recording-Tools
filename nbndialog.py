@@ -36,6 +36,8 @@ import shutil
 from osgr import *
 from envmanager import *
 import csv
+import zipfile
+import StringIO
 
 class NBNDialog(QWidget, Ui_nbn):
 
@@ -66,8 +68,6 @@ class NBNDialog(QWidget, Ui_nbn):
         self.butTaxonSearch.clicked.connect(self.taxonSearch)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
-        self.pbLogin.clicked.connect(self.loginNBN)
-        self.pbLogout.clicked.connect(self.logoutNBN)
         self.butHelp.clicked.connect(self.helpFile)
         #self.pbAttention.clicked.connect(self.nbnAttentionFile)
         self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
@@ -88,7 +88,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbBuffer.clicked.connect(self.generateBuffer)
         self.pbClearLastBuffer.clicked.connect(self.removeBuffer)
         self.rbGR.toggled.connect(self.bufferEnableDisable)
-        self.pbDownloadGridRef.clicked.connect(self.downloadNBNObservations)
+        self.pbDownload.clicked.connect(self.downloadNBNObservations)
         self.pbSendToBiorec.clicked.connect(self.displayCSV)
         
         # Map canvas events
@@ -113,7 +113,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.pbSpeciesWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
         #self.pbDatasetWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
         #self.pbDesignationWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
-        self.pbDownloadGridRef.setIcon(QIcon( self.pathPlugin % "images/nbndownload.png" ))
+        self.pbDownload.setIcon(QIcon( self.pathPlugin % "images/nbndownload.png" ))
         self.butTaxonSearch.setIcon(QIcon( self.pathPlugin % "images/speciesinventory.png" ))
         self.pbBuffer.setIcon(QIcon( self.pathPlugin % "images/buffer.png" ))
         self.pbClearLastBuffer.setIcon(QIcon( self.pathPlugin % "images/bufferclear.png" ))
@@ -122,10 +122,6 @@ class NBNDialog(QWidget, Ui_nbn):
         #self.butOS.setIcon(QIcon( self.pathPlugin % "images/os.png" ))
         self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
         self.twTaxa.setHeaderLabel("Matching taxa")
-        self.noLoginText = "Not logged in to NBN. Default NBN access will apply."
-        self.lblLoginStatus.setText (self.noLoginText)
-        self.currentNBNUser = ""
-        self.nbnAthenticationCookie = None
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
         #self.nbnAttentionFile = os.path.join(os.path.dirname( __file__ ), "nbnAttention.txt")
@@ -143,8 +139,6 @@ class NBNDialog(QWidget, Ui_nbn):
     def showEvent(self, ev):
         # Load the environment stuff
         self.env = envManager()
-        self.leUsername.setText(self.env.getEnvValue("nbn.username"))
-        self.lePassword.setText(self.env.getEnvValue("nbn.password"))
         return QWidget.showEvent(self, ev)        
         
     def enum(self, **enums):
@@ -934,29 +928,6 @@ class NBNDialog(QWidget, Ui_nbn):
                 return (strName, selectedDesignationKey)
         return ()
         
-    #def WMSFetchDesignation(self):
-                            
-    #    ret = self.getSelectedDesignation()
-     
-    #    #Check item in treeview is selected
-    #    if len(ret) == 0:
-    #        self.iface.messageBar().pushMessage("Info", "First select a designation.", level=QgsMessageBar.INFO)
-    #        return
-    #    else:
-    #        strName = ret[0]
-    #        selectedDesignationKey = ret[1]
-            
-    #    #selectedDesignationKey = "NOTABLE" # For testing
-        
-    #    #Get the map from NBN
-    #    url = 'https://gis.nbn.org.uk/DesignationSpeciesDensity/'
-        
-    #    #Designation
-    #    url = url + selectedDesignationKey
-    #    #self.infoMessage(url)
-        
-    #    self.WMSFetch(url, strName, self.WMSType.designation)
-        
     def getSelectedDatasets(self):
         
         ret = {}
@@ -973,32 +944,7 @@ class NBNDialog(QWidget, Ui_nbn):
                     
                     ret[selectedDatasetKey] = strName
         return ret
-                    
-    #def WMSFetchDataset(self):
-       
-    #    datasets = self.getSelectedDatasets()
-         
-    #    #Check item in treeview is selected
-    #    if len(datasets) == 0:
-    #        self.iface.messageBar().pushMessage("Info", "First select a dataset.", level=QgsMessageBar.INFO)
-    #        return
-    #    elif len(datasets) > 1:
-    #        self.iface.messageBar().pushMessage("Info", "More than one dataset selected. You can only use one for the dataset species density map.", level=QgsMessageBar.INFO)
-    #        return
-            
-    #    selectedDatasetKey = datasets.keys()[0]
-    #    strName = datasets[selectedDatasetKey]
-            
-    #    #selectedDatasetKey = "GA001349" # For testing
-        
-    #    #Get the map from NBN
-    #    url = 'https://gis.nbn.org.uk/DatasetSpeciesDensity/'
-        
-    #    #Dataset
-    #    url = url + selectedDatasetKey
-        
-    #    self.WMSFetch(url, strName, self.WMSType.dataset)
-        
+                       
     def getSelectedTVK(self):
        
         iCount = 0
@@ -1020,31 +966,6 @@ class NBNDialog(QWidget, Ui_nbn):
         else:
             return selectedTVK
         
-    #def WMSFetchSpecies(self):
-        
-    #    selectedTVK = self.getSelectedTVK()
-    #    if selectedTVK is None:
-    #        self.iface.messageBar().pushMessage("Info", "First check a taxon code (TVK).", level=QgsMessageBar.INFO)
-    #        return
-
-    #    QgsMessageLog.logMessage("guid: " + selectedTVK, 'NBN Tool')
-
-    #    ##Get full taxon details for the selected guid
-    #    #taxon = self.taxonDetails(selectedTVK)
-    #    #taxonName = taxon["taxonConcept"]["nameString"]
-    #    #taxonRank = taxon["taxonConcept"]["rankString"]
-        
-    #    ##QgsMessageLog.logMessage("name: " + name, 'NBN Tool')
-
-    #    ##Get parent 
-    #    #parent = self.taxonDetails(taxon["taxonConcept"]["parentGuid"])
-    #    #parentName = parent["taxonConcept"]["nameString"]
-    #    #parentRank = parent["taxonConcept"]["rankString"]
-
-    #    #self.WMSFetchAtlas(parentName, parentRank, taxonName, taxonRank)
-    #    self.WMSFetchAtlas(selectedTVK)
-
-
     def WMSFetchSpecies(self):
 
         guid = self.getSelectedTVK()
@@ -1108,121 +1029,6 @@ class NBNDialog(QWidget, Ui_nbn):
         #QCoreApplication.processEvents() 
         #qApp.processEvents()
 
-    #def WMSFetch(self, url, strName, wmsType):
-        
-    #    bURLextended = False
-        
-    #    #Set user login stuff
-    #    if not self.leUsername.text() == "" and not self.lePassword.text() == "":
-    #        url = url + "?username=" + self.leUsername.text()
-    #        hashed_password = hashlib.md5(self.lePassword.text()).hexdigest()
-    #        url = url + "&userkey=" + hashed_password
-    #        bURLextended = True
-            
-    #    #Start year filter
-    #    if self.cbStartYear.isChecked():
-    #        if not bURLextended:
-    #            url = url + "?"
-    #        else:
-    #            url = url + "&"
-    #        url = url + "startyear=" + str(self.sbStartYear.value())
-    #        bURLextended = True
-            
-    #    #End year filter
-    #    if self.cbEndYear.isChecked():
-    #        if not bURLextended:
-    #            url = url + "?"
-    #        else:
-    #            url = url + "&"
-    #        url = url + "endyear=" + str(self.sbEndYear.value())
-    #        bURLextended = True
-            
-    #    #Presence/absence
-    #    if self.rbAbsence.isChecked():
-    #        if not bURLextended:
-    #            url = url + "?"
-    #        else:
-    #            url = url + "&"
-    #        url = url + "abundance=absence"
-    #        bURLextended = True
-        
-    #    #Datasets
-    #    if wmsType == self.WMSType.species or wmsType == self.WMSType.designation:
-    #        strDatasets = ""
-    #        for iProvider in range(self.twDatasets.topLevelItemCount()):
-    #            twiProvider = self.twDatasets.topLevelItem(iProvider)
-    #            for iDataset in range(twiProvider.childCount()):
-    #                twiDataset = twiProvider.child(iDataset)
-    #                if twiDataset.checkState(0) == Qt.Checked:
-    #                    if strDatasets == "":
-    #                        strDatasets = "datasets=" + twiDataset.toolTip(0)
-    #                    else:
-    #                        strDatasets = strDatasets + "," + twiDataset.toolTip(0)
-            
-    #        if strDatasets <> "":
-    #            if not bURLextended:
-    #                url = url + "?"
-    #            else:
-    #                url = url + "&"
-    #            url = url + strDatasets
-    #            bURLextended = True
-            
-    #    #URL encode      
-    #    url = urllib.quote_plus(url) # encode the url
-        
-    #    #Set layer stuff
-    #    strStyles="&styles="
-    #    if self.cbGridSize.currentIndex() == 4:
-    #        strLayers = "&layers=Grid-100m"
-    #        strName = strName + " NBN 100 m"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-    #    elif self.cbGridSize.currentIndex() == 3:
-    #        strLayers = "&layers=Grid-1km"
-    #        strName = strName + " NBN monad"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-    #    elif self.cbGridSize.currentIndex() == 2:
-    #        strLayers = "&layers=Grid-2km"
-    #        strName = strName + " NBN tetrad"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-    #    elif self.cbGridSize.currentIndex() == 1:
-    #        strLayers = "&layers=Grid-10km"
-    #        strName = strName + " NBN hectad"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-    #    #elif self.cbGridSize.currentIndex() == 1:
-    #    #    strLayers = "&layers=Grid-10km&layers=Grid-2km&layers=Grid-1km&layers=Grid-100m"
-    #    #    strStyles="&styles=&styles=&styles=&styles="
-    #    #    strName = strName + " NBN auto"
-    #    #    self.addWMSRaster(url, strLayers, strStyles, strName, wmsType)
-    #    else:
-    #        strNamePrefix = strName
-    #        strLayers = "&layers=Grid-100m"
-    #        strName = strNamePrefix + " NBN 100 m (auto)"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType, 0, 15000)
-    #        strLayers = "&layers=Grid-1km"
-    #        strName = strNamePrefix + " NBN monad (auto)"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType, 15001, 100000)
-    #        strLayers = "&layers=Grid-2km"
-    #        strName = strNamePrefix + " NBN tetrad (auto)"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType, 100001, 250000)
-    #        strLayers = "&layers=Grid-10km"
-    #        strName = strNamePrefix + " NBN hectad (auto)"
-    #        self.addWMSRaster(url, strLayers, strStyles, strName, wmsType, 250000, 100000000)
-                 
-    #    if strName.endswith("auto") or strName.endswith("(auto)"):
-    #        #self.canvas.extentsChanged.emit() #Doesn't seem to invoke the web service, perhaps because the extents haven't actually changed
-    #        rectExtent = self.canvas.extent()
-    #        self.canvas.setExtent(QgsRectangle())
-    #        self.canvas.refresh()
-    #        self.canvas.setExtent(rectExtent)
-    #        self.canvas.refresh()
-            
-    #def osBackdrop(self, tvk="NBNSYS0000530739"):
-    
-    #    url = urllib.quote_plus('https://gis.nbn.org.uk/SingleSpecies/%s' % tvk) 
-    #    strStyles="&styles="
-    #    strLayers = "&layers=OS-Scale-Dependent"
-    #    self.addWMSRaster(url, strLayers, strStyles, self.nbnOSLayerName, self.WMSType.species)
-            
     def addWMSRaster(self, url, strLayers, strStyles, strName, wmsType, minExtent=0, maxExtent=0):
     
         url = 'url=' + url + strLayers + strStyles + "&format=image/png&crs=EPSG:27700" #falls over without the styles argument
@@ -1390,111 +1196,14 @@ class NBNDialog(QWidget, Ui_nbn):
             except:
                 pass
         self.layers = [] 
-        
-    def loginNBN(self):
-        
-        if not self.nbnAthenticationCookie is None:
-            self.infoMessage("You are already logged in to the NBN as '" + self.currentNBNUser + "'")
-            return
-
-        username = self.leUsername.text()
-        password = self.lePassword.text()
-        postData = QByteArray()
-        postData.append('username=' + username + '&')
-        postData.append('password=' + password)
-
-        url = 'https://data.nbn.org.uk/api/user/login'
-        self.restRequest(url, postData, callType="login")
-
-        return
-      
-    def logoutNBN(self):
-        
-        if self.nbnAthenticationCookie is None:
-            self.infoMessage("Can't logout because you are not logged in to the NBN")
-            return
-
-        url = 'https://data.nbn.org.uk/api/user/logout'
-        self.restRequest(url, callType="logout")
-
-        return
-       
-    def downloadAsyncTest(self, reply):
-
-        error = reply.error()
-        if error != QNetworkReply.NoError:
-            QgsMessageLog.logMessage("error generated", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
-            return None
-
-        # Set the result object
-        result = reply.readAll()
-        QgsMessageLog.logMessage(str(result), "NBN Tool")
-
-        reply.deleteLater()
-        return
-
-    def downloadNBNObservationsTest(self):
-
-        endpoint = QUrl('https://data.nbn.org.uk/api/taxonObservations/NBNSYS0000008676')
-        request = QNetworkRequest(endpoint)
-
-        #QgsMessageLog.logMessage(str(endpoint), "NBN Tool")
-
-        cj = QNetworkCookieJar()
-        cj.setAllCookies([self.nbnAthenticationCookie])
-        QgsNetworkAccessManager.instance().setCookieJar(cj)
-
-        #if callType == "download":
-        #    QgsNetworkAccessManager.instance().finished.connect(self.downLoadFinished)
-
-        reply = QgsNetworkAccessManager.instance().get(request)
-
-        #reply.finished.connect(self.downloadAsyncTest(reply))
-        reply.finished.connect(lambda arg=reply: self.downloadAsyncTest(arg))
-        return
-
-        # Wait
-        loop = QEventLoop()
-        reply.finished.connect(loop.quit)
-        loop.exec_()
-        reply.finished.disconnect(loop.quit)
-        loop = None
-
-        error = reply.error()
-        if error != QNetworkReply.NoError:
-            QgsMessageLog.logMessage("error generated", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
-            return None
-
-        # Set the result object
-        result = reply.readAll()
-        QgsMessageLog.logMessage(str(result), "NBN Tool")
-
-        reply.deleteLater()
 
     def downloadNBNObservations(self):
-        """
-        The filters applicable to this resource are as follows;
 
-          *  Year Filters
-               *  startYear (...&startYear=2000&...)
-               *  endYear (...&endYear=2012&...)
-          *  Taxonomic Filters
-               *  ptvk (....&ptvk=[NHMSYS0020706144, NBNSYS0000176784,....]&....)
-               *  designation (...&designation=BERN-A1&...)
-               *  taxonOutputGroup (...&taxonOutputGroup=NHMSYS0000079976&...)
-          *  Dataset Filters
-               *  datasetKey (...&datasetKey=[GA000466,....]&...)
-          *  Spatial Filters
-               *  featureID AND spatialRelationship (within / overlaps) (...&featureID=GA0008850&spatialRelationship=within&...)
-               *  gridRef (OSGB, OSI, 10km down to 100m sqaures) (...&gridRef=TA2172&...)
-               *  polygon (WKT WGS-84 polygon string) (...&polygon=...&...)
-          *  Other Filters
-               * absence (...&absence=true&...)
-               * sensitive (...&sensitive=true&...)
-        """
-        
+        #A taxon filter must be selected
+        if self.getSelectedTVK() is None:
+            self.infoMessage("You must first specify a taxon.")
+            return
+
         #Initialise filter parameters
         startYear = None
         endYear = None
@@ -1508,12 +1217,7 @@ class NBNDialog(QWidget, Ui_nbn):
 
         # Update filter display
         self.checkFilters()
-        
-        # Check that user is logged in
-        if self.nbnAthenticationCookie is None:
-            self.infoMessage("You must be logged in to the NBN to use this service.")
-            return   
-    
+       
         # Build params dictionary
         params = {}
         
@@ -1532,12 +1236,7 @@ class NBNDialog(QWidget, Ui_nbn):
             if startYear > endYear:
                 self.infoMessage("End year, if specified, must come after start year (or be equal to it), if specified.")
                 return
-        
-        # ptvk
-        ptvk = self.getSelectedTVK() # Returns None if none selected
-        if not ptvk is None:
-            params["ptvk"] = ptvk
-            
+
         # designation
         ret = self.getSelectedDesignation()
         if len(ret) > 0:
@@ -1575,8 +1274,7 @@ class NBNDialog(QWidget, Ui_nbn):
             params["featureID"] = featureID
             params["spatialRelationship"] = "overlaps"
             
-        # gridRef
-        
+        # gridRef    
         #params["spatialRelationship"] = "within"
         
         if self.leGridRef.text().strip() <> "":
@@ -1605,35 +1303,7 @@ class NBNDialog(QWidget, Ui_nbn):
             absence = "true"
             params["absence"] = absence
                      
-        # Check that the a valid combination of filters has been specified
-        """
-        You must supply at least one of the following filters;
-          *  A Taxonomic Filter
-          *  Spatial Filter
-          *  Dataset filter
-        """
-        bValidFilters = False
-        for param in params.keys():
-            if param == "ptvk":
-                bValidFilters = True
-                break
-            if param == "datasetKey":
-                bValidFilters = True
-                break
-            if param == "polygon":
-                bValidFilters = True
-                break
-            if param == "featureID":
-                bValidFilters = True
-                break
-            if param == "gridRef":
-                bValidFilters = True
-                break
-                
-        if not bValidFilters:
-            self.infoMessage("You must specify at least one of the following filters: taxon, dataset, polygon, Site or grid reference.")
-            return
-            
+           
         #Get a location for the output file.
         self.env.loadEnvironment()
         
@@ -1649,8 +1319,8 @@ class NBNDialog(QWidget, Ui_nbn):
             
         # Set current tab to last (download) tab
         self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
-        
-        self.runDownload(fileName, params)
+
+        self.runDownload (self.getSelectedTVK(), fileName, params)
         
     def checkFilters(self):
 
@@ -1809,7 +1479,7 @@ class NBNDialog(QWidget, Ui_nbn):
 
         return 'An unknown network-related error was detected'
 
-    def runDownload(self, fileName, params):
+    def runDownload(self, guid, fileName, params):
 
         # Add file to listbox
         splitName = os.path.split(fileName)
@@ -1819,22 +1489,16 @@ class NBNDialog(QWidget, Ui_nbn):
         
         lwi.setIcon(QIcon( self.pathPlugin % "images/download.png" ))
 
-        if len(params) == 1 and (params.keys()[0] == "ptvk" or params.keys()[0] == "datasetKey"):      
-            # If only a tvk or dataset key passed, we use specific endpoints for them
-            endpoint = 'https://data.nbn.org.uk/api/taxonObservations/' + params.values()[0]
-            self.restRequest(endpoint, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
-        else:
-            # Otherwise we use the general combined filter endpoint
-            endpoint = 'https://data.nbn.org.uk/api/taxonObservations/'
-            postData = QByteArray()
-            for key in params.keys():
-                if postData.length() > 0:
-                    postData.append('&')
-                postData.append(key + '=' + str(params[key]))
-            self.restRequest(endpoint, postData, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
+        endpoint = 'https://records-ws.nbnatlas.org/occurrences/index/download?reasonTypeId=10&qa=none&q=*:*&fq=lsid:' + guid
+
+        for key in params.keys():
+            endpoint += '&' + str(params[key])
+
+        self.restRequest(endpoint, None, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
 
     def downLoadFinished(self, downloadInfo):
 
+        #This 
         QgsMessageLog.logMessage("Download finished fired", "NBN Tool")
 
         lwiDownload = downloadInfo["lwi"]
@@ -1844,70 +1508,32 @@ class NBNDialog(QWidget, Ui_nbn):
         error = reply.error()
         if error != QNetworkReply.NoError:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
             lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
             return None
         else:
             lwiDownload.setIcon(QIcon( self.pathPlugin % "images/eggtimer.jpg" ))
 
-        # Write the json data to csv
-        result = reply.readAll()
-        responseText = result.data() #.decode('utf-8')
-
-        #QgsMessageLog.logMessage("Response text", "NBN Tool")
-        #QgsMessageLog.logMessage(responseText, "NBN Tool")
-
         try:
-            # If csv is to be enriched with dataset names, create datasets dictionary from file
-            datasets={}
-            if self.cbDatasetNames.isChecked():
-                datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
-                if os.path.isfile(datafile):
-                    with open(datafile) as f:
-                        jsonDatasets = json.load(f)       
-                    for dataset in jsonDatasets:
-                        datasets[dataset["key"]] = dataset["title"]
+            result = reply.readAll()
+            nbnZip = StringIO.StringIO()
+            nbnZip.write(result)
 
-            jsonData = json.loads(responseText)
-
-            with open(fileName, 'wb') as csvfile:
-                #csvw = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                csvw = csv.writer(csvfile, dialect='excel')
-                headerRow = []
-                for jRecord in jsonData:
-                    # Have to go through entire file because different records
-                    # have different attributes. So to get all names, parse
-                    # all records.
-                    headerRow = list(set(headerRow + jRecord.keys()))
-                    
-                if len(datasets) > 0:
-                    headerRow.append("datasetName")
-                    
-                csvw.writerow(headerRow)
-                
-                for jRecord in jsonData:
-                    attrRow = []
-                    for header in headerRow:
-                        if header in jRecord.keys():
-                            attrRow.append(jRecord[header])
-                        elif header == "datasetName":
-                            try:
-                                #If the dataset is missing, the line below will fail
-                                attrRow.append(datasets[jRecord["datasetKey"]])
-                            except Exception, e:
-                                attrRow.append("Dataset not found. Try refreshing Tom.bio NBN dataset filter.")
-                        else:
-                            attrRow.append("")
-                        
-                    csvw.writerow([unicode(s).encode("utf-8") for s in attrRow])
-                        
-            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
+            if zipfile.is_zipfile(nbnZip):
+                zfNBN = zipfile.ZipFile(nbnZip)
+                with open(fileName, 'wb') as csv:
+                    csv.write (zfNBN.read("data.csv"))
+                lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
+            else:
+                self.iface.messageBar().pushMessage("Error", "Download did not return a valid zipfile", level=QgsMessageBar.WARNING)
+                lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
         except Exception, e:
             QgsMessageLog.logMessage("Failed to write output file", "NBN Tool")
             self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % str(e), level=QgsMessageBar.WARNING)
             #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
-            lwi.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
-            return
+            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+        finally:
+            reply.deleteLater()
 
     def restRequest(self, url, postData=None, callType="data", downloadInfo=None):
         #This function adapted from __sync_request function in
@@ -1920,19 +1546,7 @@ class NBNDialog(QWidget, Ui_nbn):
 
         QgsMessageLog.logMessage(str(endpoint), "NBN Tool")
 
-        # Set authentication cookie if set and this is either a call to logout or a call to download data
-        if (callType == "download" or callType == "logout" ) and not self.nbnAthenticationCookie is None:
-            QgsMessageLog.logMessage("setting authentication cookie", "NBN Tool")
-            cj = QNetworkCookieJar()
-            cj.setAllCookies([self.nbnAthenticationCookie])
-            QgsNetworkAccessManager.instance().setCookieJar(cj)
-
-        if callType == "login":
-            QgsMessageLog.logMessage("setting empty cookiejar", "NBN Tool")
-            cj = QNetworkCookieJar()
-            QgsNetworkAccessManager.instance().setCookieJar(cj)
-
-        # Set determine if post or get and set accordingly
+        # Determine if post or get and set accordingly
         if postData is None:
             QgsMessageLog.logMessage("Issue get request", "NBN Tool")
             reply = QgsNetworkAccessManager.instance().get(request)
@@ -1940,26 +1554,18 @@ class NBNDialog(QWidget, Ui_nbn):
             QgsMessageLog.logMessage("Issue post request", "NBN Tool")
             reply = QgsNetworkAccessManager.instance().post(request, postData)
 
-        #self.restReplies.append(reply)
-
         if callType == "download":
-            QgsMessageLog.logMessage("Connecting to downloadFinished", "NBN Tool")
-            #reply.finished.connect(self.downLoadFinished(reply, lwiDownload))
             downloadInfo["reply"] = reply
-            #reply.finished.connect(lambda arg=downloadInfo: self.downLoadFinished(arg))
             #Don't know under what circumstances, but sometimes get an error at the end of execution...
             #reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
 			#NameError: free variable 'self' referenced before assignment in enclosing scope
-            #So this needs trapping
+            #So this needs trapping.
             try:
                 reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
-
-                #reply.finished.connect(self.downLoadFinished(downloadInfo))
-                #reply.finished.connect(lambda arg=downloadInfo: self.downLoadFinished(arg))
             except Exception, e:
                 QgsMessageLog.logMessage("error generated", "NBN Tool")
                 downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
-                self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %s" % str(e), level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % str(e), level=QgsMessageBar.WARNING)
             return
 
         # Wait
@@ -1974,7 +1580,7 @@ class NBNDialog(QWidget, Ui_nbn):
         error = reply.error()
         if error != QNetworkReply.NoError:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "NBN Rest service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
             return None
 
         # If the return is a re-direction then execute that redirection
@@ -1987,23 +1593,6 @@ class NBNDialog(QWidget, Ui_nbn):
         result = reply.readAll()
         reply.deleteLater()
 
-        # For login calls, save authentication cookie
-        if callType == "login":
-            for cookie in cj.allCookies():
-                #QgsMessageLog.logMessage(str(cookie.name()), "NBN Tool", QgsMessageLog.INFO)
-                #QgsMessageLog.logMessage(str(cookie.value()), "NBN Tool", QgsMessageLog.INFO)
-                if cookie.name() == 'nbn.token_key':
-                    self.nbnAthenticationCookie = cookie
-                    self.currentNBNUser = self.leUsername.text()
-                    self.lblLoginStatus.setText ("You are logged in as '" + self.currentNBNUser + "'")
-        
-        # For logouts
-        if callType == "logout":
-            self.lblLoginStatus.setText (self.noLoginText)
-            self.currentNBNUser = ""
-            self.nbnAthenticationCookie = None
-
         QgsMessageLog.logMessage("returning result", "NBN Tool")
-
         return result
 
