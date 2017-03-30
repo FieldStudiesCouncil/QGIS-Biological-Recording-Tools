@@ -25,6 +25,7 @@ from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from osgr import *
+from envmanager import *
 
 class osgrLayer(QObject):
 
@@ -41,7 +42,7 @@ class osgrLayer(QObject):
     # Get a reference to an osgr object
     self.osgr = osgr()
     self.vl = None
-    
+
   def getCRS(self):
     if self.vl is None:
         return None
@@ -141,9 +142,21 @@ class osgrLayer(QObject):
        self.createLayer()
        self.vl.startEditing()
     
+    # Apply any offsets specified in environment file
+    self.env = envManager()
+    try:
+        offsetX = float(self.env.getEnvValue("biorec.xGridOffset"))
+    except:
+        offsetX = 0
+
+    try:
+        offsetY = float(self.env.getEnvValue("biorec.yGridOffset"))
+    except:
+        offsetY = 0
+
     # Build the grid
-    llx = (xMin // self.precision) * self.precision
-    lly = (yMin // self.precision) * self.precision
+    llx = ((xMin - offsetX) // self.precision) * self.precision + offsetX
+    lly = ((yMin - offsetY) // self.precision) * self.precision + offsetY
     
     x = llx
     y = lly
