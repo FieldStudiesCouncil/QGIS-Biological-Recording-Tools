@@ -85,7 +85,7 @@ class TomBio:
         self.dwBiorec = None
         
         # NBN Tool
-        self.actionNbn = QAction(QIcon(":/plugins/TomBio/images/nbn.png"), u"NBN Tool", self.iface.mainWindow())
+        self.actionNbn = QAction(QIcon(":/plugins/TomBio/images/nbn.png"), u"NBN Atlas Tool", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionNbn)
         self.actionNbn.triggered.connect(self.showNbnDialog)
         self.toolbar.addAction(self.actionNbn)
