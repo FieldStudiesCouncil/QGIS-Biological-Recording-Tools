@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.7.4
+version=2.8.0
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 
@@ -31,7 +31,21 @@ email=richardb@field-studies-council.org
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-changelog=2.7.4
+
+changelog=2.8.0
+	- Complete replacement of NBN Tool with NBN Atlas Tool. The former
+	depended on NBN Gateway web services which were retired at the end
+	March 2017 when the NBN switched from the Gateway to the new Atlas
+	architecture, completely replacing the web services API when they
+	did so. The new NBN Atlas Tool is modelled on the old NBN Gateway
+	Tool but there are a number of differences. The two main functions,
+	1) quickly creating WMS layers for different taxon and 2)
+	downloading raw records, remain at the core of the new tool.
+	- Fixed a problem with circle generation - from both the point and
+	buffer utility in the NBN Tool and creating atlas maps with circles
+	in the Biological Recording Tool - that, under some circumstances,
+	created circles with 'invalid' geometry.
+  2.7.4
 	- Fixed a bug with the handling of non-standard alphabetic
 	characters in taxon names. See GitHub 
 	issue #6.

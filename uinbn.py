@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_nbn.ui'
 #
-# Created: Tue Apr 04 15:38:04 2017
+# Created: Tue Apr 04 15:37:40 2017
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!

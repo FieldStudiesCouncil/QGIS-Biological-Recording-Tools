@@ -62,10 +62,12 @@ class osgrLayer(QObject):
     # Need to find a way to create a layer with specified CRS other than by EPSG string
     # because this is retained in general layer properties even after CRS is changed.
     # If layer created without CRS, the user is prompted to select one so that's not an option.
-    self.vl = QgsVectorLayer("Polygon?crs=epsg:27700", "OSGR grid squares", "memory")
+    self.vl = QgsVectorLayer("Polygon?epsg:27700", "OSGR grid squares", "memory")
     self.vl.setCrs(self.canvas.mapRenderer().destinationCrs())
     self.pr = self.vl.dataProvider()
     
+    #QgsMessageLog.logMessage(self.canvas.mapRenderer()., "OSGR Tool")
+
     # Add fields
     self.pr.addAttributes( [ QgsField("GridType", QVariant.String), QgsField("GridRef", QVariant.String) ] )
     
@@ -120,7 +122,7 @@ class osgrLayer(QObject):
     self.canvas.setRenderFlag(False)
     
     # If selectedFeatures is not empty, then extract geometry to a list.
-    # Also transform geometry if trans object is not emtpy. The trans object will transform from the
+    # Also transform geometry if trans object is not empty. The trans object will transform from the
     # projection of the selected layer to the projection of the map canvas.
     # If the selected features list is not empty, ensure that square overlaps feature before adding
     selectedGeometries = []

@@ -182,8 +182,11 @@ class OsgrDialog(QWidget, Ui_osgr):
             # we will have to transform the selected features.
             # We transform the bounding rectangle here and pass the transformation object
             # to the osgrLayer to transform the selected feature geometries.
+
+            ##? Why not transform the actual geometry of the selected feature rather than it's BBox?##
             
             if self.canvas.mapRenderer().destinationCrs() !=  layer.crs():
+                #QgsMessageLog.logMessage("CRS transform", "OSGR Tool")
                 trans = QgsCoordinateTransform(layer.crs(), self.canvas.mapRenderer().destinationCrs())
                 try:
                     rect = trans.transform(rectLayer)

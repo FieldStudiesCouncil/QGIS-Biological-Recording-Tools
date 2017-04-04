@@ -97,7 +97,7 @@
              </size>
             </property>
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fetch species distribution map from NBN Web Mapping Service. You can also apply dataset, date and presence/absence filters for this service. More than one dataset can be used in filter.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fetch species distribution map from NBN Atlas WMS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>Map</string>
@@ -203,6 +203,9 @@
             </item>
             <item>
              <widget class="QgsColorButtonV2" name="mcbWMSColour">
+              <property name="toolTip">
+               <string>Select the colour to use for the records/squares</string>
+              </property>
               <property name="colorDialogTitle">
                <string>Select colour  for WMS points or grid</string>
               </property>
@@ -252,6 +255,9 @@
             </item>
             <item>
              <widget class="QSpinBox" name="sbPointSize">
+              <property name="toolTip">
+               <string>Indicate the size of record points</string>
+              </property>
               <property name="minimum">
                <number>1</number>
               </property>
@@ -330,6 +336,9 @@
            <layout class="QHBoxLayout" name="horizontalLayout_5">
             <item>
              <widget class="QCheckBox" name="cbOutline">
+              <property name="toolTip">
+               <string>Indicate whether or not you want points or squares to be outlined.</string>
+              </property>
               <property name="text">
                <string>Outline</string>
               </property>
@@ -337,6 +346,9 @@
             </item>
             <item>
              <widget class="QCheckBox" name="cbGridLabels">
+              <property name="toolTip">
+               <string>Indicate whether or not you want squares to be labelled with their grid reference.</string>
+              </property>
               <property name="text">
                <string>Grid square labels</string>
               </property>
@@ -363,7 +375,7 @@
        <item>
         <widget class="QGroupBox" name="groupBox_5">
          <property name="title">
-          <string>NBN Records Download</string>
+          <string>NBN Atlas Records Download</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_14">
           <item>
@@ -387,7 +399,7 @@
              </size>
             </property>
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download observation records from the NBN Gateway. You must specify at least one of the following filters: taxon, dataset, polygon, Site or grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download observation records from the NBN Atlas. You must specify at least one of the following filters: taxon, dataset (or data provider) or polygon.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>Download   </string>
@@ -425,9 +437,9 @@
          <property name="title">
           <string>Specified Filters</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_14">
+         <layout class="QVBoxLayout" name="verticalLayout_7">
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_19">
+           <layout class="QHBoxLayout" name="horizontalLayout_8">
             <item>
              <widget class="QCheckBox" name="cbIndTaxon">
               <property name="enabled">
@@ -457,23 +469,6 @@
              </widget>
             </item>
             <item>
-             <spacer name="horizontalSpacer_10">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>8</width>
-                <height>16</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_20">
-            <item>
              <widget class="QCheckBox" name="cbIndDataset">
               <property name="enabled">
                <bool>false</bool>
@@ -501,6 +496,23 @@
               </property>
              </widget>
             </item>
+            <item>
+             <spacer name="horizontalSpacer_12">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_12">
             <item>
              <widget class="QCheckBox" name="cbIndStartYear">
               <property name="enabled">
@@ -557,23 +569,6 @@
               </property>
              </widget>
             </item>
-            <item>
-             <spacer name="horizontalSpacer_12">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_21">
             <item>
              <widget class="QCheckBox" name="cbIndPolygon">
               <property name="enabled">
@@ -669,7 +664,7 @@
             </size>
            </property>
            <property name="toolTip">
-            <string>Remove last NBN map</string>
+            <string>Remove last NBN Atlas WMS layer</string>
            </property>
            <property name="text">
             <string/>
@@ -707,7 +702,7 @@
             </size>
            </property>
            <property name="toolTip">
-            <string>Remove all NBN maps</string>
+            <string>Remove all NBN Atlas WMS layers</string>
            </property>
            <property name="text">
             <string/>
@@ -739,7 +734,7 @@
             </size>
            </property>
            <property name="toolTip">
-            <string>Tips and help</string>
+            <string>Tips and help for this tool</string>
            </property>
            <property name="text">
             <string/>
@@ -764,7 +759,7 @@
       <attribute name="title">
        <string>Filters</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_18">
+      <layout class="QVBoxLayout" name="verticalLayout_11">
        <item>
         <widget class="QTabWidget" name="tabWidget_2">
          <property name="tabPosition">
@@ -830,7 +825,7 @@
            <item>
             <widget class="QTreeWidget" name="twTaxa">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Matching taxa - check TVK corresponding to species you want.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Matching taxa - check the species you want.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="indentation">
               <number>10</number>
@@ -863,30 +858,6 @@
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
             <widget class="QTreeWidget" name="twProviders">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;NBN Datasets - check to filter&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="headerHidden">
-              <bool>true</bool>
-             </property>
-             <property name="columnCount">
-              <number>1</number>
-             </property>
-             <attribute name="headerVisible">
-              <bool>false</bool>
-             </attribute>
-             <attribute name="headerStretchLastSection">
-              <bool>true</bool>
-             </attribute>
-             <column>
-              <property name="text">
-               <string notr="true">1</string>
-              </property>
-             </column>
-            </widget>
-           </item>
-           <item>
-            <widget class="QTreeWidget" name="twDatasets">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;NBN Datasets - check to filter&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
@@ -947,31 +918,31 @@
               <widget class="QPushButton" name="pbUncheckAll">
                <property name="minimumSize">
                 <size>
-                 <width>65</width>
+                 <width>0</width>
                  <height>0</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>65</width>
+                 <width>16777215</width>
                  <height>16777215</height>
                 </size>
                </property>
                <property name="toolTip">
-                <string>Uncheck all items</string>
+                <string>Uncheck all dataset items</string>
                </property>
                <property name="text">
-                <string>Uncheck all</string>
+                <string>Clear dataset filters</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QPushButton" name="pbRefreshDatasets">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Update the dataset list from the NBN Gateway&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Update the dataset list from the NBN Atlas&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
                <property name="text">
-                <string>Refresh from NBN</string>
+                <string>Refresh list</string>
                </property>
               </widget>
              </item>
@@ -981,13 +952,13 @@
          </widget>
          <widget class="QWidget" name="tab_13">
           <attribute name="title">
-           <string>Other</string>
+           <string>Dates</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
             <widget class="QGroupBox" name="groupBox">
              <property name="title">
-              <string>Date</string>
+              <string>Year</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_5">
               <item>
@@ -1096,6 +1067,13 @@
              </property>
             </spacer>
            </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tabUtilities">
+          <attribute name="title">
+           <string>Utilities</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
             <widget class="QGroupBox" name="groupBox_8">
              <property name="title">
@@ -1392,9 +1370,49 @@
              </layout>
             </widget>
            </item>
+           <item>
+            <spacer name="verticalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>285</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
           </layout>
          </widget>
         </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_15">
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pbClearFilters">
+           <property name="toolTip">
+            <string>Clear all filters</string>
+           </property>
+           <property name="text">
+            <string>Clear all filters</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>

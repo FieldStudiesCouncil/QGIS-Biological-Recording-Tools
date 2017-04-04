@@ -40,6 +40,7 @@ import zipfile
 import StringIO
 import re
 import datetime
+import random
 
 class NBNDialog(QWidget, Ui_nbn):
 
@@ -63,7 +64,6 @@ class NBNDialog(QWidget, Ui_nbn):
         # Load the environment stuff
         self.env = envManager()
         
-        # WMS
         self.pbSpeciesWMS.clicked.connect(self.WMSFetchSpecies)
         self.butTaxonSearch.clicked.connect(self.taxonSearch)
         self.butClearLast.clicked.connect(self.removeMap)
@@ -72,7 +72,7 @@ class NBNDialog(QWidget, Ui_nbn):
         #self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
         self.pbRefreshDatasets.clicked.connect(self.refreshProviders)
         self.pbUncheckAll.clicked.connect(self.uncheckAll)
-        self.twDatasets.itemClicked.connect(self.datasetTwClick)
+        self.twProviders.itemClicked.connect(self.providersClick)
         self.twTaxa.itemClicked.connect(self.taxaTwClick)
         self.cbStartYear.stateChanged.connect(self.checkFilters)
         self.cbEndYear.stateChanged.connect(self.checkFilters)
@@ -81,6 +81,8 @@ class NBNDialog(QWidget, Ui_nbn):
         self.rbGR.toggled.connect(self.bufferEnableDisable)
         self.pbDownload.clicked.connect(self.downloadNBNObservations)
         self.pbSendToBiorec.clicked.connect(self.displayCSV)
+        self.pbClearFilters.clicked.connect(self.clearAllFilters)
+        
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
@@ -113,7 +115,6 @@ class NBNDialog(QWidget, Ui_nbn):
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
         self.readProviderFile()
-        self.readDatasetFile()
         self.datasetSelectionChanged()
         self.checkFilters()
         self.bufferEnableDisable()
@@ -139,8 +140,8 @@ class NBNDialog(QWidget, Ui_nbn):
         
     def uncheckAll(self):
               
-        for iProvider in range(self.twDatasets.topLevelItemCount()):
-            twiProvider = self.twDatasets.topLevelItem(iProvider)
+        for iProvider in range(self.twProviders.topLevelItemCount()):
+            twiProvider = self.twProviders.topLevelItem(iProvider)
             twiProvider.setCheckState(0, Qt.Unchecked)
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
@@ -192,32 +193,29 @@ class NBNDialog(QWidget, Ui_nbn):
         s = QgsFillSymbolV2.createSimple(props)
         self.vl.setRendererV2( QgsSingleSymbolRendererV2( s ) )
 
-        # Add to map layer registry
-        QgsMapLayerRegistry.instance().addMapLayer(self.vl)    
-        
         # Add geometry to layer
         fet = QgsFeature()
         fet.setGeometry(geom)
+
+        # Needs an attribute otherwise it cannot be selected and geometry functions fail
+        #self.pr.addAttributes([QgsField("id", QVariant.Int)])
+        #attrs=[random.randrange(1, 100000)]
+        ##attrs=[1]
+        #fet.setAttributes(attrs)
+
         self.vl.startEditing()
         self.vl.addFeatures([fet])
+
         self.vl.commitChanges()
         self.vl.updateExtents()
+
+         # Add to map layer registry
+        QgsMapLayerRegistry.instance().addMapLayer(self.vl)    
 
         # Zoom to buffer extent
         self.iface.actionZoomToLayer().trigger()
         
         self.checkMapSelectionFilter()
-        
-    def datasetTwClick(self, twItem, iCol):
-              
-        for iDataset in range(twItem.childCount()):
-            twiDataset = twItem.child(iDataset)
-            twiDataset.setCheckState(0, twItem.checkState(0))
-            
-        if twItem.childCount() > 0:
-            twItem.setExpanded(twItem.checkState(0) == Qt.Checked)
-            
-        self.datasetSelectionChanged()
         
     def taxaTwClick(self, twItem, iCol):
         
@@ -236,8 +234,8 @@ class NBNDialog(QWidget, Ui_nbn):
     def datasetSelectionChanged(self):
         
         iChecked = 0
-        for iProvider in range(self.twDatasets.topLevelItemCount()):
-            twiProvider = self.twDatasets.topLevelItem(iProvider)
+        for iProvider in range(self.twProviders.topLevelItemCount()):
+            twiProvider = self.twProviders.topLevelItem(iProvider)
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
                 if twiDataset.checkState(0) == Qt.Checked:
@@ -249,28 +247,6 @@ class NBNDialog(QWidget, Ui_nbn):
             self.lblDatasetFilter.setText(str(iChecked) + " datasets selected.")
             
         self.checkFilters()
-
-    def refreshDatasets(self):
-        
-        self.twDatasets.clear()
-        
-        url = 'https://data.nbn.org.uk/api/datasets'
-        res = self.restRequest(url)
-
-        if res is None:
-            return
-
-        #responseText = res.data().decode('utf-8')
-        responseText = res.data()
-
-        # Write the json data to a file
-        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
-        with open(datafile, 'w') as jsonfile:
-            jsonfile.write(responseText)
-            
-        # Rebuild dataset tree
-        self.readDatasetFile()
-        self.datasetSelectionChanged()
 
     def refreshProviders(self):
 
@@ -292,8 +268,61 @@ class NBNDialog(QWidget, Ui_nbn):
             
         # Rebuild dataset tree
         self.readProviderFile()
-        #self.datasetSelectionChanged()
+        self.datasetSelectionChanged()
          
+    def providersClick(self, twi):
+
+        if twi.text(2) == "provider" and  twi.childCount() == 0:
+            
+            url = 'https://registry.nbnatlas.org/ws/dataProvider/' + twi.text(1)
+            res = self.restRequest(url)
+            if res is None:
+                return
+
+            jsonData = json.loads(res.data()) 
+
+            twi.setExpanded(True)
+
+            for dataResource in jsonData["dataResources"]:
+                QgsMessageLog.logMessage("dataset: " + dataResource["name"], "NBN Tool") 
+
+                # Create a tree item for the dataset
+                twiDataset = QTreeWidgetItem(twi)
+                twiDataset.setText(0, dataResource["name"])
+                twiDataset.setText(1, dataResource["uid"])
+                twiDataset.setText(2, "dataset")
+                twiDataset.setExpanded(False)
+                twiDataset.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiDataset.setCheckState(0, twi.checkState(0))
+
+        elif twi.text(2) == "provider":
+
+            #If provider is checked, then check all children
+            #If provider is unchecked, then uncheck all children
+
+            #if twi.checkState(0) == Qt.Checked:
+            for i in range(0, twi.childCount()):
+                twi.child(i).setCheckState(0, twi.checkState(0))
+
+        else: #dataset
+            
+            if twi.checkState(0) == Qt.Unchecked:
+                #If a dataset is unchecked, then uncheck provider
+                twi.parent().setCheckState(0, Qt.Unchecked)
+            else:
+                #If all datasets are checked, then check provider
+                allChecked = True
+                for i in range(0, twi.parent().childCount()):
+                    if twi.parent().child(i).checkState(0) ==  Qt.Unchecked:
+                        allChecked = False
+                        break
+                if allChecked:
+                    twi.parent().setCheckState(0, Qt.Checked)
+                else:
+                    twi.parent().setCheckState(0, Qt.Unchecked)
+
+        self.datasetSelectionChanged()
+
     def readProviderFile(self):
            
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "providers.json"))
@@ -308,76 +337,19 @@ class NBNDialog(QWidget, Ui_nbn):
             self.warningMessage("NBN Atlas data providers file failed to load. Use the refresh button to generate a new one.")
             return
 
-        treeNodes = {} #Dictionary
-
         for jDataset in jsonData:
         
-            if not jDataset["name"] in(treeNodes.keys()):
-                #Create a new top level tree item for the dataset provider organisation
-                twiProvider = QTreeWidgetItem(self.twProviders)
-                twiProvider.setText(0, jDataset["name"])
-                twiProvider.setExpanded(False)
-                twiProvider.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-                twiProvider.setCheckState(0, Qt.Unchecked) # 0 is the column number 
-                self.twDatasets.addTopLevelItem(twiProvider)
-                #Add to dictionary
-                treeNodes[jDataset["name"]] = twiProvider
-            else:
-                twiProvider = treeNodes[jDataset["name"]]
-            
-            ## Create a tree item for the dataset
-            #twiDataset = QTreeWidgetItem(twiProvider)
-            #twiDataset.setText(0, jDataset["title"])
-            #twiDataset.setExpanded(False)
-            #twiDataset.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-            #twiDataset.setCheckState(0, Qt.Unchecked) # 0 is the column number 
-            #twiDataset.setToolTip(0, jDataset["key"])
-            #self.twDatasets.addTopLevelItem(twiProvider)
-                
-        self.twDatasets.sortItems(0, Qt.AscendingOrder)
+            #Create a new top level tree item for the dataset provider organisation
+            twiProvider = QTreeWidgetItem(self.twProviders)
+            twiProvider.setText(0, jDataset["name"])
+            twiProvider.setText(1, jDataset["uid"])
+            twiProvider.setText(2, "provider")
+            twiProvider.setExpanded(False)
+            twiProvider.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            twiProvider.setCheckState(0, Qt.Unchecked) # 0 is the column number 
 
-    def readDatasetFile(self):
-    
-        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "datasets.json"))
-        if not os.path.isfile(datafile):
-            self.infoMessage("NBN Atlas dataset file not found. Use the refresh button to generate one.")
-            return
-            
-        try:
-            with open(datafile) as f:
-                jsonData = json.load(f)
-        except:
-            self.warningMessage("NBN dataset file failed to load. Use the refresh button to generate a new one.")
-            return
-            
-        treeNodes = {} #Dictionary
-        
-        for jDataset in jsonData:
-        
-            if not jDataset["organisationName"] in(treeNodes.keys()):
-                #Create a new top level tree item for the dataset provider organisation
-                twiOrganisation = QTreeWidgetItem(self.twDatasets)
-                twiOrganisation.setText(0, jDataset["organisationName"])
-                twiOrganisation.setExpanded(False)
-                twiOrganisation.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-                twiOrganisation.setCheckState(0, Qt.Unchecked) # 0 is the column number 
-                self.twDatasets.addTopLevelItem(twiOrganisation)
-                #Add to dictionary
-                treeNodes[jDataset["organisationName"]] = twiOrganisation
-            else:
-                twiOrganisation = treeNodes[jDataset["organisationName"]]
-            
-            # Create a tree item for the dataset
-            twiDataset = QTreeWidgetItem(twiOrganisation)
-            twiDataset.setText(0, jDataset["title"])
-            twiDataset.setExpanded(False)
-            twiDataset.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-            twiDataset.setCheckState(0, Qt.Unchecked) # 0 is the column number 
-            twiDataset.setToolTip(0, jDataset["key"])
-            self.twDatasets.addTopLevelItem(twiOrganisation)
-                
-        self.twDatasets.sortItems(0, Qt.AscendingOrder)
-        
+        self.twProviders.sortItems(0, Qt.AscendingOrder)
+
     def helpFile(self):
         
         #if self.guiFile is None:
@@ -567,37 +539,34 @@ class NBNDialog(QWidget, Ui_nbn):
         elif twiFuzzy.childCount() > 0:
             twiFuzzy.setExpanded(True)
 
-    def getSelectedDatasets(self):
+    def datasetsSelected(self):
         
-        ret = {}
-        # Selected datasets
-        iDatasetCount = 0
-        for iProvider in range(self.twDatasets.topLevelItemCount()):
-            twiProvider = self.twDatasets.topLevelItem(iProvider)
+        for iProvider in range(self.twProviders.topLevelItemCount()):
+            twiProvider = self.twProviders.topLevelItem(iProvider)
+            if twiProvider.checkState(0) == Qt.Checked:
+                return True
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
                 if twiDataset.checkState(0) == Qt.Checked:
-                    iDatasetCount += 1
-                    selectedDatasetKey = twiDataset.toolTip(0)
-                    strName = twiDataset.text(0)
-                    
-                    ret[selectedDatasetKey] = strName
-        return ret
+                    return True
+        return False
                        
     def getSelectedTVK(self):
        
         iCount = 0
 
-        for twiKey in self.treeNodesExact:
-            if self.treeNodesExact[twiKey].checkState(0) == Qt.Checked:
-                selectedTVK = self.treeNodesExact[twiKey].data(0, Qt.ToolTipRole)
-                iCount += 1
-                break
-        for twiKey in self.treeNodesFuzzy:
-            if self.treeNodesFuzzy[twiKey].checkState(0) == Qt.Checked:
-                selectedTVK = self.treeNodesFuzzy[twiKey].data(0, Qt.ToolTipRole)
-                iCount += 1
-                break
+        if len(self.treeNodesExact) > 0:
+            for twiKey in self.treeNodesExact:
+                if self.treeNodesExact[twiKey].checkState(0) == Qt.Checked:
+                    selectedTVK = self.treeNodesExact[twiKey].data(0, Qt.ToolTipRole)
+                    iCount += 1
+                    break
+        if len(self.treeNodesFuzzy) > 0:
+            for twiKey in self.treeNodesFuzzy:
+                if self.treeNodesFuzzy[twiKey].checkState(0) == Qt.Checked:
+                    selectedTVK = self.treeNodesFuzzy[twiKey].data(0, Qt.ToolTipRole)
+                    iCount += 1
+                    break
         
         #Check item in treeview is selected
         if iCount == 0:
@@ -610,11 +579,15 @@ class NBNDialog(QWidget, Ui_nbn):
         #Filters
         fq = ''
 
-        #fq = '&fq=data_provider_uid:dp111' #MBB
-
-        fq = '&fq=data_resource_uid:dr851' #MBB verified
-
-        # Year filter
+        #Taxon
+        if not self.getSelectedTVK() is None:
+            if fq == '':
+                fq = "&fq="
+            else:
+                fq = fq + '+AND+'
+            fq = fq + 'lsid:' + self.getSelectedTVK()
+       
+        #Year filter
         startYear = None
         endYear = None
         if self.cbStartYear.checkState() == Qt.Checked:
@@ -638,29 +611,154 @@ class NBNDialog(QWidget, Ui_nbn):
                 fq = fq + '+AND+'
             fq = fq + 'year:[' + str(startYear) + '+TO+' + str(endYear) + ']'
 
+
+        #Dataset providers and datasets
+        iDatasetCount = 0
+        providers = []
+        datasets = []
+        for iProvider in range(self.twProviders.topLevelItemCount()):
+            twiProvider = self.twProviders.topLevelItem(iProvider)
+            if twiProvider.checkState(0) == Qt.Checked:
+                providers.append(twiProvider.text(1))
+            else:
+                for iDataset in range(twiProvider.childCount()):
+                    twiDataset = twiProvider.child(iDataset)
+                    if twiDataset.checkState(0) == Qt.Checked:
+                        datasets.append(twiDataset.text(1))
+
+        fqd=''
+        #Providers
+        if len(providers) == 1:
+            fqd = fqd + 'data_provider_uid:' + providers[0]
+        elif len(providers) > 1:
+            fqd = fqd + 'data_provider_uid:('
+            iProvider = 0
+            for uid in providers:
+                 if iProvider == 0:
+                     fqd = fqd + uid
+                 else:
+                     fqd = fqd + '+OR+' + uid
+                 iProvider+=1
+            fqd = fqd + ')'
+        #Join provider and dataset portion if necessary
+        if len(datasets) > 0 and len(providers) > 0:
+            fqd = fqd + '+OR+'
+        #Datasets (where not all datasets for a provider wanted)
+        if len(datasets) == 1:
+            fqd = fqd + 'data_resource_uid:' + datasets[0]
+        elif len(datasets) > 1:
+            fqd = fqd + 'data_resource_uid:('
+            iDataset = 0
+            for uid in datasets:
+                 if iDataset == 0:
+                     fqd = fqd + uid
+                 else:
+                     fqd = fqd + '+OR+' + uid
+                 iDataset+=1
+            fqd = fqd + ')'
+
+        if len(datasets) > 0 and len(providers) > 0:
+            fqd = '(' + fqd + ')'
+
+        if len(fqd) > 0:
+            if fq == '':
+                fq = "&fq="
+            else:
+                fq = fq + '+AND+'
+            fq = fq + fqd
+
         #Return filter query
         return fq
+
+    def getLayerName(self):
+
+        layerName = ""
+
+        #Taxon
+        guid = self.getSelectedTVK()
+        if not guid is None:
+            taxon = self.taxonDetails(guid)
+            layerName += " " + taxon["taxonConcept"]["nameString"]
+
+        #Year filters
+        startYear = None
+        endYear = None
+        if self.cbStartYear.checkState() == Qt.Checked:
+            startYear = self.sbStartYear.value()
+        if self.cbEndYear.checkState() == Qt.Checked:
+            endYear = self.sbEndYear.value()
+        if not startYear is None and not endYear is None:
+            if startYear == endYear:
+                layerName += " " + str(startYear)
+            else:
+                layerName += " " + str(startYear) + "-" + str(endYear)
+        elif not startYear is None:
+            layerName += " " + str(startYear) + "-"
+        elif not endYear is None:
+            layerName += " -" + str(endYear)
+
+        #Provider filters
+        providers = []
+        datasets = []
+        for iProvider in range(self.twProviders.topLevelItemCount()):
+            twiProvider = self.twProviders.topLevelItem(iProvider)
+            if twiProvider.checkState(0) == Qt.Checked:
+                providers.append(twiProvider.text(1))
+            else:
+                for iDataset in range(twiProvider.childCount()):
+                    twiDataset = twiProvider.child(iDataset)
+                    if twiDataset.checkState(0) == Qt.Checked:
+                        datasets.append(twiDataset.text(1))
+
+        if len(providers) == 1:
+            layerName += " provider-" + providers[0]
+        elif len(providers) > 1:
+            layerName += " providers-several"
+
+        if len(datasets) == 1:
+            layerName += " dataset-" + datasets[0]
+        elif len(datasets) > 1:
+            layerName += " datasets-several"
+
+        #Polygon
+        polySearch = self.getSelectedFeatureWKT()
+        if not polySearch is None:
+            layerName += " geom-from-" + self.iface.activeLayer().name()
+
+        return layerName.strip()
 
     def WMSFetchSpecies(self):
 
         guid = self.getSelectedTVK()
         if guid is None:
-            self.iface.messageBar().pushMessage("Info", "First check a taxon code (TVK).", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "You must first specify a taxon filter for a WMS map layer.", level=QgsMessageBar.INFO)
             return
 
         #Get full taxon details for the selected guid
         taxon = self.taxonDetails(guid)
         taxonName = taxon["taxonConcept"]["nameString"]
         taxonRank = taxon["taxonConcept"]["rankString"]
-        parentGuid = taxon["taxonConcept"]["parentGuid"]
+
+        #Check that taxon rank is allowable given current limitations of Atlas WMS
+        allowedRanks = ["kingdom", "phylum", "class", "order", "family", "genus", "species"]
+        if not taxonRank in allowedRanks:
+            self.infoMessage(("The taxonomic rank - " + taxonRank + " - of " + taxonName + " is not one "
+                              "which can be used with the NBN Atlas' current implementation of WMS "
+                              "from within QGIS. Allowed ranks include, family, genus and species"))
+            return
+
+        #parentGuid = taxon["taxonConcept"]["parentGuid"]
 
         #Get full taxon details for the parent of selected guid
-        parent = self.taxonDetails(parentGuid)
-        parentName = parent["taxonConcept"]["nameString"]
-        parentRank = parent["taxonConcept"]["rankString"]
+        #parent = self.taxonDetails(parentGuid)
+        #parentName = parent["taxonConcept"]["nameString"]
+        #parentRank = parent["taxonConcept"]["rankString"]
 
-        #QgsMessageLog.logMessage("guid: " + selectedTVK, 'NBN Tool')
-        #QgsMessageLog.logMessage("name: " + name, 'NBN Tool')
+        #Build WMS base URL
+        #baseURL = 'https://records-dev-ws.nbnatlas.org'
+        baseURL = 'https://records-ws.nbnatlas.org'
+        baseURL = baseURL + '/ogc/ows?q=*:*'
+        #baseURL = baseURL + parentRank + ':' + parentName.replace(" ", "_")
 
         #Build Atlas WMS ENV parameter for styling
         envParam='&ENV=name:circle;opacity:1.0;'
@@ -670,14 +768,7 @@ class NBNDialog(QWidget, Ui_nbn):
             envParam += 'colourmode:osgrid;gridres:singlegrid;'
         if self.cbGridLabels.isChecked():
             envParam += 'gridlabels:true;'
-        
-        QgsMessageLog.logMessage("colour: " + self.mcbWMSColour.color().name(), 'NBN Tool')
 
-        #Build WMS base URL
-        baseURL = 'https://records-dev-ws.nbnatlas.org'
-        #baseURL = 'https://records-ws.nbnatlas.org'
-        baseURL = baseURL + '/ogc/ows?q=' + parentRank + ':' + parentName.replace(" ", "_")
-        #baseURL = 'https://records-ws.nbnatlas.org/ogc/ows?q=lsid:' + guid
         baseURL = baseURL + envParam
         if self.cbOutline.isChecked():
             baseURL = baseURL + '&OUTLINE=TRUE'
@@ -687,6 +778,11 @@ class NBNDialog(QWidget, Ui_nbn):
         if fq is None: #Filter errors detected and reported
             return
         baseURL = baseURL + fq
+
+        #Add WKT filter
+        polySearch = self.getSelectedFeatureWKT()
+        if not polySearch is None:
+            baseURL = baseURL + '&wkt=' + polySearch
 
         uri = QgsDataSourceURI()
         uri.setParam('url', baseURL)
@@ -707,10 +803,14 @@ class NBNDialog(QWidget, Ui_nbn):
 
         QgsMessageLog.logMessage("uri: " + uri.uri(), "NBN Tool")
 
-        rlayer = QgsRasterLayer(str(uri.encodedUri()), taxonName + " NBN Atlas WMS", 'wms')
+        rlayer = QgsRasterLayer(str(uri.encodedUri()), self.getLayerName() + " WMS", 'wms')
 
         if not rlayer.isValid():
-            QgsMessageLog.logMessage("Failed to load WMS raster", "NBN Tool")
+            self.infoMessage(("The NBN Atlas WMS did not return a layer for this query. "
+                              "The specified filters probably result in zero records. "
+                              "But if you have a polygon filter, it might be a problem"
+                              "with that."))
+            #QgsMessageLog.logMessage("Failed to load WMS raster", "NBN Tool")
             return
 
         opacity = (100-self.hsTransparency.value()) * 0.01
@@ -719,7 +819,8 @@ class NBNDialog(QWidget, Ui_nbn):
         QgsMapLayerRegistry.instance().addMapLayer(rlayer)
         self.iface.legendInterface().setLayerExpanded(rlayer, False)
         
-        #None of these worked to refresh layers panel when layer expanded
+        #None of these worked to refresh layers panel when layer expanded - these were attempts to overcome
+        #a weird refreshing problem when the NBN Atlas legend shown (but not very important since legend not useful).
         #self.canvas.refresh()
         #self.iface.legendInterface().refreshLayerSymbology(rlayer) 
         #QCoreApplication.processEvents() 
@@ -863,50 +964,22 @@ class NBNDialog(QWidget, Ui_nbn):
 
     def downloadNBNObservations(self):
 
-        #A taxon filter must be selected
-        if self.getSelectedTVK() is None:
-            self.infoMessage("You must first specify a taxon.")
+        #A taxon or dataset filter must be specified
+        if self.getSelectedTVK() is None and not self.datasetsSelected() and self.getSelectedFeatureWKT() is None:
+            self.iface.messageBar().pushMessage("Info", "First specify one or more of taxon, dataset or polygon filters.", level=QgsMessageBar.INFO)
             return
-
-        #Initialise filter parameters
-        datasetKey = None
-        polygon = None
 
         # Update filter display
         self.checkFilters()
-       
-        # datasetKey
-        selectedDatasets = self.getSelectedDatasets()
-        
-        # It should be possible to select more than one dataset (if another
-        # filter is specified, but this does not appear to currently work
-        # 17th Dec 2014
-        if len(selectedDatasets) > 1:
-            self.infoMessage("Currently, only one dataset can  be specified for each download query.")
-            return
-            
-        if len(selectedDatasets) > 0:
-            datasetKey = ""
-            for key in selectedDatasets.keys():
-                if datasetKey <> "":
-                    datasetKey = datasetKey + ","
-                datasetKey = datasetKey + key
-            params["datasetKey"] = datasetKey
-            
-            
-        # polygon
-        polygon = self.getSelectedFeatureWKT()
-        if not polygon is None:
-            #self.infoMessage("WKT: " + polygon)
-            params["polygon"] = polygon
             
         #Get a location for the output file.
         self.env.loadEnvironment()
         
         if os.path.exists(self.env.getEnvValue("nbn.downloadfolder")):
-            strInitPath = self.env.getEnvValue("nbn.downloadfolder")
+            #strInitPath = self.env.getEnvValue("nbn.downloadfolder")
+            strInitPath = os.path.join(self.env.getEnvValue("nbn.downloadfolder"), self.getLayerName())
         else:
-            strInitPath = ""
+            strInitPath = self.getLayerName()
             
         dlg = QFileDialog
         fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")
@@ -916,8 +989,55 @@ class NBNDialog(QWidget, Ui_nbn):
         # Set current tab to last (download) tab
         self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
 
-        self.runDownload (self.getSelectedTVK(), fileName)
+         # Add file to listbox
+        splitName = os.path.split(fileName)
+        self.lwDownloaded.addItem(splitName[1])
+        lwi = self.lwDownloaded.item(self.lwDownloaded.count()-1)
+        lwi.setToolTip(fileName)
         
+        lwi.setIcon(QIcon( self.pathPlugin % "images/download.png" ))
+
+        #Add query filter to baseURL if appropriate
+        fq = self.makeFilterQuery()
+        if fq is None: #Filter errors detected and reported
+            return
+
+        endpoint = 'https://records-ws.nbnatlas.org/occurrences/index/download?reasonTypeId=10&qa=none&q=*:*' + fq
+
+        #Add WKT filter
+        polySearch = self.getSelectedFeatureWKT()
+        if not polySearch is None:
+            endpoint = endpoint + '&wkt=' + polySearch
+
+        self.restRequest(endpoint, None, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
+
+    def clearAllFilters(self):
+
+        #Date filters
+        self.cbStartYear.setChecked(False)
+        self.cbEndYear.setChecked(False)
+
+        #Taxon filter
+        #for twiKey in self.treeNodesExact:
+        #    self.treeNodesExact[twiKey].setCheckState(0, Qt.Unchecked)
+        #for twiKey in self.treeNodesFuzzy:
+        #    self.treeNodesFuzzy[twiKey].setCheckState(0, Qt.Unchecked)
+        
+        self.leTaxonSearch.setText("")
+        self.twTaxa.clear()
+        self.treeNodesExact = {} 
+        self.treeNodesFuzzy = {} 
+
+        #Dataset filter
+        self.uncheckAll()
+
+        #Polygon
+        if self.getSelectedFeatureWKT() is not None:
+            self.iface.activeLayer().removeSelection()
+            
+        #Reset indicator checkboxes
+        self.checkFilters()
+
     def checkFilters(self):
 
         # Start year
@@ -927,7 +1047,7 @@ class NBNDialog(QWidget, Ui_nbn):
         # Taxon
         self.cbIndTaxon.setChecked(self.getSelectedTVK() is not None)
         # Dataset
-        self.cbIndDataset.setChecked(len(self.getSelectedDatasets()) > 0)   
+        self.cbIndDataset.setChecked(self.datasetsSelected())   
         # polygon
         self.cbIndPolygon.setChecked(self.getSelectedFeatureWKT() is not None)     
  
@@ -1061,30 +1181,6 @@ class NBNDialog(QWidget, Ui_nbn):
 
         return 'An unknown network-related error was detected'
 
-    def runDownload(self, guid, fileName):
-
-        # Add file to listbox
-        splitName = os.path.split(fileName)
-        self.lwDownloaded.addItem(splitName[1])
-        lwi = self.lwDownloaded.item(self.lwDownloaded.count()-1)
-        lwi.setToolTip(fileName)
-        
-        lwi.setIcon(QIcon( self.pathPlugin % "images/download.png" ))
-
-        #Add query filter to baseURL if appropriate
-        fq = self.makeFilterQuery()
-        if fq is None: #Filter errors detected and reported
-            return
-
-        if fq == "":
-            fq = '&fq=lsid:' + guid
-        else:
-            fq = fq + '+AND+lsid:' + guid
-
-        endpoint = 'https://records-ws.nbnatlas.org/occurrences/index/download?reasonTypeId=10&qa=none&q=*:*' + fq
-
-        self.restRequest(endpoint, None, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
-
     def downLoadFinished(self, downloadInfo):
 
         #This 
@@ -1184,4 +1280,6 @@ class NBNDialog(QWidget, Ui_nbn):
 
         QgsMessageLog.logMessage("returning result", "NBN Tool")
         return result
+
+   
 

@@ -551,7 +551,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 if self.isNBNCSV:
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
-                        if field.name() == "location":
+                        if field.name() == "OSGR":
                             self.fcbGridRefCol.setField(field.name())
                             break
                         index += 1
@@ -561,33 +561,33 @@ class BiorecDialog(QWidget, Ui_Biorec):
                         for field in self.csvLayer.dataProvider().fields():
                             if field.name() == colGridRef:
                                 self.fcbGridRefCol.setField(field.name())
-
                                 break
                             index += 1
 
-                # Set default value for X column
-                for colX in self.env.getEnvValues("biorec.xcol"):
-                    index = 1
-                    for field in self.csvLayer.dataProvider().fields():
-                        if field.name() == colX:
-                            self.fcbXCol.setField(field.name())
-                            break
-                        index += 1
+                if self.fcbGridRefCol.currentField() == "":
+                    # Set default value for X column
+                    for colX in self.env.getEnvValues("biorec.xcol"):
+                        index = 1
+                        for field in self.csvLayer.dataProvider().fields():
+                            if field.name() == colX:
+                                self.fcbXCol.setField(field.name())
+                                break
+                            index += 1
                         
-                # Set default value for Y column
-                for colY in self.env.getEnvValues("biorec.ycol"):
-                    index = 1
-                    for field in self.csvLayer.dataProvider().fields():
-                        if field.name() == colY:#
-                            self.fcbYCol.setField(field.name())
-                            break
-                        index += 1
+                    # Set default value for Y column
+                    for colY in self.env.getEnvValues("biorec.ycol"):
+                        index = 1
+                        for field in self.csvLayer.dataProvider().fields():
+                            if field.name() == colY:#
+                                self.fcbYCol.setField(field.name())
+                                break
+                            index += 1
                         
                 # Set default value for Taxon column
                 if self.isNBNCSV:
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
-                        if field.name() == "pTaxonName":
+                        if field.name() == "Matched Scientific Name":
                             self.cboTaxonCol.setCurrentIndex(index)
                             break
                         index += 1

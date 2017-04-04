@@ -220,16 +220,17 @@ class osgr:
             return self.circleGeom(loc[0], loc[1], precision / 2)
             
     def circleGeom(self, j, k, r):
+
         cumulativeRad = 0
         deltaDeg = 10
         deltaRad = deltaDeg * math.pi / 180
         points = []
-        while cumulativeRad < (2 * math.pi): #360 * pi / 180
+        while cumulativeRad < (1.99 * math.pi): #Just under 360 * pi / 180 (= 2 * pi) to prevent geom problems
             cumulativeRad = cumulativeRad + deltaRad
             x1 = j + r * math.cos(cumulativeRad)
             y1 = k + r * math.sin(cumulativeRad)
             points.append(QgsPoint(x1,y1))
-            
+                 
         return QgsGeometry.fromPolygon([points])
             
     def checkGR(self, grLocate):

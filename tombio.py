@@ -130,7 +130,7 @@ class TomBio:
         
     def showNbnDialog(self):
         if self.dwNbn is None:
-            self.dwNbn = custDockWidget("FSC Tom.bio - NBN Tool", self.iface.mainWindow())
+            self.dwNbn = custDockWidget("FSC Tom.bio - NBN Atlas Tool", self.iface.mainWindow())
             self.guiNbn = NBNDialog(self.iface, self.dwNbn)
             self.dwNbn.setWidget(self.guiNbn)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwNbn)
