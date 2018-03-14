@@ -1,26 +1,11 @@
 <RCC>
-    <qresource prefix="/plugins/tombio" >
+  <qresource prefix="/plugins/tombio">
         <file>icon.png</file>
-    </qresource>
-    <qresource prefix="/plugins/tombio" >
         <file>images/cross1.png</file>
-    </qresource>
-	<qresource prefix="/plugins/TomBio" >
         <file>images/osgrPoly.png</file>
-    </qresource>
-	<qresource prefix="/plugins/TomBio" >
-        <file>images/maptaxa.png</file>
-    </qresource>
-	<qresource prefix="/plugins/TomBio" >
         <file>images/nbn.png</file>
-    </qresource>
-	<qresource prefix="/plugins/TomBio" >
         <file>images/mashup.png</file>
-    </qresource>
-	<qresource prefix="/plugins/TomBio" >
         <file>images/speciesinventory.png</file>
-    </qresource>
-	<qresource prefix="/plugins/TomBio" >
         <file>images/tombio.png</file>
     </qresource>
 </RCC>

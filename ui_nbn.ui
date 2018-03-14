@@ -206,24 +206,24 @@
               <property name="toolTip">
                <string>Select the colour to use for the records/squares</string>
               </property>
-              <property name="colorDialogTitle">
+              <property name="colorDialogTitle" stdset="0">
                <string>Select colour  for WMS points or grid</string>
               </property>
-              <property name="color">
+              <property name="color" stdset="0">
                <color>
                 <red>170</red>
                 <green>0</green>
                 <blue>0</blue>
                </color>
               </property>
-              <property name="defaultColor">
+              <property name="defaultColor" stdset="0">
                <color>
                 <red>170</red>
                 <green>0</green>
                 <blue>0</blue>
                </color>
               </property>
-              <property name="showNoColor">
+              <property name="showNoColor" stdset="0">
                <bool>false</bool>
               </property>
              </widget>
@@ -1493,7 +1493,7 @@
   <customwidget>
    <class>QgsCollapsibleGroupBox</class>
    <extends>QGroupBox</extends>
-   <header>qgis.gui</header>
+   <header>qgscollapsiblegroupbox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

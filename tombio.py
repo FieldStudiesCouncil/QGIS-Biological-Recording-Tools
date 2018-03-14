@@ -20,17 +20,18 @@
  ***************************************************************************/
 """
 # Import the PyQt and QGIS libraries
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-import resources_rc
-from osgrdialog import OsgrDialog
-from nbndialog import NBNDialog
-from mapmashupdialog import MapmashupDialog
-from biorecdialog import BiorecDialog
-from envdialog import EnvDialog
+from . import resources_rc
+#from osgrdialog import OsgrDialog
+#from nbndialog import NBNDialog
+#from mapmashupdialog import MapmashupDialog
+#from biorecdialog import BiorecDialog
+#from envdialog import EnvDialog
 import os.path
 
 class custDockWidget(QDockWidget):
@@ -71,35 +72,40 @@ class TomBio:
         self.toolbar = self.iface.addToolBar("TomBioToolbar")
         
         # OSGR tool
-        self.actionOsgr = QAction(QIcon(":/plugins/TomBio/images/osgrPoly.png"), u"OSGR Tool", self.iface.mainWindow())
+        icon_path = os.path.join(os.path.dirname(__file__),'images/osgrPoly.png')
+        self.actionOsgr = QAction(QIcon(icon_path), u"OSGR Tool", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionOsgr)
         self.actionOsgr.triggered.connect(self.showOsgrDialog)
         self.toolbar.addAction(self.actionOsgr)
         self.dwOsgr = None
         
         # Display Biological Records Tool
-        self.actionBiorec = QAction(QIcon(":/plugins/TomBio/images/maptaxa.png"), u"Biological Records Tool", self.iface.mainWindow())
+        icon_path = os.path.join(os.path.dirname(__file__),'images/maptaxa.png')
+        self.actionBiorec = QAction(QIcon(icon_path), u"Biological Records Tool", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionBiorec)
         self.actionBiorec.triggered.connect(self.showBiorecDialog)
         self.toolbar.addAction(self.actionBiorec)
         self.dwBiorec = None
         
         # NBN Tool
-        self.actionNbn = QAction(QIcon(":/plugins/TomBio/images/nbn.png"), u"NBN Atlas Tool", self.iface.mainWindow())
+        icon_path = os.path.join(os.path.dirname(__file__),'images/nbn.png')
+        self.actionNbn = QAction(QIcon(icon_path), u"NBN Atlas Tool", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionNbn)
         self.actionNbn.triggered.connect(self.showNbnDialog)
         self.toolbar.addAction(self.actionNbn)
         self.dwNbn = None
         
         # Map Mashup Tool
-        self.actionMapMash = QAction(QIcon(":/plugins/TomBio/images/mashup.png"), u"Map Mashup Tool", self.iface.mainWindow())
+        icon_path = os.path.join(os.path.dirname(__file__),'images/mashup.png')
+        self.actionMapMash = QAction(QIcon(icon_path), u"Map Mashup Tool", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionMapMash)
         self.actionMapMash.triggered.connect(self.showMapmashupDialog)
         self.toolbar.addAction(self.actionMapMash)
         self.dwMapmashup = None
         
         # Help dialog
-        self.actionHelp = QAction(QIcon(":/plugins/TomBio/images/tombio.png"), u"Help and Info", self.iface.mainWindow())
+        icon_path = os.path.join(os.path.dirname(__file__),'images/tombio.png')
+        self.actionHelp = QAction(QIcon(icon_path), u"Help and Info", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionHelp)
         self.actionHelp.triggered.connect(self.showHelp)
         self.toolbar.addAction(self.actionHelp)
@@ -109,7 +115,7 @@ class TomBio:
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionEnv)
         self.actionEnv.triggered.connect(self.showEnvDialog)
         self.guiEnv = None
-   
+
     def showHelp(self):
         #showPluginHelp()
         QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisplugin"))

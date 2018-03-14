@@ -12,7 +12,7 @@
 
 [general]
 name=TomBio tools
-qgisMinimumVersion=2.8
+qgisMinimumVersion=3.0
 description=FSC Tomorrow's Biodiversity tools for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at 
     biological recorders. It streamlines many of the tasks commonly  
@@ -22,7 +22,7 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=2.8.0
+version=3.0.0
 author=Rich Burkmar, Field Studies Council
 email=richardb@field-studies-council.org
 

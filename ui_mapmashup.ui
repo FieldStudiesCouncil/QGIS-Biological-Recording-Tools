@@ -504,7 +504,6 @@
   <zorder>verticalSpacer</zorder>
   <zorder>groupBox</zorder>
   <zorder>cbApplyStyle</zorder>
-  <zorder>butLoadImageBrowse</zorder>
  </widget>
  <resources/>
  <connections/>

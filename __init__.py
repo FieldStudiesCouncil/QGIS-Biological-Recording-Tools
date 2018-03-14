@@ -23,5 +23,5 @@
 
 def classFactory(iface):
     # load TomBio class from file TomBio
-    from tombio import TomBio
+    from .tombio import TomBio
     return TomBio(iface)
