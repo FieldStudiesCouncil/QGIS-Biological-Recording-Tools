@@ -20,37 +20,43 @@
  *                                                                         *
  ***************************************************************************/
 """
-from ui_osgr import Ui_osgr
+from . import ui_osgr
 import os.path
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from osgr import *
-from osgrLayer import *
-from drag_box_tool import *
 
-class OsgrDialog(QWidget, Ui_osgr):
+#from osgr import *
+#from osgrLayer import *
+#from drag_box_tool import *
+from . import osgr
+from . import osgrLayer
+from . import drag_box_tool
+
+class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
   def __init__(self, iface, dockwidget):
     QWidget.__init__(self)
-    Ui_osgr.__init__(self)
+    ui_osgr.Ui_osgr.__init__(self)
     self.setupUi(self)
     self.canvas = iface.mapCanvas()
     self.iface = iface
     self.rbGridSquare = QgsRubberBand(self.canvas, False)
 
     # Get a reference to an osgr object and an osgrLayer object
-    self.osgr = osgr()
-    self.osgrLayer = osgrLayer(iface)
+    self.osgr = osgr.osgr()
+    self.osgrLayer = osgrLayer.osgrLayer(iface)
     
     # Make a coordinate translator. Also need global references to OSGB and canvas CRSs since
     # they cannot be retrieved from a translator object.
-    self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
+    #self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
+    self.canvasCrs = self.canvas.mapSettings().destinationCrs()
     self.osgbCrs = QgsCoordinateReferenceSystem("EPSG:27700")
-    self.transformCrs = QgsCoordinateTransform(self.canvas.mapRenderer().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"))
+    self.transformCrs = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"),  QgsProject.instance())
     
     # Set the button graphics
     self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
@@ -84,7 +90,7 @@ class OsgrDialog(QWidget, Ui_osgr):
     self.clickTool.canvasClicked.connect(self.canvasClicked)
     
     # Create the grid square drag tool based on a custom rectangle tool
-    self.dragTool = RectangleMapTool(self.canvas, self.iface)
+    self.dragTool = drag_box_tool.RectangleMapTool(self.canvas, self.iface)
     self.dragTool.boxDragged.connect(self.boxDragged)
     
     # Initialisations
@@ -135,9 +141,9 @@ class OsgrDialog(QWidget, Ui_osgr):
         return True
         
   def checkTransform(self):
-    if self.canvasCrs != self.canvas.mapRenderer().destinationCrs():
-        self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
-        self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs)
+    if self.canvasCrs != self.canvas.mapSettings().destinationCrs():
+        self.canvasCrs = self.canvas.mapSettings().destinationCrs()
+        self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs, QgsProject.instance())
     
   def setProgBarValue(self, value):
     self.pbGridSquares.setValue(value)
@@ -187,7 +193,7 @@ class OsgrDialog(QWidget, Ui_osgr):
             
             if self.canvas.mapRenderer().destinationCrs() !=  layer.crs():
                 #QgsMessageLog.logMessage("CRS transform", "OSGR Tool")
-                trans = QgsCoordinateTransform(layer.crs(), self.canvas.mapRenderer().destinationCrs())
+                trans = QgsCoordinateTransform(layer.crs(), self.canvas.mapRenderer().destinationCrs(), QgsProject.instance())
                 try:
                     rect = trans.transform(rectLayer)
                 except:
@@ -368,7 +374,7 @@ class OsgrDialog(QWidget, Ui_osgr):
     self.northing = transPoint.y()
     
     gr = self.osgr.grFromEN(transPoint.x(),transPoint.y(), self.grPrecision)
-    if gr <> "na":
+    if gr != "na":
         self.leOSGR.setText(gr)
     else:
         self.leOSGR.setText("")

@@ -19,19 +19,18 @@
  *                                                                         *
  ***************************************************************************/
 """
-# Import the PyQt and QGIS libraries
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from . import resources_rc
-#from osgrdialog import OsgrDialog
+#from . import resources_rc
+from . import osgrdialog
 #from nbndialog import NBNDialog
 #from mapmashupdialog import MapmashupDialog
 #from biorecdialog import BiorecDialog
-#from envdialog import EnvDialog
+from . import envdialog
 import os.path
 
 class custDockWidget(QDockWidget):
@@ -123,7 +122,7 @@ class TomBio:
     def showOsgrDialog(self):
         if self.dwOsgr is None:
             self.dwOsgr = custDockWidget("FSC Tom.bio - OSGR Tool", self.iface.mainWindow())
-            self.guiOsgr = OsgrDialog(self.iface, self.dwOsgr)
+            self.guiOsgr = osgrdialog.OsgrDialog(self.iface, self.dwOsgr)
             self.dwOsgr.setWidget(self.guiOsgr)
             self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dwOsgr)
             self.dwOsgr.closed.connect(self.closeOsgrDialog)
@@ -176,7 +175,7 @@ class TomBio:
             
     def showEnvDialog(self):
         if self.guiEnv is None:
-            self.guiEnv = EnvDialog(self.iface)
+            self.guiEnv = envdialog.EnvDialog(self.iface)
       
         self.guiEnv.setVisible(True)
             

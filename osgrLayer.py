@@ -22,10 +22,13 @@
 
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from osgr import *
-from envmanager import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+#from osgr import *
+#from envmanager import *
+from . import osgr
+from . import envmanager
 
 class osgrLayer(QObject):
 
@@ -40,7 +43,7 @@ class osgrLayer(QObject):
     self.iface = iface
    
     # Get a reference to an osgr object
-    self.osgr = osgr()
+    self.osgr = osgr.osgr()
     self.vl = None
 
   def getCRS(self):
@@ -145,7 +148,7 @@ class osgrLayer(QObject):
        self.vl.startEditing()
     
     # Apply any offsets specified in environment file
-    self.env = envManager()
+    self.env = envmanager.envManager()
     try:
         offsetX = float(self.env.getEnvValue("biorec.xGridOffset"))
     except:
@@ -187,7 +190,7 @@ class osgrLayer(QObject):
             # If projection is OSGB then only make a square if valid GR or precision not standard
             # OSGB precision (denoted by 'na' in GR).
             
-            if not isOSGB or (isOSGB and gr <> ""):
+            if not isOSGB or (isOSGB and gr != ""):
                         
                 #self.infoMessage("gr is " + gr + " precision is " + str(self.precision))
                 

@@ -20,21 +20,26 @@ EnvDialog
  ***************************************************************************/
 """
 
-from ui_env import Ui_Env
+#from ui_env import Ui_Env
+#from envmanager import *
+from . import ui_env, envmanager
 import os.path
 import csv
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
-from qgis.core import *
-from qgis.gui import *
-from qgis.utils import *
-from envmanager import *
+#from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtWidgets import *
+from qgis import core, gui, utils
+#from qgis.core import *
+#from qgis.gui import *
+#from qgis.utils import *
 
-class EnvDialog(QWidget, Ui_Env):
+
+class EnvDialog(QWidget, ui_env.Ui_Env):
     def __init__(self, iface):
         QWidget.__init__(self)
-        Ui_Env.__init__(self)
+        ui_env.Ui_Env.__init__(self)
         self.setupUi(self)
         self.__canvas = iface.mapCanvas()
         self.iface = iface
@@ -43,7 +48,7 @@ class EnvDialog(QWidget, Ui_Env):
         self.pathPlugin = os.path.dirname( __file__ ) 
         
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         self.pteEnvironment.setPlainText(self.env.getTextEnv())
         self.leExternalEnvFile.setText(self.env.getExternalFilePath())
         self.leExternalEnvFile.setEnabled(False)
