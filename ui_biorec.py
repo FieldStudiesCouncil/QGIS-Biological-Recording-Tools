@@ -467,7 +467,7 @@ class Ui_Biorec(object):
         self.lblYCol.setText(_translate("Biorec", "Y Column"))
         self.lblAbundanceColumn.setText(_translate("Biorec", "Abundance Column"))
         self.cboAbundanceCol.setToolTip(_translate("Biorec", "Optional column with abundance data"))
-        self.lblTaxonCol.setText(_translate("Biorec", "Taxon Column#"))
+        self.lblTaxonCol.setText(_translate("Biorec", "Taxon Column"))
         self.cboTaxonCol.setToolTip(_translate("Biorec", "Select column with species names"))
         self.lblGroupingCol.setText(_translate("Biorec", "Grouping Column"))
         self.cboGroupingCol.setToolTip(_translate("Biorec", "Optionally select a grouping column"))
@@ -534,7 +534,4 @@ class Ui_Biorec(object):
         self.butRemoveMap.setToolTip(_translate("Biorec", "Remove last map layer"))
         self.butRemoveMaps.setToolTip(_translate("Biorec", "Remove all map layers"))
 
-from qgscollapsiblegroupbox import QgsCollapsibleGroupBox
-from qgsfieldcombobox import QgsFieldComboBox
-from qgsmaplayercombobox import QgsMapLayerComboBox
-from qgsprojectionselectionwidget import QgsProjectionSelectionWidget
+from qgis.gui import QgsCollapsibleGroupBox, QgsFieldComboBox, QgsMapLayerComboBox, QgsProjectionSelectionWidget

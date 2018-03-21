@@ -30,11 +30,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtNetwork import *
 from PyQt5.QtWidgets import *
-from qgis import core, gui, utils
-#from qgis.core import *
-#from qgis.gui import *
-#from qgis.utils import *
-
+from qgis import *
+from qgis.core import *
+from qgis.gui import *
+from qgis.utils import *
 
 class EnvDialog(QWidget, ui_env.Ui_Env):
     def __init__(self, iface):
@@ -66,7 +65,7 @@ class EnvDialog(QWidget, ui_env.Ui_Env):
     def browseEnvFile(self):
     
         dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Open environment file", "", "Text Files (*.txt)")
+        fileName = dlg.getOpenFileName(self, "Open environment file", "", "Text Files (*.txt)")[0]
         if fileName:
             self.leExternalEnvFile.setText(fileName)
             self.env.setExternalEnvFile(fileName, True)
@@ -75,14 +74,14 @@ class EnvDialog(QWidget, ui_env.Ui_Env):
     def saveToNewEnvFile(self):
     
         dlg = QFileDialog
-        fileName = dlg.getSaveFileName(self, "Specify location for environment file", "", "Text Files (*.txt)")
+        fileName = dlg.getSaveFileName(self, "Specify location for environment file", "", "Text Files (*.txt)")[0]
         if fileName:
             self.leExternalEnvFile.setText(fileName)
             self.env.setExternalEnvFile(fileName, False)
             
     def editingExample(self):
     
-        self.iface.messageBar().pushMessage("Warning", "You are editing the example environment file - changes will not be saved", level=QgsMessageBar.WARNING, duration=1)
+        self.iface.messageBar().pushMessage("Warning", "You are editing the example environment file - changes will not be saved", level=Qgis.Warning, duration=1)
         self.pteExample.blockSignals(True)
         self.pteExample.setPlainText(self.exampleText)
         self.pteExample.blockSignals(False)

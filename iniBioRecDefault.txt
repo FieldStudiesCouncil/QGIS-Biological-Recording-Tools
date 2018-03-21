@@ -4,10 +4,6 @@
 #mapmashup.imgfolder: C:\Users\fsc\Documents\Temp
 #mapmashup.regfolder: C:\Users\fsc\Documents\GIS Datafiles\MashupReg
 
-# Default NBN tool options
-#nbn.username: fredbloggs
-#nbn.password: bloggsfred
-
 # Default directories for Biorec tool
 # Uncomment and replace paths with those relevant to your own file system
 

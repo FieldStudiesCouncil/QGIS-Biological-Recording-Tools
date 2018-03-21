@@ -211,10 +211,10 @@ class osgr:
             return None
         
         if type == "point":
-            return QgsGeometry.fromPoint(QgsPoint(x + (precision/2), y + (precision/2)))
+            return QgsGeometry.fromPointXY(QgsPointXY(x + (precision/2), y + (precision/2)))
         elif type == "square":
-            points = [[QgsPoint(x,y), QgsPoint(x,y + precision), QgsPoint(x + precision,y + precision), QgsPoint(x + precision,y)]]
-            return QgsGeometry.fromPolygon(points)
+            points = [[QgsPointXY(x,y), QgsPointXY(x,y + precision), QgsPointXY(x + precision,y + precision), QgsPointXY(x + precision,y)]]
+            return QgsGeometry.fromPolygonXY(points)
         else:
             # Circle
             return self.circleGeom(loc[0], loc[1], precision / 2)
@@ -229,9 +229,9 @@ class osgr:
             cumulativeRad = cumulativeRad + deltaRad
             x1 = j + r * math.cos(cumulativeRad)
             y1 = k + r * math.sin(cumulativeRad)
-            points.append(QgsPoint(x1,y1))
+            points.append(QgsPointXY(x1,y1))
                  
-        return QgsGeometry.fromPolygon([points])
+        return QgsGeometry.fromPolygonXY([points])
             
     def checkGR(self, grLocate):
     

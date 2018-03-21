@@ -24,21 +24,21 @@ import re
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from envmanager import *
+from . import envmanager
 
 class projection:
 
     def __init__(self, crsInput, crsCanvas):
 
-        self.transformCrs = QgsCoordinateTransform(crsInput, crsCanvas)
+        self.transformCrs = QgsCoordinateTransform(crsInput, crsCanvas, QgsProject.instance())
 
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         
     def xyToPoint(self, x, y):
     
         try:
-            point = QgsPoint(x, y)
+            point = QgsPointXY(x, y)
         except:
             point = None
             
@@ -49,7 +49,7 @@ class projection:
                 e = sys.exc_info()[0]
                 return [None, "Transformation error: %s" % e]
                 
-            return [QgsGeometry.fromPoint(canvasPoint), ""]
+            return [QgsGeometry.fromPointXY(canvasPoint), ""]
         else:
             return [None, "Couldn't create points from input coordinates"]
             
@@ -118,7 +118,7 @@ class projection:
         if x == None or y == None:
             geom = None
         elif type == "point":
-            geom =  QgsGeometry.fromPoint(QgsPoint(x + (gridPrecision/2), y + (gridPrecision/2)))
+            geom =  QgsGeometry.fromPointXY(QgsPointXY(x + (gridPrecision/2), y + (gridPrecision/2)))
         elif type == "square":
             points = [[QgsPoint(x,y), QgsPoint(x,y + gridPrecision), QgsPoint(x + gridPrecision,y + gridPrecision), QgsPoint(x + gridPrecision,y)]]
             geom = QgsGeometry.fromPolygon(points)

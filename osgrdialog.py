@@ -29,10 +29,6 @@ from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-
-#from osgr import *
-#from osgrLayer import *
-#from drag_box_tool import *
 from . import osgr
 from . import osgrLayer
 from . import drag_box_tool
@@ -53,7 +49,6 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
     # Make a coordinate translator. Also need global references to OSGB and canvas CRSs since
     # they cannot be retrieved from a translator object.
-    #self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
     self.canvasCrs = self.canvas.mapSettings().destinationCrs()
     self.osgbCrs = QgsCoordinateReferenceSystem("EPSG:27700")
     self.transformCrs = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"),  QgsProject.instance())
@@ -101,9 +96,9 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.cboPrecisionChanged(0)
   
   def infoMessage(self, strMessage):
-    self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
+    self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
   def warningMessage(self, strMessage):
-    self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
+    self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
  
   def setEnableDisable(self):
     if self.cboPrecision.currentIndex() == 8:
@@ -135,7 +130,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.checkTransform()
     if self.canvasCrs != self.osgbCrs:
         if showMessage:
-            self.iface.messageBar().pushMessage("Info", "The map canvas CRS needs to be set to EPSG:27700 for this function", level=QgsMessageBar.WARNING)
+            self.iface.messageBar().pushMessage("Info", "The map canvas CRS needs to be set to EPSG:27700 for this function", level=Qgis.Warning)
         return False
     else:
         return True
@@ -159,6 +154,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
   def ClearGrid(self):
     self.osgrLayer.clear()
+    self.canvas.refresh()
 
   def butGridToolClicked(self, pos):
     # Make the GR tool the current map tool
@@ -191,13 +187,13 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
 
             ##? Why not transform the actual geometry of the selected feature rather than it's BBox?##
             
-            if self.canvas.mapRenderer().destinationCrs() !=  layer.crs():
+            if self.canvas.mapSettings().destinationCrs() !=  layer.crs():
                 #QgsMessageLog.logMessage("CRS transform", "OSGR Tool")
-                trans = QgsCoordinateTransform(layer.crs(), self.canvas.mapRenderer().destinationCrs(), QgsProject.instance())
+                trans = QgsCoordinateTransform(layer.crs(), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
                 try:
                     rect = trans.transform(rectLayer)
                 except:
-                    self.iface.messageBar().pushMessage("Warning", "The bounding rectangle of the selected feature cannot be transformed from its layer's CRS to the current map CRS.", level=QgsMessageBar.WARNING)
+                    self.iface.messageBar().pushMessage("Warning", "The bounding rectangle of the selected feature cannot be transformed from its layer's CRS to the current map CRS.", level=Qgis.Warning)
                     return
             else:
                 trans = None
@@ -205,9 +201,9 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
                 
             self.GenerateSquares(rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum(), selectedFeatures, trans)
         else:
-            self.iface.messageBar().pushMessage("Info", "There are no features selected in the active layer.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "There are no features selected in the active layer.", level=Qgis.Info)
     else:
-        self.iface.messageBar().pushMessage("Info", "The active layer is not a vector layer.", level=QgsMessageBar.INFO)
+        self.iface.messageBar().pushMessage("Info", "The active layer is not a vector layer.", level=Qgis.Info)
     
   def GenerateSquares(self, xMin, yMin, xMax, yMax, selectedFeatures=[], trans=None):
   
@@ -219,7 +215,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
         self.infoMessage("User-defined grid size must be greater than zero")
         return
         
-    if self.osgrLayer.getCRS() != None and self.canvas.mapRenderer().destinationCrs() != self.osgrLayer.getCRS():
+    if self.osgrLayer.getCRS() != None and self.canvas.mapSettings().destinationCrs() != self.osgrLayer.getCRS():
         self.warningMessage("The grid layer CRS does not match the project map CRS. First delete the grid layer.")
         return
         
@@ -247,7 +243,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     res = self.osgr.enFromGR(self.leOSGR.text())
     
     if res[0] == 0:
-        self.iface.messageBar().pushMessage("Warning", res[3], level=QgsMessageBar.WARNING)
+        self.iface.messageBar().pushMessage("Warning", res[3], level=Qgis.Warning)
     else:
         precision = res[2]
         x0 = (res[0] - precision / 1.8)
@@ -255,10 +251,10 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
         y0 = (res[1] - precision / 1.8)
         y1 = (res[1] + precision / 1.8)
         
-        ll = QgsPoint(x0, y0)
-        ur = QgsPoint(x1, y1)
+        ll = QgsPointXY(x0, y0)
+        ur = QgsPointXY(x1, y1)
         rect = QgsRectangle(ll, ur)
-        centre = QgsPoint(res[0], res[1])
+        centre = QgsPointXY(res[0], res[1])
         #rect = QgsRectangle(centre, centre)
         self.canvas.setExtent(rect)
         self.canvas.refresh()

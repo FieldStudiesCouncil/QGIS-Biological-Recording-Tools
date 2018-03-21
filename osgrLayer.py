@@ -57,7 +57,7 @@ class osgrLayer(QObject):
             return None
     
   def infoMessage(self, strMessage):
-    self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
+    self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
     
   def createLayer(self):
   
@@ -65,38 +65,55 @@ class osgrLayer(QObject):
     # Need to find a way to create a layer with specified CRS other than by EPSG string
     # because this is retained in general layer properties even after CRS is changed.
     # If layer created without CRS, the user is prompted to select one so that's not an option.
-    self.vl = QgsVectorLayer("Polygon?epsg:27700", "OSGR grid squares", "memory")
-    self.vl.setCrs(self.canvas.mapRenderer().destinationCrs())
+    #self.vl = QgsVectorLayer("Polygon?epsg:27700", "OSGR grid squares", "memory")
+    #self.vl.setCrs(self.canvas.mapSettings().destinationCrs())
+
+    QgsMessageLog.logMessage(self.canvas.mapSettings().destinationCrs().authid(), "OSGR Tool")
+
+    self.vl = QgsVectorLayer("Polygon?crs=" + self.canvas.mapSettings().destinationCrs().authid() + "&field=GridType:string(20)&field=GridRef:string(20)", "OSGR grid squares", "memory")
     self.pr = self.vl.dataProvider()
-    
+
     #QgsMessageLog.logMessage(self.canvas.mapRenderer()., "OSGR Tool")
 
     # Add fields
-    self.pr.addAttributes( [ QgsField("GridType", QVariant.String), QgsField("GridRef", QVariant.String) ] )
+    #self.pr.addAttributes( [ QgsField("GridType", QVariant.String), QgsField("GridRef", QVariant.String) ] )
     
     # Symbology
-    
     props = { 'color_border' : '0,0,0,200', 'style' : 'no', 'style_border' : 'solid' }
-    s = QgsFillSymbolV2.createSimple(props)
-    self.vl.setRendererV2( QgsSingleSymbolRendererV2( s ) )
+    s = QgsFillSymbol.createSimple(props)
+    self.vl.setRenderer( QgsSingleSymbolRenderer( s ) )
     
     # Labeling
-    self.vl.setCustomProperty("labeling", "pal")
-    self.vl.setCustomProperty("labeling/fontFamily", "Arial")
-    self.vl.setCustomProperty("labeling/fontSize", "8")
-    self.vl.setCustomProperty("labeling/fieldName", "GridRef")
-    self.vl.setCustomProperty("labeling/placement", "1")
+    #self.vl.setCustomProperty("labeling", "pal")
+    #self.vl.setCustomProperty("labeling/fontFamily", "Arial")
+    #self.vl.setCustomProperty("labeling/fontSize", "8")
+    #self.vl.setCustomProperty("labeling/fieldName", "GridRef")
+    #self.vl.setCustomProperty("labeling/placement", "1")
+
+    palyr = QgsPalLayerSettings()
+    palyr.fieldName = 'GridRef' 
+    palyr.placement = QgsPalLayerSettings.OverPoint
+    #f = QgsTextFormat()
+    #palyr.setFormat()
+
+    #palyr.fontSize (8) 
+
+    l = QgsVectorLayerSimpleLabeling(palyr)
+    self.vl.setLabeling(l)
+
     if self.showLabels:
-        self.vl.setCustomProperty("labeling/enabled", "true")
+        #self.vl.setCustomProperty("labeling/enabled", "true")
+        self.vl.setLabelsEnabled(True)
     else:
-        self.vl.setCustomProperty("labeling/enabled", "false")
+        #self.vl.setCustomProperty("labeling/enabled", "false")
+        self.vl.setLabelsEnabled(False)
     
     # Add to map layer registry
-    QgsMapLayerRegistry.instance().addMapLayer(self.vl)
+    QgsProject.instance().addMapLayer(self.vl)
     
   def clear(self):
     try:
-        QgsMapLayerRegistry.instance().removeMapLayer(self.vl.id())
+        QgsProject.instance().removeMapLayer(self.vl.id())
     except:
         pass
     
@@ -108,12 +125,25 @@ class osgrLayer(QObject):
     
   def setShowLabels(self, boolShowLabels):
     self.showLabels = boolShowLabels
-    try:
+
+    if not self.vl is None:
+        QgsMessageLog.logMessage("self.vl IS set", 'OSGRLayer', Qgis.Info)
         if self.showLabels:
-            self.vl.setCustomProperty("labeling/enabled", "true")
+            #self.vl.setCustomProperty("labeling/enabled", "true")
+            self.vl.setLabelsEnabled(True)
         else:
-            self.vl.setCustomProperty("labeling/enabled", "false")
+            #self.vl.setCustomProperty("labeling/enabled", "false")
+            self.vl.setLabelsEnabled(False)
         self.vl.triggerRepaint()
+    else:
+        QgsMessageLog.logMessage("No self.vl set", 'OSGRLayer', Qgis.Info)
+    try:
+        #if self.showLabels:
+        #    self.vl.setCustomProperty("labeling/enabled", "true")
+        #else:
+        #    self.vl.setCustomProperty("labeling/enabled", "false")
+        #self.vl.triggerRepaint()
+        pass
     except:
         pass
         
@@ -194,9 +224,9 @@ class osgrLayer(QObject):
                         
                 #self.infoMessage("gr is " + gr + " precision is " + str(self.precision))
                 
-                points = [[QgsPoint(x,y), QgsPoint(x,y + self.precision), QgsPoint(x + self.precision,y + self.precision), QgsPoint(x + self.precision,y)]]
+                points = [[QgsPointXY(x,y), QgsPointXY(x,y + self.precision), QgsPointXY(x + self.precision,y + self.precision), QgsPointXY(x + self.precision,y)]]
                 fet = QgsFeature()
-                fet.setGeometry(QgsGeometry.fromPolygon(points))
+                fet.setGeometry(QgsGeometry.fromPolygonXY(points))
                 
                 if gr != "na":
                     fet.setAttributes([self.precisionText, gr])

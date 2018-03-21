@@ -120,7 +120,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             strInitPath = ""
             
         dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Browse for style file", strInitPath, "QML Style Files (*.qml)")
+        fileName = dlg.getOpenFileName(self, "Browse for style file", strInitPath, "QML Style Files (*.qml)")[0]
         if fileName:
             self.leStyleFile.setText(fileName)
             self.leStyleFile.setToolTip(fileName)
@@ -149,7 +149,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             dirImages = ""
     
         dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Browse for image file", dirImages, "All Files (*.*)")
+        fileName = dlg.getOpenFileName(self, "Browse for image file", dirImages, "All Files (*.*)")[0]
         if fileName:
             self.loadImage(None, fileName)
         
@@ -157,13 +157,13 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
    
         #Is a registration file selected?
         if self.cboRegistrations.count() == 0:
-            self.iface.messageBar().pushMessage("Info", "No registration file selected.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "No registration file selected.", level=Qgis.Info)
             return
             
         dirImages = self.leImageFolder.text()
         #Check if image folder exists
         if not os.path.isdir(dirImages):
-            self.iface.messageBar().pushMessage("Info", "The specified image folder - '" + dirImages + "' - cannot be found.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "The specified image folder - '" + dirImages + "' - cannot be found.", level=Qgis.Info)
             return
     
         #Create temporary image filename 
@@ -181,7 +181,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             # Get most recent image in image folder and copy to temp file
             imageFiles = self._glob(dirImages, ".gif", ".png", "jpg", ".tif", ".bmp", "jpeg", ".tiff")
             if len(imageFiles) == 0:
-                self.iface.messageBar().pushMessage("Info", "No images found in folder '" + dirImages + "'.", level=QgsMessageBar.INFO)
+                self.iface.messageBar().pushMessage("Info", "No images found in folder '" + dirImages + "'.", level=Qgis.Info)
                 return
                 
             recentImage = max(imageFiles, key=os.path.getmtime)
@@ -219,7 +219,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
                 rlayer.loadNamedStyle(self.leStyleFile.text())
          
         # Add to map
-        regLayer = QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+        regLayer = QgsProject.instance().addMapLayer(rlayer)
         
         # Store ID and temp file
         self.layers.append(rlayer.id())
@@ -261,7 +261,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         if len(self.layers) > 0:
             layerID = self.layers[-1]
             try:
-                QgsMapLayerRegistry.instance().removeMapLayer(layerID)
+                QgsProject.instance().removeMapLayer(layerID)
             except:
                 pass
             self.layers = self.layers[:-1]
@@ -271,7 +271,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             try:
                 os.remove(tempPng)
             except:
-                #self.iface.messageBar().pushMessage("Warning", "Can't delete " + tmpPng, level=QgsMessageBar.WARNING)
+                #self.iface.messageBar().pushMessage("Warning", "Can't delete " + tmpPng, level=Qgis.Warning)
                 pass
             try:
                 os.remove(tempWld)
@@ -282,7 +282,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
     def removeMaps(self):
         for layerID in self.layers:
             try:
-                QgsMapLayerRegistry.instance().removeMapLayer(layerID)
+                QgsProject.instance().removeMapLayer(layerID)
             except:
                 pass
         self.layers = []
@@ -292,7 +292,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             try:
                 os.remove(tempPng)
             except:
-                #self.iface.messageBar().pushMessage("Warning", "Can't delete " + tmpPng, level=QgsMessageBar.WARNING)
+                #self.iface.messageBar().pushMessage("Warning", "Can't delete " + tmpPng, level=Qgis.Warning)
                 pass
             try:
                 os.remove(tempWld)
@@ -308,7 +308,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             img = None
             
         if img.isNull():
-            self.iface.messageBar().pushMessage("Info", "No image in clipboard", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "No image in clipboard", level=Qgis.Info)
             return
            
         self.loadImage(img)

@@ -91,9 +91,9 @@ class NBNDialog(QWidget, Ui_nbn):
         
         # Make a coordinate translator. Also need global references to OSGB and canvas CRSs since
         # they cannot be retrieved from a translator object.
-        self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
+        self.canvasCrs = self.canvas.mapSettings().destinationCrs()
         self.osgbCrs = QgsCoordinateReferenceSystem("EPSG:27700")
-        self.transformCrs = QgsCoordinateTransform(self.canvas.mapRenderer().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"))
+        self.transformCrs = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"), QgsProject.instance())
         
         # Inits
         self.layers = []
@@ -130,13 +130,13 @@ class NBNDialog(QWidget, Ui_nbn):
         return type('Enum', (), enums)
     
     def infoMessage(self, strMessage):
-        self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
+        self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
         
     def warningMessage(self, strMessage):
-        self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
+        self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
         
     def errorMessage(self, strMessage):
-        self.iface.messageBar().pushMessage("Error", strMessage, level=QgsMessageBar.CRITICAL)
+        self.iface.messageBar().pushMessage("Error", strMessage, level=Qgis.Critical)
         
     def uncheckAll(self):
               
@@ -210,7 +210,7 @@ class NBNDialog(QWidget, Ui_nbn):
         self.vl.updateExtents()
 
          # Add to map layer registry
-        QgsMapLayerRegistry.instance().addMapLayer(self.vl)    
+        QgsProject.instance().addMapLayer(self.vl)    
 
         # Zoom to buffer extent
         self.iface.actionZoomToLayer().trigger()
@@ -360,7 +360,7 @@ class NBNDialog(QWidget, Ui_nbn):
     def taxonSearch(self):
         #NBN Atlas search
         if self.leTaxonSearch.text() == "":
-            self.iface.messageBar().pushMessage("No search term specified.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("No search term specified.", level=Qgis.Info)
             return
 
         url = 'https://species-ws.nbnatlas.org/search?q=' + self.leTaxonSearch.text() + '&pageSize=50&fq=taxonomicStatus:accepted'
@@ -438,7 +438,7 @@ class NBNDialog(QWidget, Ui_nbn):
             except:
                 tFamily = ""
 
-            if 'commonNameSingle' in jTaxon and jTaxon["commonNameSingle"] <> "":
+            if 'commonNameSingle' in jTaxon and jTaxon["commonNameSingle"] != "":
                 tName = jTaxon["name"] + " (" + jTaxon["commonNameSingle"] + ")"
             else:
                 tName = jTaxon["name"]
@@ -731,7 +731,7 @@ class NBNDialog(QWidget, Ui_nbn):
 
         guid = self.getSelectedTVK()
         if guid is None:
-            self.iface.messageBar().pushMessage("Info", "You must first specify a taxon filter for a WMS map layer.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "You must first specify a taxon filter for a WMS map layer.", level=Qgis.Info)
             return
 
         #Get full taxon details for the selected guid
@@ -816,7 +816,7 @@ class NBNDialog(QWidget, Ui_nbn):
         opacity = (100-self.hsTransparency.value()) * 0.01
         rlayer.renderer().setOpacity(opacity)
         self.layers.append(rlayer.id())
-        QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+        QgsProject.instance().addMapLayer(rlayer)
         self.iface.legendInterface().setLayerExpanded(rlayer, False)
         
         #None of these worked to refresh layers panel when layer expanded - these were attempts to overcome
@@ -832,9 +832,9 @@ class NBNDialog(QWidget, Ui_nbn):
         
         try:
             # Not sure why, but this sometimes crashes after another failure in module
-            if self.canvasCrs != self.canvas.mapRenderer().destinationCrs():
-                self.canvasCrs = self.canvas.mapRenderer().destinationCrs()
-                self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs)
+            if self.canvasCrs != self.canvas.mapSettings().destinationCrs():
+                self.canvasCrs = self.canvas.mapSettings().destinationCrs()
+                self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs, QgsProject.instance())
         except:
             pass
         
@@ -847,12 +847,12 @@ class NBNDialog(QWidget, Ui_nbn):
         else:
             mapWidth = rectExtent.width()
         
-        #self.iface.messageBar().pushMessage("Info", "Map width: " + str(int(mapWidth)), level=QgsMessageBar.INFO)
+        #self.iface.messageBar().pushMessage("Info", "Map width: " + str(int(mapWidth)), level=Qgis.Info)
         
         for layerID in self.layers:
             rlayer = None
             try:
-                rlayer = QgsMapLayerRegistry.instance().mapLayer(layerID)
+                rlayer = QgsProject.instance().mapLayer(layerID)
             except:
                 pass
                 
@@ -861,55 +861,63 @@ class NBNDialog(QWidget, Ui_nbn):
                 if rlayer.name().endswith("auto") or rlayer.name().endswith("(auto)"):
                 
                     #for strSub in rlayer.subLayers():
-                    #    self.iface.messageBar().pushMessage("Info", strSub, level=QgsMessageBar.INFO)
+                    #    self.iface.messageBar().pushMessage("Info", strSub, level=Qgis.Info)
                         
                     if mapWidth < 15000:
-                        #self.iface.messageBar().pushMessage("Info", "Grid-100m", level=QgsMessageBar.INFO)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-100m", level=Qgis.Info)
                         if rlayer.name().endswith("auto"):
                             rlayer.setSubLayerVisibility("Grid-10km", False)
                             rlayer.setSubLayerVisibility("Grid-2km", False)
                             rlayer.setSubLayerVisibility("Grid-1km", False)
                             rlayer.setSubLayerVisibility("Grid-100m", True)
                         elif " 100 m " in rlayer.name():
-                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(True)
                         else:
-                            self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
                             
                     elif mapWidth < 100000:
-                        #self.iface.messageBar().pushMessage("Info", "Grid-1km", level=QgsMessageBar.INFO)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-1km", level=Qgis.Info)
                         if rlayer.name().endswith("auto"):
                             rlayer.setSubLayerVisibility("Grid-10km", False)
                             rlayer.setSubLayerVisibility("Grid-2km", False)
                             rlayer.setSubLayerVisibility("Grid-1km", True)
                             rlayer.setSubLayerVisibility("Grid-100m", False)
                         elif " monad " in rlayer.name():
-                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(True)
                         else:
-                            self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
                             
                     elif mapWidth < 250000:
-                        #self.iface.messageBar().pushMessage("Info", "Grid-2km", level=QgsMessageBar.INFO)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-2km", level=Qgis.Info)
                         if rlayer.name().endswith("auto"):
                             rlayer.setSubLayerVisibility("Grid-10km", False)
                             rlayer.setSubLayerVisibility("Grid-2km", True)
                             rlayer.setSubLayerVisibility("Grid-1km", False)
                             rlayer.setSubLayerVisibility("Grid-100m", False)
                         elif " tetrad " in rlayer.name():
-                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(True)
                         else:
-                            self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
                             
                     else:
-                        #self.iface.messageBar().pushMessage("Info", "Grid-10km", level=QgsMessageBar.INFO)
+                        #self.iface.messageBar().pushMessage("Info", "Grid-10km", level=Qgis.Info)
                         if rlayer.name().endswith("auto"):
                             rlayer.setSubLayerVisibility("Grid-10km", True)
                             rlayer.setSubLayerVisibility("Grid-2km", False)
                             rlayer.setSubLayerVisibility("Grid-1km", False)
                             rlayer.setSubLayerVisibility("Grid-100m", False)
                         elif " hectad " in rlayer.name():
-                            self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            #self.iface.legendInterface().setLayerVisible(rlayer, True)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(True)
                         else:
-                            self.iface.legendInterface().setLayerVisible(rlayer, False)    
+                            #self.iface.legendInterface().setLayerVisible(rlayer, False)
+                            QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setItemVisibilityChecked(False)
             
     def nameFromTVK(self, tvk):
        
@@ -929,7 +937,7 @@ class NBNDialog(QWidget, Ui_nbn):
         url = 'https://species-ws.nbnatlas.org/species/' + guid
         res = self.restRequest(url)
         if res is None:
-            self.iface.messageBar().pushMessage("Info", "No species found for TVK!.", level=QgsMessageBar.INFO) #Should never happen
+            self.iface.messageBar().pushMessage("Info", "No species found for TVK!.", level=Qgis.Info) #Should never happen
             return
 
         responseText = res.data().decode('utf-8')
@@ -940,7 +948,7 @@ class NBNDialog(QWidget, Ui_nbn):
         if len(self.layers) > 0:
             layerID = self.layers[-1]
             try:
-                QgsMapLayerRegistry.instance().removeMapLayer(layerID)
+                QgsProject.instance().removeMapLayer(layerID)
             except:
                 pass
             self.layers = self.layers[:-1]
@@ -949,7 +957,7 @@ class NBNDialog(QWidget, Ui_nbn):
         if len(self.buffers) > 0:
             layerID = self.buffers[-1]
             try:
-                QgsMapLayerRegistry.instance().removeMapLayer(layerID)
+                QgsProject.instance().removeMapLayer(layerID)
             except:
                 pass
             self.buffers = self.buffers[:-1]
@@ -957,7 +965,7 @@ class NBNDialog(QWidget, Ui_nbn):
     def removeMaps(self):
         for layerID in self.layers:
             try:
-                QgsMapLayerRegistry.instance().removeMapLayer(layerID)
+                QgsProject.instance().removeMapLayer(layerID)
             except:
                 pass
         self.layers = [] 
@@ -966,7 +974,7 @@ class NBNDialog(QWidget, Ui_nbn):
 
         #A taxon or dataset filter must be specified
         if self.getSelectedTVK() is None and not self.datasetsSelected() and self.getSelectedFeatureWKT() is None:
-            self.iface.messageBar().pushMessage("Info", "First specify one or more of taxon, dataset or polygon filters.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "First specify one or more of taxon, dataset or polygon filters.", level=Qgis.Info)
             return
 
         # Update filter display
@@ -1086,7 +1094,7 @@ class NBNDialog(QWidget, Ui_nbn):
             # If the CRS of the layer is not WGS84, then
             # convert geometry, otherwise use as is.
             if layer.crs() != QgsCoordinateReferenceSystem("EPSG:4326"):
-                tcrs = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem("EPSG:4326"))
+                tcrs = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem("EPSG:4326"), QgsProject.instance())
                 filterGeom.transform(tcrs)
 
             ret = filterGeom.exportToWkt()
@@ -1193,7 +1201,7 @@ class NBNDialog(QWidget, Ui_nbn):
         error = reply.error()
         if error != QNetworkReply.NoError:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=Qgis.Warning)
             lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
             return None
         else:
@@ -1210,11 +1218,11 @@ class NBNDialog(QWidget, Ui_nbn):
                     csv.write (zfNBN.read("data.csv"))
                 lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
             else:
-                self.iface.messageBar().pushMessage("Error", "Download did not return a valid zipfile", level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "Download did not return a valid zipfile", level=Qgis.Warning)
                 lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
         except Exception, e:
             QgsMessageLog.logMessage("Failed to write output file", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % str(e), level=QgsMessageBar.WARNING)
+            self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % str(e), level=Qgis.Warning)
             #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
             lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
         finally:
@@ -1250,7 +1258,7 @@ class NBNDialog(QWidget, Ui_nbn):
             except Exception, e:
                 QgsMessageLog.logMessage("error generated", "NBN Tool")
                 downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
-                self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % str(e), level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % str(e), level=Qgis.Warning)
             return
 
         # Wait
@@ -1265,7 +1273,7 @@ class NBNDialog(QWidget, Ui_nbn):
         error = reply.error()
         if error != QNetworkReply.NoError:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=QgsMessageBar.WARNING)
+            self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=Qgis.Warning)
             return None
 
         # If the return is a re-direction then execute that redirection

@@ -53,7 +53,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
       r = self.rectangle()
       if r is not None:
         #strMessage = str(r.xMinimum()) + ":" +  str(r.yMinimum()) + ":" + str(r.xMaximum()) + ":" + str(r.yMaximum())
-        #self.iface.messageBar().pushMessage("Output", strMessage, level=QgsMessageBar.INFO)
+        #self.iface.messageBar().pushMessage("Output", strMessage, level=Qgis.Info)
         self.xMinimum = r.xMinimum()
         self.xMaximum = r.xMaximum()
         self.yMinimum = r.yMinimum()

@@ -20,19 +20,20 @@ FileDialog
  ***************************************************************************/
 """
 
-from ui_file import Ui_File
+from . import ui_file
 import os.path
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
 
-class FileDialog(QWidget, Ui_File):
+class FileDialog(QWidget, ui_file.Ui_File):
     def __init__(self, iface, strFilePath):
         QWidget.__init__(self)
-        Ui_File.__init__(self)
+        ui_file.Ui_File.__init__(self)
         self.setupUi(self)
         self.__iface = iface
 

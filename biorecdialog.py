@@ -20,26 +20,28 @@ BiorecDialog
  ***************************************************************************/
 """
 
-from ui_biorec import Ui_Biorec
+
 import os
 import ntpath
 import csv
 import sys
-from filedialog import FileDialog
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtWidgets import *
+from qgis import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from bioreclayer2 import *
-from envmanager import *
+from . import ui_biorec 
+from . import filedialog
+from . import bioreclayer
+from . import envmanager
 
-
-class BiorecDialog(QWidget, Ui_Biorec):
+class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
     def __init__(self, iface, dockwidget):
         QWidget.__init__(self)
-        Ui_Biorec.__init__(self)
+        ui_biorec.Ui_Biorec.__init__(self)
         self.setupUi(self)
         self.canvas = iface.mapCanvas()
         self.iface = iface
@@ -77,7 +79,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.cboOutputFormat.currentIndexChanged.connect(self.outputFormatChanged)
         
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         
         # Globals
         self.propogateDown = True
@@ -111,7 +113,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.isNBNCSV = None
         self.qgsOutputCRS.setEnabled(False)
         
-        self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapRenderer().destinationCrs())
+        self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
         
         self.mlcbSourceLayer.setFilters( QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.NoGeometry )
         self.mlcbTaxonMetaDataLayer.setFilters( QgsMapLayerProxyModel.NoGeometry )
@@ -131,22 +133,30 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
     def showEvent(self, ev):
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         self.leImageFolder.setText(self.env.getEnvValue("biorec.atlasimagefolder"))
-        return QWidget.showEvent(self, ev)        
+        return QWidget.showEvent(self, ev)
+
+    def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "Biological Records Tool", level)
     
     def infoMessage(self, strMessage):
-        self.iface.messageBar().pushMessage("Info", strMessage, level=QgsMessageBar.INFO)
+        self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
         
     def warningMessage(self, strMessage):
-        self.iface.messageBar().pushMessage("Warning", strMessage, level=QgsMessageBar.WARNING)
+        self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
         
     def waitMessage(self, str1="", str2=""):
         
-        iface.messageBar().popWidget(self.lastWaitMessage)
-        if str1 <> "":
+        try:
+            #This fails if self.lastWaitMessage already deleted so needs to be caught
+            iface.messageBar().popWidget(self.lastWaitMessage)
+        except:
+            pass
+
+        if str1 != "":
             widget = iface.messageBar().createMessage(str1, str2)
-            self.lastWaitMessage = iface.messageBar().pushWidget(widget, QgsMessageBar.INFO)
+            self.lastWaitMessage = iface.messageBar().pushWidget(widget, Qgis.Info)
             qApp.processEvents()
         #else:
             #iface.messageBar().popWidget(self.lastWaitMessage)
@@ -315,7 +325,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             strInitPath = ""
             
         dlg = QFileDialog
-        fileName = dlg.getOpenFileName(self, "Browse for style file", strInitPath, "QML Style Files (*.qml)")
+        fileName = dlg.getOpenFileName(self, "Browse for style file", strInitPath, "QML Style Files (*.qml)")[0]
         if fileName:
             self.leStyleFile.setText(fileName)
             self.leStyleFile.setToolTip(fileName)
@@ -336,11 +346,14 @@ class BiorecDialog(QWidget, Ui_Biorec):
             
         if nbnFile is None:
             dlg = QFileDialog
-            fileName = dlg.getOpenFileName(self, "Browse for biological record file", strInitPath, "Record Files (*.csv)")
+            fileName = dlg.getOpenFileName(self, "Browse for biological record file", strInitPath, "Record Files (*.csv)")[0]
+            #According to the documentation, this should return a string, but it returns a tuple of this form:
+            #('C:/Users/richardb/Documents/Work/GIS/Biological Records etc/Andy Musgrove Yorkshire BirdTrack records.csv', 'Record Files (*.csv)'
+            #or, if cancelled, ('', '').
         else:
             fileName = nbnFile
             
-        #self.infoMessage("File: " + fileName)
+        self.logMessage("File: >>" + fileName + "<<")
         
         if fileName != "":
             # Load the CSV and set controls
@@ -375,8 +388,9 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         tree = {}
         iter = self.csvLayer.getFeatures()
+
         for feature in iter:
-        
+       
             if iColGrouping > -1:
 
                 try:
@@ -410,21 +424,22 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 
             if taxon not in parent.keys():
                 parent[taxon] = {}
-        
-        # Build tree from nested lists (which are sorted on the fly)
-        for l1 in sorted(tree.iterkeys()):
+
+        #Build tree from nested lists (which are sorted on the fly)
+        #The technique for sorting dicts came from https://stackoverflow.com/questions/11089655/sorting-dictionary-python-3
+        for l1 in {k: tree[k] for k in sorted(tree)}:
             itemL1 = QStandardItem(l1)
             itemL1.setCheckable(True)
             self.modelTree.appendRow(itemL1)
             
             dictL2 = tree[l1]
-            for l2 in sorted(dictL2.iterkeys()):
+            for l2 in {k: dictL2[k] for k in sorted(dictL2)}:
                 itemL2 = QStandardItem(l2)
                 itemL2.setCheckable(True)
                 itemL1.appendRow(itemL2)
                 
                 dictL3 = dictL2[l2]
-                for l3 in sorted(dictL3.iterkeys()):
+                for l3 in {k: dictL3[k] for k in sorted(dictL3)}:
                     itemL3 = QStandardItem(l3)
                     itemL3.setCheckable(True)
                     itemL2.appendRow(itemL3)
@@ -497,7 +512,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         try:
             lyr =  QgsVectorLayer(uri, os.path.basename(fileName), "delimitedtext")
             #Add to registry
-            QgsMapLayerRegistry.instance().addMapLayer(lyr)
+            QgsProject.instance().addMapLayer(lyr)
         except:
             lyr = None
             
@@ -643,9 +658,9 @@ class BiorecDialog(QWidget, Ui_Biorec):
         tmpLayers = []
         for layer in self.layers:
             try:
-                regLayer = QgsMapLayerRegistry.instance().mapLayer(layer.getVectorLayer().id())
+                regLayer = QgsProject.instance().mapLayer(layer.getVectorLayer().id())
                 layerFound = True
-            except Exception, e:
+            except:
                 layerFound = False
             
             if layerFound:
@@ -664,34 +679,34 @@ class BiorecDialog(QWidget, Ui_Biorec):
             self.fcbGridRefCol.currentField() == ""
             
             if self.fcbGridRefCol.currentField() == "" and (self.fcbXCol.currentField() == "" or self.fcbYCol.currentField() == ""):
-                self.iface.messageBar().pushMessage("Info", "You must select either an OS grid ref column or both X and Y columns for CSV layers", level=QgsMessageBar.INFO)
+                self.iface.messageBar().pushMessage("Info", "You must select either an OS grid ref column or both X and Y columns for CSV layers", level=Qgis.Info)
                 return
             
         # Return if Grid ref selected with user-defined grid
         if self.fcbGridRefCol.currentField() != "" and self.cboMapType.currentText().startswith("User-defined"):
-            self.iface.messageBar().pushMessage("Info", "You cannot specify a user-defined grid with input of OS grid references", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "You cannot specify a user-defined grid with input of OS grid references", level=Qgis.Info)
             return
            
         
         # Return if X & Y selected but no input CRS
         if self.fcbXCol.currentField() != "" and self.pswInputCRS.crs().authid() == "":
-            self.iface.messageBar().pushMessage("Info", "You must specify an input CRS if specifying X and Y columns", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "You must specify an input CRS if specifying X and Y columns", level=Qgis.Info)
             return
             
         # Return if X & Y selected but no output CRS
         if self.fcbXCol.currentField() != "" and self.pswOutputCRS.crs().authid() == "":
-            self.iface.messageBar().pushMessage("Info", "You must specify an output CRS if specifying X and Y columns", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "You must specify an output CRS if specifying X and Y columns", level=Qgis.Info)
             return
             
         # Return if user-defined atlas selected, but no grid size
         if self.cboMapType.currentText().startswith("User-defined") and self.dsbGridSize.value() == 0:
-            self.iface.messageBar().pushMessage("Info", "You must specify a grid size if specifying a user-defined atlas", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "You must specify a grid size if specifying a user-defined atlas", level=Qgis.Info)
             return
         
         # Return X & Y input selected, but not records as points or user-defined grid selected
         if self.fcbXCol.currentField() != "" and self.pswInputCRS.crs().authid() != "EPSG:27700":
             if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText()== ("Records as points"):
-                self.iface.messageBar().pushMessage("Info", "For CRS other than OSGB, you must create records as points or a user-defined atlas",level=QgsMessageBar.INFO)
+                self.iface.messageBar().pushMessage("Info", "For CRS other than OSGB, you must create records as points or a user-defined atlas",level=Qgis.Info)
                 return
         
         # Make a list of all the selected taxa
@@ -702,7 +717,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 selectedTaxa.extend(self.getCheckedTaxa(self.tvTaxa.model().item(i,0)))
             
         if len(selectedTaxa) == 0 and self.cboTaxonCol.currentIndex() > 0:
-            self.iface.messageBar().pushMessage("Info", "No taxa selected.", level=QgsMessageBar.INFO)
+            self.iface.messageBar().pushMessage("Info", "No taxa selected.", level=Qgis.Info)
             return
             
         if self.cboBatchMode.currentIndex() == 0 or self.cboTaxonCol.currentIndex() == 0:
@@ -729,15 +744,16 @@ class BiorecDialog(QWidget, Ui_Biorec):
         for layer in self.layers:
             layerIDs.append(layer.getVectorLayer())
 
-        QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
+        QgsProject.instance().addMapLayers(layerIDs)
         
         #try:
-        #    QgsMapLayerRegistry.instance().addMapLayers(layerIDs)
-        #except Exception, e:
-        #    self.iface.messageBar().pushMessage("Error", "Problem adding layers. Clear bio.rec layers with 'remove all map layers' button and try again.", level=QgsMessageBar.CRITICAL)
+        #    QgsProject.instance().addMapLayers(layerIDs)
+        #except:
+        #    self.iface.messageBar().pushMessage("Error", "Problem adding layers. Clear bio.rec layers with 'remove all map layers' button and try again.", level=Qgis.Critical)
             
         # Make sure none of the layers expanded
         for layer in self.layers:
+            ##????????????????? Is this working?????
             layer.setExpanded(False)
     
     def batchGeneration(self):
@@ -862,14 +878,16 @@ class BiorecDialog(QWidget, Ui_Biorec):
             iTextItem += 1
         
         #Uncheck this layer and check the next one
-        iface.legendInterface().setLayerVisible(currentLayer, False)
+        #iface.legendInterface().setLayerVisible(currentLayer, False)
+        QgsProject.instance().layerTreeRoot().findLayer(currentLayer.id()).setItemVisibilityChecked(False)
 
         if iLyr < len(self.layers):
             nextLyr = self.layers[iLyr].getVectorLayer()
         else:
             nextLyr = self.layers[0].getVectorLayer()
             
-        iface.legendInterface().setLayerVisible(nextLyr, True)
+        #iface.legendInterface().setLayerVisible(nextLyr, True)
+        QgsProject.instance().layerTreeRoot().findLayer(nextLyr.id()).setItemVisibilityChecked(True)
         
     def batchLayer(self, format):
     
@@ -952,6 +970,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         self.progBatch.setValue(0)
         retValue = (not self.cancelBatchMap)
         self.cancelBatchMap = False
+
         self.canvas.setRenderFlag(True)
         
         return retValue
@@ -962,6 +981,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             layer.removeFromMap()
             layer = None
             self.layers = self.layers[:-1]
+            self.canvas.refresh()
             
     def removeMaps(self):
         if len(self.layers) == 0:
@@ -979,11 +999,12 @@ class BiorecDialog(QWidget, Ui_Biorec):
             layer = None
             
         self.layers = []
-        QgsMapLayerRegistry.instance().removeMapLayers(layerIDs)
+        QgsProject.instance().removeMapLayers(layerIDs)
         self.progBatch.setValue(0)
+        self.canvas.refresh()
         
     #def removeAllLayers(self):
-    #    QgsMapLayerRegistry.instance().removeAllMapLayers()
+    #    QgsProject.instance().removeAllMapLayers()
         
     def cancelBatch(self):
         self.cancelBatchMap = True
@@ -991,7 +1012,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
     def createMapLayer(self, selectedTaxa):
         
         # Initialsie the map layer
-        layer = biorecLayer2(self.iface, self.csvLayer, self.pteLog)
+        layer = bioreclayer.biorecLayer(self.iface, self.csvLayer, self.pteLog)
 
         layer.setTaxa(selectedTaxa)
         layer.setColTaxa(self.cboTaxonCol.currentIndex() - 1)
@@ -1028,7 +1049,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         if self.cbApplyStyle.isChecked():
  
             if self.cboMapType.currentIndex() == 0:
-                self.iface.messageBar().pushMessage("Warning", "Applied style file to points layer. Points will not be visible if no style for points defined.", level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Warning", "Applied style file to points layer. Points will not be visible if no style for points defined.", level=Qgis.Warning)
                 
             if os.path.exists( self.leStyleFile.text()):
                 styleFile = self.leStyleFile.text()
@@ -1046,7 +1067,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         if not os.path.exists(imgFolder):
             if not self.folderError:
-                self.iface.messageBar().pushMessage("Error", "Output folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "Output folder '%s' does not exist." % imgFolder, level=Qgis.Warning)
                 self.folderError = True
         else:
             validName = self.makeValidFilename(layer.getName())
@@ -1061,7 +1082,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
                 
             error = QgsVectorFileWriter.writeAsVectorFormat(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg)
             if error != QgsVectorFileWriter.NoError:
-                self.iface.messageBar().pushMessage("Error", "Layer generation error: %s" % error, level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "Layer generation error: %s" % error, level=Qgis.Warning)
                 
     def saveMapImage(self, image, name):
         
@@ -1069,7 +1090,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         if not os.path.exists(imgFolder):
             if not self.folderError:
-                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=Qgis.Warning)
                 self.folderError = True
         else:
             validName = self.makeValidFilename(name)
@@ -1081,7 +1102,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             except:
                 if not self.imageError:
                     e = sys.exc_info()[0]
-                    self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
+                    self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=Qgis.Warning)
                     self.imageError = True
                            
     def createMapImage(self, layer):
@@ -1090,7 +1111,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         if not os.path.exists(imgFolder):
             if not self.folderError:
-                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=Qgis.Warning)
                 self.folderError = True
         else:
             validName = self.makeValidFilename(layer.getName())
@@ -1101,7 +1122,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             except:
                 if not self.imageError:
                     e = sys.exc_info()[0]
-                    self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=QgsMessageBar.WARNING)
+                    self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % e, level=Qgis.Warning)
                     self.imageError = True
                     
             # Don't need the registration file, so delete it
@@ -1124,7 +1145,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
         
         if not os.path.exists(imgFolder):
             if not self.folderError:
-                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=QgsMessageBar.WARNING)
+                self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % imgFolder, level=Qgis.Warning)
                 self.folderError = True
         else:
             validName = self.makeValidFilename(layer.getName())
@@ -1173,7 +1194,7 @@ class BiorecDialog(QWidget, Ui_Biorec):
             except:
                 if not self.imageError:
                     e = sys.exc_info()[0]
-                    self.iface.messageBar().pushMessage("Error", "Composer image generation error: %s" % e, level=QgsMessageBar.WARNING)
+                    self.iface.messageBar().pushMessage("Error", "Composer image generation error: %s" % e, level=Qgis.Warning)
                     self.imageError = True
             """
             

@@ -29,7 +29,7 @@ from qgis.utils import *
 from . import osgrdialog
 #from nbndialog import NBNDialog
 #from mapmashupdialog import MapmashupDialog
-#from biorecdialog import BiorecDialog
+from . import biorecdialog
 from . import envdialog
 import os.path
 
@@ -55,7 +55,7 @@ class TomBio:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
+        locale = QSettings().value('locale/userLocale')[0:2]
         localePath = os.path.join(self.plugin_dir, 'i18n', 'tombio_{}.qm'.format(locale))
 
         if os.path.exists(localePath):
@@ -146,7 +146,7 @@ class TomBio:
     def displayNBNCSVFile(self, strCSV):
         self.dwNbn.setVisible(False)
         self.showBiorecDialog()
-        #self.iface.messageBar().pushMessage("Info", "CSV: " + strCSV, level=QgsMessageBar.INFO)
+        #self.iface.messageBar().pushMessage("Info", "CSV: " + strCSV, level=Qgis.Info)
         self.guiBiorec.setCSV(strCSV)
             
     def showMapmashupDialog(self):
@@ -161,7 +161,7 @@ class TomBio:
     def showBiorecDialog(self):
         if self.dwBiorec is None:
             self.dwBiorec = custDockWidget("FSC Tom.bio - Biological Records Tool", self.iface.mainWindow())
-            self.guiBiorec = BiorecDialog(self.iface, self.dwBiorec)
+            self.guiBiorec = biorecdialog.BiorecDialog(self.iface, self.dwBiorec)
             self.dwBiorec.setWidget(self.guiBiorec)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwBiorec)
         else:
