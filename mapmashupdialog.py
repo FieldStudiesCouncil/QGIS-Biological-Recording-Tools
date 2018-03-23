@@ -129,7 +129,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         startCol = self.butTransparentColour.palette().color(QPalette.Background)
         col = QtGui.QColorDialog.getColor(startCol)
         if col.isValid():
-            self.butTransparentColour.setStyleSheet("QWidget { background-color: %s }" % col.name())
+            self.butTransparentColour.setStyleSheet("QWidget { background-color: %s }" % (col.name()))
         
     def mapImageDropped(self, image):
         #image is a QtGui.QImage object

@@ -64,7 +64,10 @@ class biorecLayer(QObject):
         self.vl = None  
         
         self.translationError = ""
-        
+    
+    def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "Biological Records Tool", level)
+
     def infoMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
         
@@ -114,7 +117,7 @@ class biorecLayer(QObject):
         if not self.vl is None:
             # If the layer has already been removed via native QGIS, this will fail
             try:
-                 self.vl.setOpacity(1 - self.transparency)
+                self.vl.setOpacity(1 - self.transparency/100)
             except:
                 pass
             
@@ -132,7 +135,7 @@ class biorecLayer(QObject):
         # Style stuff
         if not styleFile is None:
             self.vl.loadNamedStyle(styleFile)
-        self.vl.setOpacity(1 - self.transparency)
+        self.vl.setOpacity(1 - self.transparency/100)
     
         # Create the geometry and attributes
         if mapType.startswith("Records"):
@@ -163,9 +166,10 @@ class biorecLayer(QObject):
             pass
             
     def setExpanded(self, bExpanded):
-         # If the layer has already been removed via native QGIS, this will fail
+        # If the layer has already been removed via native QGIS, this will fail
         try:
-            self.iface.legendInterface().setLayerExpanded(self.vl, bExpanded)
+            #self.iface.legendInterface().setLayerExpanded(self.vl, bExpanded)
+            QgsProject.instance().layerTreeRoot().findLayer(self.vl.id()).setExpanded(bExpanded)
         except:
             pass
   

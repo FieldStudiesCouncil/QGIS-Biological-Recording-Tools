@@ -817,7 +817,8 @@ class NBNDialog(QWidget, Ui_nbn):
         rlayer.renderer().setOpacity(opacity)
         self.layers.append(rlayer.id())
         QgsProject.instance().addMapLayer(rlayer)
-        self.iface.legendInterface().setLayerExpanded(rlayer, False)
+        #self.iface.legendInterface().setLayerExpanded(rlayer, False)
+        QgsProject.instance().layerTreeRoot().findLayer(rlayer.id()).setExpanded(False)
         
         #None of these worked to refresh layers panel when layer expanded - these were attempts to overcome
         #a weird refreshing problem when the NBN Atlas legend shown (but not very important since legend not useful).
@@ -1222,8 +1223,8 @@ class NBNDialog(QWidget, Ui_nbn):
                 lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
         except Exception, e:
             QgsMessageLog.logMessage("Failed to write output file", "NBN Tool")
-            self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % str(e), level=Qgis.Warning)
-            #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % str(e))
+            self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % (str(e)), level=Qgis.Warning)
+            #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % (str(e)))
             lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
         finally:
             reply.deleteLater()
@@ -1258,7 +1259,7 @@ class NBNDialog(QWidget, Ui_nbn):
             except Exception, e:
                 QgsMessageLog.logMessage("error generated", "NBN Tool")
                 downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
-                self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % str(e), level=Qgis.Warning)
+                self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % (str(e)), level=Qgis.Warning)
             return
 
         # Wait

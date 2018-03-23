@@ -47,7 +47,7 @@ class projection:
                 canvasPoint = self.transformCrs.transform(point)
             except:
                 e = sys.exc_info()[0]
-                return [None, "Transformation error: %s" % e]
+                return [None, "Transformation error: %s" % (e)]
                 
             return [QgsGeometry.fromPointXY(canvasPoint), ""]
         else:
@@ -75,7 +75,7 @@ class projection:
                 except:
                     canvasPoint = None
                     e = sys.exc_info()[0]
-                    err = "Transformation error: %s" % e
+                    err = "Transformation error: %s" % (e)
             else:
                 canvasPoint = None
       
