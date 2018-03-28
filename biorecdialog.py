@@ -37,6 +37,7 @@ from . import ui_biorec
 from . import filedialog
 from . import bioreclayer
 from . import envmanager
+from datetime import datetime
 
 class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
     def __init__(self, iface, dockwidget):
@@ -777,14 +778,41 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.batchPrintComposer()
            
     def batchPrintComposer(self):
-        #Going to need to ensure that one and only one layout designer is open (until I can find
-        #a way to access the layouts other than through a designer).
-        l = iface.openLayoutDesigners()[0].layout()
-        le = QgsLayoutExporter(l)
-        s = QgsLayoutExporter.ImageExportSettings()
+        
+        #Ensure that a layout desinger (and only one) is open
+        iLayouDesigners = len(iface.openLayoutDesigners())
+        if iLayouDesigners == 0:
+            self.warningMessage("Cannot connect to a layout. Make sure that the print layout (composer) you want to use is open.")
+            return
+        if iLayouDesigners > 1:
+            self.warningMessage("You have more than one layout open. Make sure that only one print layout (composer) is open.")
+            return
 
-        #Been testing from batchImageGenerate instead
+        if len(self.layers) == 0:
+            return
+            
+        self.progBatch.setValue(0)
+        self.progBatch.setMaximum(len(self.layers))
 
+        tempLayers = []
+        for layer in self.layers:
+            tempLayers.append(layer.vl)
+            
+        displayedLayers = self.canvas.mapSettings().layers()
+        backdropLayers = [item for item in displayedLayers if item not in tempLayers]
+
+        settings = self.canvas.mapSettings()
+        i=0
+        for layer in self.layers:
+            if not self.cancelBatchMap:
+                i=i+1
+                self.progBatch.setValue(i)
+                layersRender = [layer.vl] + backdropLayers
+                self.saveComposerImage(layer.getName(), layersRender)
+                qApp.processEvents()
+
+        self.progBatch.setValue(0)
+        self.cancelBatchMap = False
 
     def batchPrintComposerOld(self):
         
@@ -956,9 +984,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 job.start()
                 job.waitForFinished()
                 image = job.renderedImage()
-
-                #Only change made here to test for layouts was the addition of layersRender argument below
-                self.saveMapImage(image, layer.getName(), layersRender)
+                self.saveMapImage(image, layer.getName())
                 qApp.processEvents()
 
         self.progBatch.setValue(0)
@@ -1104,7 +1130,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if error[0] != QgsVectorFileWriter.NoError:
             self.iface.messageBar().pushMessage("Error", "Layer generation error: %s" % (error), level=Qgis.Warning)
                 
-    def saveMapImage(self, image, name, layers):
+    def saveMapImage(self, image, name):
         
         imgFolder = self.leImageFolder.text()
         validName = self.makeValidFilename(name)
@@ -1113,120 +1139,68 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             
         try:
             #Uncomment the following line to restore saveMapImage
-            #image.save(imgFolder + os.path.sep + validName + ".png")
-
-            ######### ######################################################
-            #The following is a hack to test automatic printing from layout (it works!)
-            l = iface.openLayoutDesigners()[0].layout()
-            [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
-
-            #The following lines might not be required
-            l.reloadSettings()
-            l.refresh()
-
-            le = QgsLayoutExporter(l)
-            s = QgsLayoutExporter.ImageExportSettings()
-            le.exportToImage(imgFolder + os.path.sep + validName + ".jpg", s)
-            ###############################################################
+            image.save(imgFolder + os.path.sep + validName + ".png")
         except:
             if not self.imageError:
                 e = sys.exc_info()[0]
                 self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (e), level=Qgis.Warning)
                 self.imageError = True
-                           
-    #def createMapImage(self, layer):
-    
-    #    #Doesn't appear to be used (22/03/2018)
-    #    imgFolder = self.leImageFolder.text()
+
+    def saveComposerImage(self, name, layers):
+
+        l = iface.openLayoutDesigners()[0].layout()
         
-    #    if not os.path.exists(imgFolder):
-    #        if not self.folderError:
-    #            self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % (imgFolder), level=Qgis.Warning)
-    #            self.folderError = True
-    #    else:
-    #        validName = self.makeValidFilename(layer.getName())
-    #        imgFile = imgFolder + os.path.sep + validName + ".png"
-    #        try:
-    #            self.canvas.saveAsImage(imgFile) 
-                
-    #        except:
-    #            if not self.imageError:
-    #                e = sys.exc_info()[0]
-    #                self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (e), level=Qgis.Warning)
-    #                self.imageError = True
-                    
-    #        # Don't need the registration file, so delete it
-    #        try:
-    #            os.remove(imgFolder + os.path.sep + validName + ".pngw")
-    #        except:
-    #            pass
+        imgFolder = self.leImageFolder.text()
+        validName = self.makeValidFilename(name)
+        #Remove 'TEMP ' from start of name.
+        validName = validName[5:]
+        outputFileName = imgFolder + os.path.sep + validName
                
-    #        try:
-    #            # To overcome problem with Linux which is case sensitive and
-    #            # generates the registration files with the extension (.PNGw)
-    #            # (as discovered by Paul Tyers on Preston Montford course, August 2015)
-    #            os.remove(imgFolder + os.path.sep + validName + ".PNGw")
-    #        except:
-    #            pass
-                            
-    #def createComposerImage(self, layer):
-    #     #Doesn't appear to be used (22/03/2018)
-    #    imgFolder = self.leImageFolder.text()
-        
-    #    if not os.path.exists(imgFolder):
-    #        if not self.folderError:
-    #            self.iface.messageBar().pushMessage("Error", "Image folder '%s' does not exist." % (imgFolder), level=Qgis.Warning)
-    #            self.folderError = True
-    #    else:
-    #        validName = self.makeValidFilename(layer.getName())
-    #        imgFile = imgFolder + os.path.sep + validName + ".png"
-            
-    #        #try:
-    #        if len(self.iface.activeComposers()) > 0:
-            
-    #            c = self.iface.activeComposers()[0].composition()
-    #            c.refreshItems()
+        #Get the taxon name from the layer
+        nameReplace = validName
+        suffixes = ["10 km atlas", "5 km atlas", "2 km atlas", "1 km atlas", "100 m atlas", "10 m atlas"]
+        for suffix in suffixes:
+            if nameReplace.find(suffix) > -1:
+                nameReplace = nameReplace[0:nameReplace.find(suffix)-1]
+
+        #For each text item, replace the tokens, e.g. #name#, with corresponding text. 
+
+        #Get all text items from the layout.
+        #Item.scene() ensures that the item is being used (not deleted)
+        textItems = [item for item in l.items() if type(item).__name__ == "QgsLayoutItemLabel" and item.scene()]
+
+        #Save the original text item values so that they can be reset afterwards
+        originalText=[]
+        for textItem in textItems:
+            originalText.append(textItem.text())
+
+        #Now replace the #name# tokens with the 'nameReplace' text derived from
+        #the layer name - usually based on the taxon name.
+        for textItem in textItems:
+            textItem.setText(textItem.text().replace('#name#', nameReplace))
+            l.refresh()
+
+        try:
+            [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
+
+            le = QgsLayoutExporter(l)
+            s = QgsLayoutExporter.ImageExportSettings()
+            #The following is slow, but I don't think that there's anything to be done about it
+            #self.logMessage(str(datetime.now().time()))
+            le.exportToImage(imgFolder + os.path.sep + validName + ".png", s)
+            #self.logMessage(str(datetime.now().time()))
+        except:
+            if not self.imageError:
+                e = sys.exc_info()[0]
+                self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (e), level=Qgis.Warning)
+                self.imageError = True    
                 
-    #            dpi = c.printResolution()
-    #            dpmm = dpi / 25.4
-    #            width = int(dpmm * c.paperWidth())
-    #            height = int(dpmm * c.paperHeight())
-
-    #            # create output image and initialize it
-    #            imageC = QImage(QSize(width, height), QImage.Format_ARGB32)
-    #            imageC.setDotsPerMeterX(dpmm * 1000)
-    #            imageC.setDotsPerMeterY(dpmm * 1000)
-    #            imageC.fill(0)
-
-    #            # render the composition
-    #            imagePainter = QPainter(imageC)
-    #            sourceArea = QRectF(0, 0, c.paperWidth(), c.paperHeight())
-    #            targetArea = QRectF(0, 0, width, height)
-    #            c.render(imagePainter, targetArea, sourceArea)
-    #            imagePainter.end()
-
-    #            imageC.save(imgFolder + os.path.sep + validName + "-composer.png")
-                
-    #            printer = QPrinter()
-    #            printer.setOutputFormat(QPrinter.PdfFormat)
-    #            printer.setOutputFileName(imgFolder + os.path.sep + validName + ".pdf")
-    #            printer.setPaperSize(QSizeF(c.paperWidth(), c.paperHeight()), QPrinter.Millimeter)
-    #            printer.setFullPage(True)
-    #            printer.setColorMode(QPrinter.Color)
-    #            printer.setResolution(c.printResolution())
-
-    #            pdfPainter = QPainter(printer)
-    #            paperRectMM = printer.pageRect(QPrinter.Millimeter)
-    #            paperRectPixel = printer.pageRect(QPrinter.DevicePixel)
-    #            c.render(pdfPainter, paperRectPixel, paperRectMM)
-    #            pdfPainter.end()
-    #        """
-    #        except:
-    #            if not self.imageError:
-    #                e = sys.exc_info()[0]
-    #                self.iface.messageBar().pushMessage("Error", "Composer image generation error: %s" % (e), level=Qgis.Warning)
-    #                self.imageError = True
-    #        """
+        #Reset the print composer's label items text to the original values
+        iTextItem = 0
+        for textItem in textItems:
+            textItem.setText(originalText[iTextItem])
+            iTextItem += 1
+        l.refresh()
             
     def makeValidFilename(self, filename):
         newFilename = "".join([c for c in filename if c.isalpha() or c.isdigit() or c==' ']).rstrip()
