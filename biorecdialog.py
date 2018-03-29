@@ -1172,6 +1172,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #Save the original text item values so that they can be reset afterwards
         originalText=[]
         for textItem in textItems:
+            #self.logMessage("storing label " + textItem.text())
             originalText.append(textItem.text())
 
         #Now replace the #name# tokens with the 'nameReplace' text derived from
@@ -1179,6 +1180,39 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         for textItem in textItems:
             textItem.setText(textItem.text().replace('#name#', nameReplace))
             l.refresh()
+
+        #If TaxonMetaDataLayer has been set and checkbox set to use it, then set a filter to select
+        #only the rows (should be only one) that match the current taxon (derived from layer name).
+        #Then for each field in the TaxonMetaDataLayer, check to see if each of the fields in the
+        #TaxaonMetaDataLayer has been used as a token in any checkboxes and, if so, replace the token
+        #for the value of that field for the species at hand.
+        if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None:
+            metaLayer = self.mlcbTaxonMetaDataLayer.currentLayer()
+            #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
+            strFilter = '"%s" ~ \' *%s *\'' % ("Taxon", nameReplace)
+            #self.logMessage("Taxon " + nameReplace)
+            #self.logMessage("Filter " + strFilter)
+            request = QgsFeatureRequest().setFilterExpression(strFilter)
+            iField = 0
+            for field in metaLayer.dataProvider().fields():
+                #self.logMessage("Field " + field.name())
+                strVal = ''
+                iter = metaLayer.getFeatures(request)
+                for feature in iter: #Should only be one (or zero) features
+                    #self.logMessage("Feature found")
+                    try:
+                        strVal = str(feature.attributes()[iField]).strip()
+                        if strVal == 'NULL':
+                            strVal = ''
+                    except:
+                        strVal = ''
+                        #e = sys.exc_info()[0]
+                        #self.logMessage("Error: %s" % (e))
+                for textItem in textItems:
+                    if '#' + field.name() + '#' in textItem.text():
+                        textItem.setText(textItem.text().replace('#' + field.name() + '#', strVal))
+                l.refresh()
+                iField += 1
 
         try:
             [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
@@ -1198,6 +1232,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #Reset the print composer's label items text to the original values
         iTextItem = 0
         for textItem in textItems:
+            #self.logMessage("resetting labels " + originalText[iTextItem])
             textItem.setText(originalText[iTextItem])
             iTextItem += 1
         l.refresh()
