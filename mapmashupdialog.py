@@ -20,26 +20,27 @@ MapmashupDialog
  ***************************************************************************/
 """
 
-from ui_mapmashup import Ui_Mapmashup
+from . import ui_mapmashup
 import os.path
 import glob
-from PyQt4.QtCore import *
-from PyQt4 import QtGui
-from PyQt4.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from envmanager import *
+from . import envmanager
 from shutil import *
-from dropImageLineEdit import *
+from . import dropImageLineEdit
 import tempfile
 
 #from PIL import *
 
-class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
+class MapmashupDialog(QWidget, ui_mapmashup.Ui_Mapmashup):
     def __init__(self, iface, dockwidget):
-        QtGui.QWidget.__init__(self)
-        Ui_Mapmashup.__init__(self)
+        QWidget.__init__(self)
+        ui_mapmashup.Ui_Mapmashup.__init__(self)
         self.setupUi(self)
         self.canvas = iface.mapCanvas()
         self.iface = iface
@@ -55,7 +56,6 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.butRefresh.clicked.connect(self.listRegistrations)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
-        self.butTransparentColour.clicked.connect(self.setTransparentColour)
         self.pbBrowseStyleFile.clicked.connect(self.browseStyleFile)
         
         #http://stackoverflow.com/questions/20834064/how-to-create-qpixmap-with-dragimagebits-from-my-browser
@@ -63,14 +63,14 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.hlImageFolder.removeWidget(self.leImageFolder)
         self.hlImageFolder.removeWidget(self.butBrowseImg)
         self.leImageFolder.close()
-        self.leImageFolder = DragLineEdit(self)
+        self.leImageFolder = dropImageLineEdit.DragLineEdit(self)
         self.hlImageFolder.addWidget(self.leImageFolder)
         self.hlImageFolder.addWidget(self.butBrowseImg)
         self.hlImageFolder.update()
         self.leImageFolder.imageDropped.connect(self.mapImageDropped)
       
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         
         # Inits
         self.layers = []
@@ -80,11 +80,10 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.butLoadImageBrowse.setIcon(QIcon( self.pathPlugin % "images/mashup3.png" ))
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
-        self.butTransparentColour.setStyleSheet("QWidget { background-color: #FFFFFF }")
     
     def showEvent(self, ev):
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         self.leImageFolder.setText(self.env.getEnvValue("mapmashup.imgfolder"))
         self.leRegistrationFolder.setText(self.env.getEnvValue("mapmashup.regfolder"))
         return QWidget.showEvent(self, ev)    
@@ -124,13 +123,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         if fileName:
             self.leStyleFile.setText(fileName)
             self.leStyleFile.setToolTip(fileName)
-            
-    def setTransparentColour(self):
-        startCol = self.butTransparentColour.palette().color(QPalette.Background)
-        col = QtGui.QColorDialog.getColor(startCol)
-        if col.isValid():
-            self.butTransparentColour.setStyleSheet("QWidget { background-color: %s }" % (col.name()))
-        
+                
     def mapImageDropped(self, image):
         #image is a QtGui.QImage object
         self.loadImage(image)
@@ -208,7 +201,8 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         
         # Pixel transparency
         if self.cbTransparentColour.isChecked():
-            color = self.butTransparentColour.palette().color(QPalette.Background)
+            #color = self.butTransparentColour.palette().color(QPalette.Background)
+            color = self.mcbTransparentColour.color()
             rlayer.renderer().rasterTransparency().initializeTransparentPixelList(color.red(), color.green(), color.blue())
 
         # Style file
@@ -226,9 +220,9 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
         self.tempFiles.append(imageTemp)
 
     def BrowseImageFolder(self):
-        dlg = QtGui.QFileDialog(self)
-        dlg.setFileMode(QtGui.QFileDialog.Directory)
-        dlg.setOption(QtGui.QFileDialog.ShowDirsOnly, True)
+        dlg = QFileDialog(self)
+        dlg.setFileMode(QFileDialog.Directory)
+        dlg.setOption(QFileDialog.ShowDirsOnly, True)
         if os.path.exists(self.env.getEnvValue("mapmashup.imgfolder")):
             dlg.setDirectory(self.env.getEnvValue("mapmashup.imgfolder"))      
         folderName = dlg.exec_()
@@ -238,9 +232,9 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
                 break
             
     def BrowseRegistrationFolder(self):
-        dlg = QtGui.QFileDialog(self)
-        dlg.setFileMode(QtGui.QFileDialog.Directory)
-        dlg.setOption(QtGui.QFileDialog.ShowDirsOnly, True)
+        dlg = QFileDialog(self)
+        dlg.setFileMode(QFileDialog.Directory)
+        dlg.setOption(QFileDialog.ShowDirsOnly, True)
         if os.path.exists(self.env.getEnvValue("mapmashup.regfolder")):
             dlg.setDirectory(self.env.getEnvValue("mapmashup.regfolder"))     
             
@@ -278,6 +272,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             except:
                 pass
             self.tempFiles = self.tempFiles[:-1]
+            self.canvas.refresh()
             
     def removeMaps(self):
         for layerID in self.layers:
@@ -299,6 +294,7 @@ class MapmashupDialog(QtGui.QWidget, Ui_Mapmashup):
             except:
                 pass
         self.tempFiles = []
+        self.canvas.refresh()
     
     def fromClipboard(self):
       

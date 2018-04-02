@@ -42,13 +42,14 @@ EXTRAS = icon.png metadata.txt
 
 UI_FILES = ui_osgr.py ui_nbn.py ui_mapmashup.py ui_biorec.py ui_env.py ui_file.py
 
-RESOURCE_FILES = resources_rc.py
+#RESOURCE_FILES = resources_rc.py
 
 HELP = help/build/html
 
 default: compile
 
-compile: $(UI_FILES) $(RESOURCE_FILES)
+#compile: $(UI_FILES) $(RESOURCE_FILES)
+compile: $(UI_FILES)
 
 %_rc.py : %.qrc
 	pyrcc5 -o $*_rc.py  $<

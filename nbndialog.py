@@ -20,35 +20,37 @@
  ***************************************************************************/
 """
 
-from ui_nbn import Ui_nbn
+from . import ui_nbn 
 import os.path
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from filedialog import FileDialog
-import urllib, urllib2
+import urllib #, urllib2
 import json 
 import hashlib, uuid
 import shutil
-from osgr import *
-from envmanager import *
 import csv
 import zipfile
-import StringIO
+#import StringIO
+from io import StringIO
 import re
 import datetime
 import random
+from . import osgr
+from . import envmanager
 
-class NBNDialog(QWidget, Ui_nbn):
+
+class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
     displayNBNCSVFile = pyqtSignal(basestring)
 
     def __init__(self, iface, dockwidget):
         QWidget.__init__(self)
-        Ui_nbn.__init__(self)
+        ui_nbn.Ui_nbn.__init__(self)
         self.setupUi(self)
         self.canvas = iface.mapCanvas()
         self.iface = iface
@@ -59,10 +61,10 @@ class NBNDialog(QWidget, Ui_nbn):
         self.treeNodesFuzzy = {} 
 
         # Get a reference to an osgr object and an osgrLayer object
-        self.osgr = osgr()
+        self.osgr = osgr.osgr()
         
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         
         self.pbSpeciesWMS.clicked.connect(self.WMSFetchSpecies)
         self.butTaxonSearch.clicked.connect(self.taxonSearch)
@@ -123,11 +125,14 @@ class NBNDialog(QWidget, Ui_nbn):
 
     def showEvent(self, ev):
         # Load the environment stuff
-        self.env = envManager()
+        self.env = envmanager.envManager()
         return QWidget.showEvent(self, ev)        
         
     def enum(self, **enums):
         return type('Enum', (), enums)
+
+    def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "NBN Tool", level)
     
     def infoMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
@@ -353,7 +358,7 @@ class NBNDialog(QWidget, Ui_nbn):
     def helpFile(self):
         
         #if self.guiFile is None:
-        self.guiFile = FileDialog(self.iface, self.infoFile)
+        self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
         
         self.guiFile.setVisible(True)
    
@@ -367,10 +372,14 @@ class NBNDialog(QWidget, Ui_nbn):
         #url = 'https://species-ws.nbnatlas.org/search?q=' + self.leTaxonSearch.text() + '&pageSize=100'
         res = self.restRequest(url)
 
+        #self.logMessage(url)
+
         if res is None:
             return
 
         responseText = res.data().decode('utf-8')
+
+        #self.logMessage(responseText)
         jsonData = json.loads(responseText) 
         jResponseList = jsonData["searchResults"]["results"]
         lightGrey = QBrush(QColor(130,130,130,255))
@@ -1221,7 +1230,7 @@ class NBNDialog(QWidget, Ui_nbn):
             else:
                 self.iface.messageBar().pushMessage("Error", "Download did not return a valid zipfile", level=Qgis.Warning)
                 lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
-        except Exception, e:
+        except e:
             QgsMessageLog.logMessage("Failed to write output file", "NBN Tool")
             self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % (str(e)), level=Qgis.Warning)
             #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % (str(e)))
@@ -1256,7 +1265,7 @@ class NBNDialog(QWidget, Ui_nbn):
             #So this needs trapping.
             try:
                 reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
-            except Exception, e:
+            except e:
                 QgsMessageLog.logMessage("error generated", "NBN Tool")
                 downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
                 self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % (str(e)), level=Qgis.Warning)

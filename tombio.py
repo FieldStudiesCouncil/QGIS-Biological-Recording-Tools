@@ -25,10 +25,9 @@ from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-#from . import resources_rc
 from . import osgrdialog
-#from nbndialog import NBNDialog
-#from mapmashupdialog import MapmashupDialog
+from . import nbndialog
+from . import mapmashupdialog
 from . import biorecdialog
 from . import envdialog
 import os.path
@@ -136,7 +135,7 @@ class TomBio:
     def showNbnDialog(self):
         if self.dwNbn is None:
             self.dwNbn = custDockWidget("FSC Tom.bio - NBN Atlas Tool", self.iface.mainWindow())
-            self.guiNbn = NBNDialog(self.iface, self.dwNbn)
+            self.guiNbn = nbndialog.NBNDialog(self.iface, self.dwNbn)
             self.dwNbn.setWidget(self.guiNbn)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwNbn)
             self.guiNbn.displayNBNCSVFile.connect(self.displayNBNCSVFile)
@@ -152,7 +151,7 @@ class TomBio:
     def showMapmashupDialog(self):
         if self.dwMapmashup is None:
             self.dwMapmashup = custDockWidget("FSC Tom.bio - Map Mashup Tool", self.iface.mainWindow())
-            self.guiMapmashup = MapmashupDialog(self.iface, self.dwMapmashup)
+            self.guiMapmashup = mapmashupdialog.MapmashupDialog(self.iface, self.dwMapmashup)
             self.dwMapmashup.setWidget(self.guiMapmashup)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwMapmashup)
         else:

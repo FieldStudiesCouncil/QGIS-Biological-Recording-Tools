@@ -1218,10 +1218,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
 
             le = QgsLayoutExporter(l)
-            s = QgsLayoutExporter.ImageExportSettings()
-            #The following is slow, but I don't think that there's anything to be done about it
             #self.logMessage(str(datetime.now().time()))
-            le.exportToImage(imgFolder + os.path.sep + validName + ".png", s)
+            format = self.cboOutputFormat.currentText()
+            if format == "Composer image": 
+                #Much slower than PDF generation for some reason
+                s = QgsLayoutExporter.ImageExportSettings()
+                le.exportToImage(imgFolder + os.path.sep + validName + ".png", s)
+            else: #format == "Composer PDF":
+                s = QgsLayoutExporter.PdfExportSettings()
+                le.exportToPdf(imgFolder + os.path.sep + validName + ".pdf", s)
             #self.logMessage(str(datetime.now().time()))
         except:
             if not self.imageError:

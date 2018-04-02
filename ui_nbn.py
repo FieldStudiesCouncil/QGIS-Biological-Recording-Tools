@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_nbn(object):
     def setupUi(self, nbn):
         nbn.setObjectName("nbn")
-        nbn.resize(407, 560)
+        nbn.resize(388, 560)
         nbn.setStyleSheet("#pbAttention{\n"
 "    background-color: red;\n"
 "    border-style: outset;\n"
@@ -90,10 +90,13 @@ class Ui_nbn(object):
         self.label_3.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.label_3.setObjectName("label_3")
         self.horizontalLayout_11.addWidget(self.label_3)
-        self.mcbWMSColour = QgsColorButtonV2(self.mgbWMSStyles)
-        self.mcbWMSColour.setProperty("color", QtGui.QColor(170, 0, 0))
-        self.mcbWMSColour.setProperty("defaultColor", QtGui.QColor(170, 0, 0))
-        self.mcbWMSColour.setProperty("showNoColor", False)
+        self.mcbWMSColour = QgsColorButton(self.mgbWMSStyles)
+        self.mcbWMSColour.setMinimumSize(QtCore.QSize(0, 0))
+        self.mcbWMSColour.setAcceptDrops(False)
+        self.mcbWMSColour.setIconSize(QtCore.QSize(110, 16))
+        self.mcbWMSColour.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
+        self.mcbWMSColour.setColor(QtGui.QColor(170, 0, 0))
+        self.mcbWMSColour.setDefaultColor(QtGui.QColor(170, 0, 0))
         self.mcbWMSColour.setObjectName("mcbWMSColour")
         self.horizontalLayout_11.addWidget(self.mcbWMSColour)
         self.label_2 = QtWidgets.QLabel(self.mgbWMSStyles)
@@ -610,7 +613,7 @@ class Ui_nbn(object):
         self.mgbWMSStyles.setTitle(_translate("nbn", "WMS styling"))
         self.label_3.setText(_translate("nbn", "Colour:"))
         self.mcbWMSColour.setToolTip(_translate("nbn", "Select the colour to use for the records/squares"))
-        self.mcbWMSColour.setProperty("colorDialogTitle", _translate("nbn", "Select colour  for WMS points or grid"))
+        self.mcbWMSColour.setColorDialogTitle(_translate("nbn", "Select colour  for WMS points or grid"))
         self.label_2.setText(_translate("nbn", "Point size:"))
         self.sbPointSize.setToolTip(_translate("nbn", "Indicate the size of record points"))
         self.label.setText(_translate("nbn", "Transparency:"))
@@ -672,5 +675,4 @@ class Ui_nbn(object):
         self.pbSendToBiorec.setToolTip(_translate("nbn", "<html><head/><body><p>Send selected CSV to Biorec tool</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_4), _translate("nbn", "Downloads"))
 
-from qgis.gui import QgsColorButtonV2
-from qgscollapsiblegroupbox import QgsCollapsibleGroupBox
+from qgis.gui import QgsCollapsibleGroupBox, QgsColorButton

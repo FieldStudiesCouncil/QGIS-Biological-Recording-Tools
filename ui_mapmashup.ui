@@ -218,22 +218,6 @@
        <string>Set transparent background colour</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="butTransparentColour">
-      <property name="geometry">
-       <rect>
-        <x>45</x>
-        <y>35</y>
-        <width>36</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="toolTip">
-       <string>Use this button to select transparent colour</string>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
      <widget class="QLabel" name="label_3">
       <property name="geometry">
        <rect>
@@ -245,6 +229,36 @@
       </property>
       <property name="text">
        <string>Colour</string>
+      </property>
+     </widget>
+     <widget class="QgsColorButton" name="mcbTransparentColour">
+      <property name="geometry">
+       <rect>
+        <x>43</x>
+        <y>33</y>
+        <width>61</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>Use this button to select transparent colour</string>
+      </property>
+      <property name="colorDialogTitle">
+       <string>Select transparent colour</string>
+      </property>
+      <property name="color">
+       <color>
+        <red>255</red>
+        <green>255</green>
+        <blue>255</blue>
+       </color>
+      </property>
+      <property name="defaultColor">
+       <color>
+        <red>255</red>
+        <green>255</green>
+        <blue>255</blue>
+       </color>
       </property>
      </widget>
     </widget>
@@ -505,6 +519,13 @@
   <zorder>groupBox</zorder>
   <zorder>cbApplyStyle</zorder>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsColorButton</class>
+   <extends>QToolButton</extends>
+   <header>qgscolorbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -20,14 +20,14 @@ dropImageLineEdit
 """
 
 import mimetypes
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-class DragLineEdit(QtGui.QLineEdit):
+class DragLineEdit(QtWidgets.QLineEdit):
 
     imageDropped = QtCore.pyqtSignal(QtGui.QImage)
     
     def __init__(self, parent):  
-        QtGui.QLineEdit.__init__(self, parent)
+        QtWidgets.QLineEdit.__init__(self, parent)
         self.setAcceptDrops (True)
 
     def loadImage(self, data):
