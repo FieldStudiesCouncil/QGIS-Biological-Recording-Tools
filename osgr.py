@@ -22,6 +22,7 @@
 import math
 import re
 from qgis.core import *
+from . import envmanager
 
 class osgr:
 
@@ -213,7 +214,46 @@ class osgr:
         if type == "point":
             return QgsGeometry.fromPointXY(QgsPointXY(x + (precision/2), y + (precision/2)))
         elif type == "square":
-            points = [[QgsPointXY(x,y), QgsPointXY(x,y + precision), QgsPointXY(x + precision,y + precision), QgsPointXY(x + precision,y)]]
+            if envmanager.envManager().getEnvValue("biorec.fatsquares") == "":
+                points = [[QgsPointXY(x,y), QgsPointXY(x,y + precision), QgsPointXY(x + precision,y + precision), QgsPointXY(x + precision,y)]]
+            else:
+                points = [[QgsPointXY(x + precision,y + precision * 5/9),
+                       QgsPointXY(x + precision,y + precision * 6/9),
+                       QgsPointXY(x + precision,y + precision * 7/9),
+                       QgsPointXY(x + precision,y + precision * 8/9),
+                       QgsPointXY(x + precision,y + precision),
+                       QgsPointXY(x + precision * 8/9,y + precision),
+                       QgsPointXY(x + precision * 7/9,y + precision),
+                       QgsPointXY(x + precision * 6/9,y + precision),
+                       QgsPointXY(x + precision * 5/9,y + precision),
+                       QgsPointXY(x + precision * 4/9,y + precision),
+                       QgsPointXY(x + precision * 3/9,y + precision),
+                       QgsPointXY(x + precision * 2/9,y + precision),
+                       QgsPointXY(x + precision * 1/9,y + precision),
+                       QgsPointXY(x,y + precision), 
+                       QgsPointXY(x,y + precision * 8/9),
+                       QgsPointXY(x,y + precision * 7/9),
+                       QgsPointXY(x,y + precision * 6/9),
+                       QgsPointXY(x,y + precision * 5/9),
+                       QgsPointXY(x,y + precision * 4/9),
+                       QgsPointXY(x,y + precision * 3/9),
+                       QgsPointXY(x,y + precision * 2/9),
+                       QgsPointXY(x,y + precision * 1/9),
+                       QgsPointXY(x,y), 
+                       QgsPointXY(x + precision * 1/9,y),
+                       QgsPointXY(x + precision * 2/9,y), 
+                       QgsPointXY(x + precision * 3/9,y), 
+                       QgsPointXY(x + precision * 4/9,y), 
+                       QgsPointXY(x + precision * 5/9,y), 
+                       QgsPointXY(x + precision * 6/9,y), 
+                       QgsPointXY(x + precision * 7/9,y), 
+                       QgsPointXY(x + precision * 8/9,y), 
+                       QgsPointXY(x + precision,y), 
+                       QgsPointXY(x + precision,y + precision * 1/9),  
+                       QgsPointXY(x + precision,y + precision * 2/9),
+                       QgsPointXY(x + precision,y + precision * 3/9),
+                       QgsPointXY(x + precision,y + precision * 4/9)]]
+
             return QgsGeometry.fromPolygonXY(points)
         else:
             # Circle

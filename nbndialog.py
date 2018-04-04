@@ -793,7 +793,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         if not polySearch is None:
             baseURL = baseURL + '&wkt=' + polySearch
 
-        uri = QgsDataSourceURI()
+        uri = QgsDataSourceUri()
         uri.setParam('url', baseURL)
         uri.setParam('IgnoreGetMapUrl', '1')
 
@@ -802,6 +802,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         taxonNameMod = re.sub(r'\([^)]*\)', '', taxonName)
         taxonNameMod = re.sub( '\s+', ' ', taxonNameMod).strip() #Replaces mutliple whitespace with single whitespace
         uri.setParam('layers', taxonRank + ':' + taxonNameMod.replace(" ", "_"))
+        QgsMessageLog.logMessage("layers: " + taxonRank + ':' + taxonNameMod.replace(" ", "_"), "NBN Tool")
         #uri.setParam('layers', 'ALA:occurrences')
         uri.setParam('format', 'image/png')
         if self.cbGridSize.currentIndex() == 1:
@@ -809,17 +810,18 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         else:
             uri.setParam('crs', 'EPSG:3857')
         uri.setParam('styles', '')
-
-        QgsMessageLog.logMessage("uri: " + uri.uri(), "NBN Tool")
-
-        rlayer = QgsRasterLayer(str(uri.encodedUri()), self.getLayerName() + " WMS", 'wms')
+  
+        #rlayer = QgsRasterLayer(str(uri.encodedUri()), self.getLayerName() + " WMS", 'wms')
+        #For v3, using str(uri.encodedUri()) no longer works. The leading b and single quotes
+        #are not valide. Can't find a better way to generate a string from byte array than this below.
+        encodedUri = str(uri.encodedUri())
+        rlayer = QgsRasterLayer(encodedUri[2:len(encodedUri)-1], self.getLayerName() + " WMS", 'wms')
 
         if not rlayer.isValid():
             self.infoMessage(("The NBN Atlas WMS did not return a layer for this query. "
                               "The specified filters probably result in zero records. "
                               "But if you have a polygon filter, it might be a problem"
                               "with that."))
-            #QgsMessageLog.logMessage("Failed to load WMS raster", "NBN Tool")
             return
 
         opacity = (100-self.hsTransparency.value()) * 0.01
