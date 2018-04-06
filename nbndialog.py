@@ -29,14 +29,13 @@ from PyQt5.QtWidgets import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-import urllib #, urllib2
+import urllib
 import json 
 import hashlib, uuid
 import shutil
 import csv
 import zipfile
-#import StringIO
-from io import StringIO
+from io import BytesIO
 import re
 import datetime
 import random
@@ -195,8 +194,8 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         # Symbology
         props = { 'color' : '255,0,0,100', 'color_border' : '0,0,0,200', 'style' : 'solid', 'style_border' : 'solid' }
-        s = QgsFillSymbolV2.createSimple(props)
-        self.vl.setRendererV2( QgsSingleSymbolRendererV2( s ) )
+        s = QgsFillSymbol.createSimple(props)
+        self.vl.setRenderer( QgsSingleSymbolRenderer( s ) )
 
         # Add geometry to layer
         fet = QgsFeature()
@@ -964,6 +963,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             except:
                 pass
             self.layers = self.layers[:-1]
+            self.canvas.refresh()
             
     def removeBuffer(self):
         if len(self.buffers) > 0:
@@ -973,6 +973,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             except:
                 pass
             self.buffers = self.buffers[:-1]
+            self.canvas.refresh()
             
     def removeMaps(self):
         for layerID in self.layers:
@@ -981,6 +982,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             except:
                 pass
         self.layers = [] 
+        self.canvas.refresh()
 
     def downloadNBNObservations(self):
 
@@ -1002,7 +1004,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             strInitPath = self.getLayerName()
             
         dlg = QFileDialog
-        fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")
+        fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")[0]
         if not fileName:
             return
             
@@ -1097,7 +1099,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                     selectedFeatures = layer.selectedFeatures()
                     if len(selectedFeatures) == 1:
                         feature = selectedFeatures[0]
-                        if feature.geometry().wkbType() == QGis.WKBPolygon:
+                        if feature.geometry().wkbType() == QgsWkbTypes.Polygon: #QGis.WKBPolygon:
                             filterGeom = feature.geometry()
         except:
             filterGeom = None
@@ -1109,14 +1111,13 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 tcrs = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem("EPSG:4326"), QgsProject.instance())
                 filterGeom.transform(tcrs)
 
-            ret = filterGeom.exportToWkt()
+            ret = filterGeom.asWkt()
             
         return ret  
         
     def checkMapSelectionFilter(self):
         # Whenever the map selection changes, update the  
         # polygon filter indicator accordingly.
-        
         if self.getSelectedFeatureWKT() is None:
             self.cbIndPolygon.setChecked(False)
         else:
@@ -1221,18 +1222,13 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         try:
             result = reply.readAll()
-            nbnZip = StringIO.StringIO()
-            nbnZip.write(result)
+            nbnZip = zipfile.ZipFile(BytesIO(result))
 
-            if zipfile.is_zipfile(nbnZip):
-                zfNBN = zipfile.ZipFile(nbnZip)
-                with open(fileName, 'wb') as csv:
-                    csv.write (zfNBN.read("data.csv"))
-                lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
-            else:
-                self.iface.messageBar().pushMessage("Error", "Download did not return a valid zipfile", level=Qgis.Warning)
-                lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
-        except e:
+            with open(fileName, 'wb') as csv:
+                csv.write (nbnZip.read("data.csv"))
+            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
+        except:
+            e = sys.exc_info()[0]
             QgsMessageLog.logMessage("Failed to write output file", "NBN Tool")
             self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % (str(e)), level=Qgis.Warning)
             #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % (str(e)))
@@ -1267,8 +1263,9 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             #So this needs trapping.
             try:
                 reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
-            except e:
-                QgsMessageLog.logMessage("error generated", "NBN Tool")
+            except:
+                e = sys.exc_info()[0]
+                QgsMessageLog.logMessage("error generated lambda", "NBN Tool")
                 downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
                 self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % (str(e)), level=Qgis.Warning)
             return
