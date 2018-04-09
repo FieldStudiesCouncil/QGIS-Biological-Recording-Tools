@@ -41,6 +41,7 @@ import datetime
 import random
 from . import osgr
 from . import envmanager
+from . import filedialog
 
 
 class NBNDialog(QWidget, ui_nbn.Ui_nbn):

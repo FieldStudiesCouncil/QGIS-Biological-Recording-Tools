@@ -34,6 +34,9 @@ class projection:
 
         # Load the environment stuff
         self.env = envmanager.envManager()
+
+    def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "Projection module", level)
         
     def xyToPoint(self, x, y):
     
@@ -64,7 +67,7 @@ class projection:
                 
         if not xOriginal == None and not yOriginal == None:
             try:
-                point = QgsPoint(float(xOriginal), float(yOriginal))
+                point = QgsPointXY(float(xOriginal), float(yOriginal))
             except:
                 point = None
                 err = "There was a problem with the x, y coordinates. x = " + str(xOriginal) + " and y = " + str(yOriginal) + "."
@@ -120,8 +123,8 @@ class projection:
         elif type == "point":
             geom =  QgsGeometry.fromPointXY(QgsPointXY(x + (gridPrecision/2), y + (gridPrecision/2)))
         elif type == "square":
-            points = [[QgsPoint(x,y), QgsPoint(x,y + gridPrecision), QgsPoint(x + gridPrecision,y + gridPrecision), QgsPoint(x + gridPrecision,y)]]
-            geom = QgsGeometry.fromPolygon(points)
+            points = [[QgsPointXY(x,y), QgsPointXY(x,y + gridPrecision), QgsPointXY(x + gridPrecision,y + gridPrecision), QgsPointXY(x + gridPrecision,y)]]
+            geom = QgsGeometry.fromPolygonXY(points)
         else:
             # Circle
             r = gridPrecision / 2
@@ -135,8 +138,8 @@ class projection:
                 cumulativeRad = cumulativeRad + deltaRad
                 x1 = j + r * math.cos(cumulativeRad)
                 y1 = k + r * math.sin(cumulativeRad)
-                points.append(QgsPoint(x1,y1))
-            geom = QgsGeometry.fromPolygon([points])
+                points.append(QgsPointXY(x1,y1))
+            geom = QgsGeometry.fromPolygonXY([points])
             
         return [gr, geom, err]
         

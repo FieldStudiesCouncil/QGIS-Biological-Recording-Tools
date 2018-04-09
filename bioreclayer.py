@@ -397,19 +397,10 @@ class biorecLayer(QObject):
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
                 #QgsMessageLog.logMessage(strFilter, 'biorec')
 
-            bNoFilterMethod = False
-            try:      
-                # Only available from 2.2 onwards so catch for backward compatibility
-                request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
-                iter = self.csvLayer.getFeatures(request)
-                #fetsDict.update(self.makeAtlasFeatures(iter, gridPrecision, symbol))
-                fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
-            except:
-                bNoFilterMethod = True
-                
-            if bNoFilterMethod:
-                iter = self.csvLayer.getFeatures()
-                fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol, True)
+            request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
+            iter = self.csvLayer.getFeatures(request)
+            #fetsDict.update(self.makeAtlasFeatures(iter, gridPrecision, symbol))
+            fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
         else:
             iter = self.csvLayer.getFeatures()
             if len(self.taxa) == 0:
@@ -418,7 +409,7 @@ class biorecLayer(QObject):
             else:
                 # More than one taxon selected - so filter based on taxa
                 fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol, True)
-                
+
         # Now loop through the dictionary and create a feature for each one
         fets=[]
         for gr in fetsDict:
@@ -443,7 +434,7 @@ class biorecLayer(QObject):
    
         fetsDict = {}
         taxaDict = {}
-        
+
         for feature in iter:
             
             taxon = ""
