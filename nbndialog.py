@@ -22,6 +22,7 @@
 
 from . import ui_nbn 
 import os.path
+import os
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtNetwork import *
@@ -84,6 +85,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.pbDownload.clicked.connect(self.downloadNBNObservations)
         self.pbSendToBiorec.clicked.connect(self.displayCSV)
         self.pbClearFilters.clicked.connect(self.clearAllFilters)
+        self.pbBrowseNbnOutputFolder.clicked.connect(self.browseNbnOutputFolder)
         
         
         # Map canvas events
@@ -123,10 +125,41 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
 
+        # Populate the download reason combobox
+        self.cboDownloadReason.addItem("Reason for download", -99)
+        url = 'https://logger.nbnatlas.org/service/logger/reasons'
+        res = self.restRequest(url)
+        if not res is None:
+            jsonData = json.loads(res.data()) 
+            for reason in jsonData:
+                QgsMessageLog.logMessage("reason: " + reason["name"], "NBN Tool") 
+                self.cboDownloadReason.addItem(reason["name"], reason["id"])
+
+    def browseNbnOutputFolder(self):
+    
+        #Reload env
+        self.env.loadEnvironment()
+        
+        dlg = QFileDialog
+        
+        if os.path.exists(self.leNbnOutputFolder.text()):
+            strInitPath = self.leNbnOutputFolder.text()
+        else:
+            strInitPath = ""
+            
+        folderName = dlg.getExistingDirectory(self, "Browse for NBN download folder", strInitPath)
+        if folderName:
+            self.leNbnOutputFolder.setText(folderName)
+            self.leNbnOutputFolder.setToolTip(folderName)
+
     def showEvent(self, ev):
         # Load the environment stuff
         self.env = envmanager.envManager()
-        return QWidget.showEvent(self, ev)        
+
+        # Set the download folder if set in env file
+        self.leNbnOutputFolder.setText(self.env.getEnvValue("nbn.downloadfolder"))
+
+        return QWidget.showEvent(self, ev)
         
     def enum(self, **enums):
         return type('Enum', (), enums)
@@ -263,8 +296,8 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         if res is None:
             return
 
-        #responseText = res.data().decode('utf-8')
-        responseText = res.data()
+        responseText = res.data().decode('utf-8')
+        #responseText = res.data()
 
         # Write the json data to a file
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "providers.json"))
@@ -987,6 +1020,32 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
     def downloadNBNObservations(self):
 
+        #A download reason must be specified
+        if self.cboDownloadReason.currentData() == -99:
+            self.iface.messageBar().pushMessage("Info", "You must specify a download reason from the drop-down list.", level=Qgis.Info)
+            return
+
+        #A writable output folder must be specified
+        if self.leNbnOutputFolder.text().strip() == "":
+            self.iface.messageBar().pushMessage("Info", "You must specify an output folder for the downloaded data.", level=Qgis.Info)
+            return
+
+        if not os.path.exists(self.leNbnOutputFolder.text()):
+            self.iface.messageBar().pushMessage("Info", "The specified output folder cannot be found.", level=Qgis.Info)
+            return
+
+        #if not os.access(self.leNbnOutputFolder.text(), os.W_OK):
+        #    self.iface.messageBar().pushMessage("Info", "The specified output folder is not writeable.", level=Qgis.Info)
+        #    return
+        #Try to create a temporary file
+        try:
+            touchFile = self.leNbnOutputFolder.text() + os.path.sep + "qgis-write-test"
+            open(touchFile, 'w+').close()
+            os.remove(touchFile)
+        except:
+            self.iface.messageBar().pushMessage("Info", "The specified output folder is not writeable.", level=Qgis.Info)
+            return
+
         #A taxon or dataset filter must be specified
         if self.getSelectedTVK() is None and not self.datasetsSelected() and self.getSelectedFeatureWKT() is None:
             self.iface.messageBar().pushMessage("Info", "First specify one or more of taxon, dataset or polygon filters.", level=Qgis.Info)
@@ -995,19 +1054,21 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         # Update filter display
         self.checkFilters()
             
-        #Get a location for the output file.
-        self.env.loadEnvironment()
+        ##Get a location for the output file.
+        #self.env.loadEnvironment()
         
-        if os.path.exists(self.env.getEnvValue("nbn.downloadfolder")):
-            #strInitPath = self.env.getEnvValue("nbn.downloadfolder")
-            strInitPath = os.path.join(self.env.getEnvValue("nbn.downloadfolder"), self.getLayerName())
-        else:
-            strInitPath = self.getLayerName()
+        #if os.path.exists(self.env.getEnvValue("nbn.downloadfolder")):
+        #    #strInitPath = self.env.getEnvValue("nbn.downloadfolder")
+        #    strInitPath = os.path.join(self.env.getEnvValue("nbn.downloadfolder"), self.getLayerName())
+        #else:
+        #    strInitPath = self.getLayerName()
             
-        dlg = QFileDialog
-        fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")[0]
-        if not fileName:
-            return
+        #dlg = QFileDialog
+        #fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")[0]
+        #if not fileName:
+        #    return
+
+        fileName = os.path.join(self.leNbnOutputFolder.text(), self.getLayerName())
             
         # Set current tab to last (download) tab
         self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
@@ -1025,7 +1086,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         if fq is None: #Filter errors detected and reported
             return
 
-        endpoint = 'https://records-ws.nbnatlas.org/occurrences/index/download?reasonTypeId=10&qa=none&q=*:*' + fq
+        endpoint = 'https://records-ws.nbnatlas.org/occurrences/index/download?reasonTypeId=' + str(self.cboDownloadReason.currentData()) + '&qa=none&q=*:*' + fq
 
         #Add WKT filter
         polySearch = self.getSelectedFeatureWKT()
@@ -1225,8 +1286,14 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             result = reply.readAll()
             nbnZip = zipfile.ZipFile(BytesIO(result))
 
-            with open(fileName, 'wb') as csv:
+            #with open(fileName, 'wb') as csv:
+            with open(fileName + '.csv', 'wb') as csv:
                 csv.write (nbnZip.read("data.csv"))
+            with open(fileName + '-citation.csv', 'wb') as csv:
+                csv.write (nbnZip.read("citation.csv"))
+            with open(fileName + '-headings.csv', 'wb') as csv:
+                csv.write (nbnZip.read("headings.csv"))
+
             lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
         except:
             e = sys.exc_info()[0]

@@ -311,7 +311,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         else:
             strInitPath = ""
             
-        folderName = dlg.getExistingDirectory(self, "Browse for image folder", self.leImageFolder.text())
+        folderName = dlg.getExistingDirectory(self, "Browse for image folder", strInitPath)
         if folderName:
             self.leImageFolder.setText(folderName)
             self.leImageFolder.setToolTip(folderName)
