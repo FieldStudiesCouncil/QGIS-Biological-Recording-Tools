@@ -83,10 +83,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.pbClearLastBuffer.clicked.connect(self.removeBuffer)
         self.rbGR.toggled.connect(self.bufferEnableDisable)
         self.pbDownload.clicked.connect(self.downloadNBNObservations)
-        self.pbSendToBiorec.clicked.connect(self.displayCSV)
         self.pbClearFilters.clicked.connect(self.clearAllFilters)
         self.pbBrowseNbnOutputFolder.clicked.connect(self.browseNbnOutputFolder)
-        
+        self.twDownloaded.itemDoubleClicked.connect(self.downloadClicked)
+        self.cbShowAllMetadata.stateChanged.connect(self.showHideMetadataColumns)
         
         # Map canvas events
         self.canvas.extentsChanged.connect(self.mapExtentsChanged)
@@ -103,7 +103,6 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.layers = []
         self.buffers = []
         self.tvks = {} #Initialise tvk dictionary
-        self.pbSendToBiorec.setIcon(QIcon( self.pathPlugin % "images/maptaxa.png" ))
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
         self.pbSpeciesWMS.setIcon(QIcon( self.pathPlugin % "images/nbngridmap.png" ))
@@ -122,7 +121,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.datasetSelectionChanged()
         self.checkFilters()
         self.bufferEnableDisable()
-        
+        self.lblMetadata.setText("")
+        self.defaultColumns = []
+        self.cbShowAllMetadata.setEnabled(False)
+
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
 
         # Populate the download reason combobox
@@ -1020,6 +1022,9 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
     def downloadNBNObservations(self):
 
+        #Collapse all download widget items
+        self.twDownloaded.collapseAll()
+
         #A download reason must be specified
         if self.cboDownloadReason.currentData() == -99:
             self.iface.messageBar().pushMessage("Info", "You must specify a download reason from the drop-down list.", level=Qgis.Info)
@@ -1053,34 +1058,17 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         # Update filter display
         self.checkFilters()
-            
-        ##Get a location for the output file.
-        #self.env.loadEnvironment()
-        
-        #if os.path.exists(self.env.getEnvValue("nbn.downloadfolder")):
-        #    #strInitPath = self.env.getEnvValue("nbn.downloadfolder")
-        #    strInitPath = os.path.join(self.env.getEnvValue("nbn.downloadfolder"), self.getLayerName())
-        #else:
-        #    strInitPath = self.getLayerName()
-            
-        #dlg = QFileDialog
-        #fileName = dlg.getSaveFileName(self, "Specify output CSV for downloaded records", strInitPath, "CSV Files (*.csv)")[0]
-        #if not fileName:
-        #    return
 
-        fileName = os.path.join(self.leNbnOutputFolder.text(), self.getLayerName())
-            
-        # Set current tab to last (download) tab
-        self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
+        # Set current tab to next to last (download) tab
+        self.tabWidget.setCurrentWidget(self.tabDownloads)
 
-         # Add file to listbox
+        # Add file to listbox
+        fileName = os.path.join(self.leNbnOutputFolder.text(), self.getLayerName() + ".csv")
         splitName = os.path.split(fileName)
-        self.lwDownloaded.addItem(splitName[1])
-        lwi = self.lwDownloaded.item(self.lwDownloaded.count()-1)
-        lwi.setToolTip(fileName)
+        twi = QTreeWidgetItem(self.twDownloaded, [splitName[1]], 0)
+        twi.setToolTip(0, fileName)
+        twi.setIcon(0, QIcon( self.pathPlugin % "images/download.png" ))
         
-        lwi.setIcon(QIcon( self.pathPlugin % "images/download.png" ))
-
         #Add query filter to baseURL if appropriate
         fq = self.makeFilterQuery()
         if fq is None: #Filter errors detected and reported
@@ -1093,7 +1081,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         if not polySearch is None:
             endpoint = endpoint + '&wkt=' + polySearch
 
-        self.restRequest(endpoint, None, callType="download", downloadInfo={"lwi": lwi, "csv": fileName, "reply": None})
+        self.restRequest(endpoint, None, callType="download", downloadInfo={"twi": twi, "csv": fileName, "reply": None})
 
     def clearAllFilters(self):
 
@@ -1138,12 +1126,13 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
     def displayCSV(self):
     
         #Check that single file is selected in list
-        if len(self.lwDownloaded.selectedItems()) != 1:
+        #!! - need to check type of item selected - must be CSV
+        if len(self.twDownloaded.selectedItems()) != 1:
             self.infoMessage("First select a single CSV file from the list")
             return
-            
-        lwiSelected = self.lwDownloaded.selectedItems()[0]
-        csvFile = lwiSelected.toolTip()
+
+        twiSelected = self.twDownloaded.selectedItems()[0]
+        csvFile = twiSelected.toolTip(0)
         
         #Emit signal that will cause biorec tool to display file
         self.displayNBNCSVFile.emit(csvFile)
@@ -1266,10 +1255,9 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
     def downLoadFinished(self, downloadInfo):
 
-        #This 
         QgsMessageLog.logMessage("Download finished fired", "NBN Tool")
 
-        lwiDownload = downloadInfo["lwi"]
+        twiDownload = downloadInfo["twi"]
         fileName = downloadInfo["csv"]
         reply = downloadInfo["reply"]
         
@@ -1277,32 +1265,112 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         if error != QNetworkReply.NoError:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
             self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %d %s" % (error, reply.errorString()), level=Qgis.Warning)
-            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+            twiDownload.setIcon(0, QIcon( self.pathPlugin % "images/cross.png" ))
             return None
         else:
-            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/eggtimer.jpg" ))
-
+            twiDownload.setIcon(0, QIcon( self.pathPlugin % "images/eggtimer.jpg" ))
         try:
             result = reply.readAll()
             nbnZip = zipfile.ZipFile(BytesIO(result))
 
-            #with open(fileName, 'wb') as csv:
-            with open(fileName + '.csv', 'wb') as csv:
+            fileNoExt = fileName[:-4]
+            with open(fileNoExt + '.csv', 'wb') as csv:
                 csv.write (nbnZip.read("data.csv"))
-            with open(fileName + '-citation.csv', 'wb') as csv:
+            with open(fileNoExt + '-citation.csv', 'wb') as csv:
                 csv.write (nbnZip.read("citation.csv"))
-            with open(fileName + '-headings.csv', 'wb') as csv:
+            with open(fileNoExt + '-headings.csv', 'wb') as csv:
                 csv.write (nbnZip.read("headings.csv"))
 
-            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/tick.jpg" ))
+            twiDownload.setIcon(0, QIcon( self.pathPlugin % "images/tick.jpg" ))
+            twiDownload.addChild(QTreeWidgetItem(['Data providers'], 0))
+            twiDownload.child(0).setIcon(0, QIcon( self.pathPlugin % "images/citations.png" ))
+            twiDownload.child(0).setToolTip(0, fileNoExt + '-citation.csv')
+            twiHeadings = twiDownload.addChild(QTreeWidgetItem(['Column metadata'], 0))
+            twiDownload.child(1).setIcon(0, QIcon( self.pathPlugin % "images/headings.png" ))
+            twiDownload.child(1).setToolTip(0, fileNoExt + '-headings.csv')
+
+            twiDownload.setExpanded(True)
         except:
             e = sys.exc_info()[0]
             QgsMessageLog.logMessage("Failed to write output file", "NBN Tool")
             self.iface.messageBar().pushMessage("Error", "Failed to write output file. Error: %s" % (str(e)), level=Qgis.Warning)
-            #self.error.emit("Failed to write output file '" + self.csv + "'. Error: %s" % (str(e)))
-            lwiDownload.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+            twiDownload.setIcon(0, QIcon( self.pathPlugin % "images/cross.png" ))
         finally:
             reply.deleteLater()
+
+    def downloadClicked(self, twi, iCol):
+
+        #Get the path of the CSV from the tooltip
+        filePath = twi.toolTip(0);
+
+        #If this is the data CSV file then invoke self.displayCSV
+        if filePath[-13:] != '-citation.csv' and filePath[-13:] != '-headings.csv':
+            self.displayCSV()
+            return
+
+        #Otherwise, populate the metadata tab
+        metadataInfo = "The file '" + filePath + "' "
+
+        if filePath[-13:] == '-citation.csv':
+            metadataInfo += ("details the organisations that provided the records you have downloaded. "
+            "Look at the license agreement for each ('Rights' column) and use the citation text ('Citation' column "
+            "where appropriate to credit the data providers in your work.")
+            self.defaultColumns=["Name", "Citation", "Rights", "Number of Records in Download"]
+        else:
+            metadataInfo += " details the columns included in the CSV data file you downloaded."
+            self.defaultColumns=[]
+
+        self.lblMetadata.setText(metadataInfo)
+
+        #Load the table widget with the CSV
+        self.twMetadata.clearContents()
+        self.twMetadata.setSortingEnabled(False)
+        with open(filePath, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            self.twMetadata.setRowCount(sum(1 for row in reader)-1)
+        with open(filePath, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                self.twMetadata.setColumnCount(len(row))
+                #self.twMetadata.setHorizontalHeaderLabels(row) 
+                colCount = 0
+                for cellText in row:
+                    headerItem = QTableWidgetItem(cellText)
+                    headerItem.setTextAlignment(Qt.AlignLeft)
+                    self.twMetadata.setHorizontalHeaderItem(colCount, headerItem)
+                    colCount += 1
+                break
+            rowCount = 0
+            for row in reader:
+                colCount = 0
+                for cellText in row:
+                    cell = QTableWidgetItem(cellText, 0)
+                    self.twMetadata.setItem(rowCount, colCount, cell)
+                    colCount += 1
+                rowCount += 1
+        self.twMetadata.setSortingEnabled(True)
+        
+        #Select the metadata tab
+        self.tabWidget.setCurrentWidget(self.tabMetadata)
+
+        #Sort out column visibility
+        self.showHideMetadataColumns()
+
+    def showHideMetadataColumns(self):
+        if len(self.defaultColumns) == 0:
+            self.cbShowAllMetadata.setCheckState(Qt.Unchecked)
+            self.cbShowAllMetadata.setEnabled(False)
+        else:
+            self.cbShowAllMetadata.setEnabled(True)
+
+            for i in range(0, self.twMetadata.columnCount()):
+
+                headerItem = self.twMetadata.horizontalHeaderItem(i)
+                self.logMessage(str(i) + " " +  headerItem.text())
+                if (not headerItem.text() in self.defaultColumns) and self.cbShowAllMetadata.checkState() == Qt.Unchecked:
+                    self.twMetadata.hideColumn(i)
+                else:
+                    self.twMetadata.showColumn(i)
 
     def restRequest(self, url, postData=None, callType="data", downloadInfo=None):
         #This function adapted from __sync_request function in
@@ -1327,14 +1395,14 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             downloadInfo["reply"] = reply
             #Don't know under what circumstances, but sometimes get an error at the end of execution...
             #reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
-			#NameError: free variable 'self' referenced before assignment in enclosing scope
+		    #NameError: free variable 'self' referenced before assignment in enclosing scope
             #So this needs trapping.
             try:
                 reply.finished.connect(lambda: self.downLoadFinished(downloadInfo))
             except:
                 e = sys.exc_info()[0]
                 QgsMessageLog.logMessage("error generated lambda", "NBN Tool")
-                downloadInfo["lwi"].setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+                downloadInfo["twi"].setIcon(0, QIcon( self.pathPlugin % "images/cross.png" ))
                 self.iface.messageBar().pushMessage("Error", "NBN web service error. Error: %s" % (str(e)), level=Qgis.Warning)
             return
 
