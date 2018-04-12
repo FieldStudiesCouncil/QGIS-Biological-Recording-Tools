@@ -499,6 +499,70 @@
        </property>
       </spacer>
      </item>
+     <item>
+      <widget class="QPushButton" name="butHelp">
+       <property name="minimumSize">
+        <size>
+         <width>30</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>30</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Get more information about this tool and help on using it. This links to a webpage with up-to-date information about the tool. &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>images/info.png</normaloff>images/info.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="butGithub">
+       <property name="minimumSize">
+        <size>
+         <width>30</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>30</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Report an issue with this tool.&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt; Using this channel is the best way to get attention quickly. Issues can be bug reports, enhancement requests or just questions. Anyone can view current issues, but to add a new issue you will need to sign up for a free Github account (very easy).&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>images/github.png</normaloff>images/github.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -518,6 +582,8 @@
   <zorder>verticalSpacer</zorder>
   <zorder>groupBox</zorder>
   <zorder>cbApplyStyle</zorder>
+  <zorder>butGithub</zorder>
+  <zorder>butHelp</zorder>
  </widget>
  <customwidgets>
   <customwidget>

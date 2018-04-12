@@ -58,6 +58,8 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.butGridTool.setIcon(QIcon( self.pathPlugin % "images/osgr.png" ))
     self.butGridPoly.setIcon(QIcon( self.pathPlugin % "images/osgrPoly.png" ))
     self.butClear.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
+    self.butHelp.setIcon(QIcon( self.pathPlugin % "images/info.png" ))
+    self.butGithub.setIcon(QIcon( self.pathPlugin % "images/github.png" ))
     
     # Connect the controls to their events
     self.cbGROnClick.clicked.connect(self.cbGROnClickClicked)
@@ -70,6 +72,8 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.cbLabel.clicked.connect(self.LabelChecked)
     self.butCancel.clicked.connect(self.cancelGrid)
     self.dsbGridSize.valueChanged.connect(self.setPrecision)
+    self.butHelp.clicked.connect(self.helpFile)
+    self.butGithub.clicked.connect(self.github)
     
     # Handle canvas events
     self.canvas.mapToolSet.connect(self.mapToolClicked)
@@ -95,8 +99,15 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.grPrecision = 0
     self.cboPrecisionChanged(0)
   
+  def helpFile(self):
+        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisosgrtool"))
+
+  def github(self):
+        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+        
   def infoMessage(self, strMessage):
     self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
+
   def warningMessage(self, strMessage):
     self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
  

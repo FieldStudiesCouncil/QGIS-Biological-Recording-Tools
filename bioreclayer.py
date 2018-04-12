@@ -242,20 +242,11 @@ class biorecLayer(QObject):
             for taxon in self.taxa: 
                 #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
-                #QgsMessageLog.logMessage(strFilter, 'biorec')
 
-            bNoFilterMethod = False     
-            try:      
-                # Only available from 2.2 onwards so catch for backward compatibility
-                request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
-                iter = self.csvLayer.getFeatures(request)
-                fets = fets + self.makeFeatures(iter, mapType) 
-            except:
-                bNoFilterMethod = True
-         
-            if bNoFilterMethod:
-                iter = self.csvLayer.getFeatures()
-                fets = fets + self.makeFeatures(iter, mapType, True)    
+            #request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
+            request = QgsFeatureRequest().setFilterExpression(strFilter)
+            iter = self.csvLayer.getFeatures(request)
+            fets = fets + self.makeFeatures(iter, mapType) 
         else:
             # No taxa selected, so get all features from CSV
             iter = self.csvLayer.getFeatures()
@@ -294,7 +285,7 @@ class biorecLayer(QObject):
                 geom = None
                 if self.iColGr > -1:
                     try:
-                        gr = feature.attributes()[self.iColGr].strip()
+                        gr = feature.attributes()[self.iColGr].replace(" ", "")
                     except:
                         gr = "NULL"
                         
@@ -397,7 +388,8 @@ class biorecLayer(QObject):
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
                 #QgsMessageLog.logMessage(strFilter, 'biorec')
 
-            request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
+            #request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter
+            request = QgsFeatureRequest().setFilterExpression(strFilter)
             iter = self.csvLayer.getFeatures(request)
             #fetsDict.update(self.makeAtlasFeatures(iter, gridPrecision, symbol))
             fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
@@ -458,7 +450,7 @@ class biorecLayer(QObject):
                     yOriginal = None
                     # Geocoding from OS grid ref
                     try:
-                        grOriginal = str(feature.attributes()[self.iColGr]).strip()
+                        grOriginal = str(feature.attributes()[self.iColGr]).replace(" ", "")
                     except:
                         grOriginal = "NULL"
                         

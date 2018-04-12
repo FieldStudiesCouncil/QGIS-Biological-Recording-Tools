@@ -72,6 +72,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.butHelp.clicked.connect(self.helpFile)
+        self.butGithub.clicked.connect(self.github)
         #self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
         self.pbRefreshDatasets.clicked.connect(self.refreshProviders)
         self.pbUncheckAll.clicked.connect(self.uncheckAll)
@@ -113,7 +114,8 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.sbPointSize.setValue(6)
         self.mcbWMSColour.setColor(QColor('#cd3844'))
 
-        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
+        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/info.png" ))
+        self.butGithub.setIcon(QIcon( self.pathPlugin % "images/github.png" ))
         self.twTaxa.setHeaderLabel("Matching taxa")
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
@@ -391,11 +393,28 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.twProviders.sortItems(0, Qt.AscendingOrder)
 
     def helpFile(self):
+
+        ##iface.layerTreeView().setSelectionMode( QAbstractItemView.MultiSelection )
+
+        ## Select your layers, this time they are not mutually exclusive
+        #i=0
+
+        ##QgsProject.instance().layerTreeRoot().
+        #for layer in self.layers:
+        #    iface.layerTreeView().setCurrentLayer(layer)
+        #    #QgsProject.instance().layerTreeRoot().setCurrentLayer(layer)
+        #    break
+        ##iface.layerTreeView().setSelectionMode( QAbstractItemView.ExtendedSelection )
         
-        #if self.guiFile is None:
-        self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
+        #return
         
-        self.guiFile.setVisible(True)
+        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisnbnatlastool"))
+
+        #self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
+        #self.guiFile.setVisible(True)
+
+    def github(self):
+        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
    
     def taxonSearch(self):
         #NBN Atlas search
@@ -1313,7 +1332,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         if filePath[-13:] == '-citation.csv':
             metadataInfo += ("details the organisations that provided the records you have downloaded. "
-            "Look at the license agreement for each ('Rights' column) and use the citation text ('Citation' column "
+            "Look at the license agreement for each ('Rights' column) and use the citation text ('Citation' column) "
             "where appropriate to credit the data providers in your work.")
             self.defaultColumns=["Name", "Citation", "Rights", "Number of Records in Download"]
         else:

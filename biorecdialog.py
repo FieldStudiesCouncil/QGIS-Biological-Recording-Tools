@@ -69,6 +69,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.pbBrowseStyleFile.clicked.connect(self.browseStyleFile)
         self.pbCancel.clicked.connect(self.cancelBatch)
         self.butHelp.clicked.connect(self.helpFile)
+        self.butGithub.clicked.connect(self.github)
         self.cboTaxonCol.currentIndexChanged.connect(self.enableDisableTaxa)
         self.cboMapType.currentIndexChanged.connect(self.checkMapType)
         self.mlcbSourceLayer.layerChanged.connect(self.layerSelected)
@@ -99,7 +100,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.butMap.setIcon(QIcon( self.pathPlugin % "images/maptaxa.png" ))
         self.butRemoveMap.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butRemoveMaps.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
-        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/bang.png" ))
+        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/info.png" ))
+        self.butGithub.setIcon(QIcon( self.pathPlugin % "images/github.png" ))
         self.butSaveImage.setIcon(QIcon( self.pathPlugin % "images/saveimage.png" ))
         self.butShowAll.setIcon(QIcon( self.pathPlugin % "images/layershow.png" ))
         self.butHideAll.setIcon(QIcon( self.pathPlugin % "images/layerhide.png" ))
@@ -164,10 +166,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
          
     def helpFile(self):
 
-        if self.guiFile is None:
-            self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
+        #if self.guiFile is None:
+        #    self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
         
-        self.guiFile.setVisible(True)    
+        #self.guiFile.setVisible(True)    
+
+        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisbiorecstool"))
+
+    def github(self):
+        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
         
     def checkMapType(self):
     
@@ -803,13 +810,18 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         settings = self.canvas.mapSettings()
         i=0
+
+        format = self.cboOutputFormat.currentText()
+
         for layer in self.layers:
             if not self.cancelBatchMap:
+                self.waitMessage("Creating " + format + " for " + layer.getName())
                 i=i+1
                 self.progBatch.setValue(i)
                 layersRender = [layer.vl] + backdropLayers
                 self.saveComposerImage(layer.getName(), layersRender)
                 qApp.processEvents()
+                self.waitMessage()
 
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
@@ -949,10 +961,11 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         i=0
         for layer in self.layers:
             if not self.cancelBatchMap:
+                self.waitMessage("Saving layer " + layer.getName() + " as " + format)
                 i=i+1
                 self.progBatch.setValue(i)
-                self.infoMessage("Saving layer " + layer.getName() + " as " + format)   
                 self.saveTempToLayer(layer, format)
+                self.waitMessage()
 
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
@@ -976,6 +989,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         i=0
         for layer in self.layers:
             if not self.cancelBatchMap:
+                self.waitMessage("Creating map image for " + layer.getName())
                 i=i+1
                 self.progBatch.setValue(i)
                 layersRender = [layer.vl] + backdropLayers
@@ -986,6 +1000,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 image = job.renderedImage()
                 self.saveMapImage(image, layer.getName())
                 qApp.processEvents()
+                self.waitMessage()
 
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
@@ -1129,6 +1144,12 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         if error[0] != QgsVectorFileWriter.NoError:
             self.iface.messageBar().pushMessage("Error", "Layer generation error: %s" % (error), level=Qgis.Warning)
+            return
+
+        #If saving a shapefile, also save the style as the default style
+        if format == "Shapefile":
+            ret = layer.vl.saveNamedStyle(filePath + ".qml")
+            #self.logMessage("return = " + str(ret))
                 
     def saveMapImage(self, image, name):
         

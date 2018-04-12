@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>287</width>
-    <height>394</height>
+    <width>380</width>
+    <height>456</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -198,7 +198,7 @@
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>100</height>
+       <height>119</height>
       </size>
      </property>
      <property name="title">
@@ -211,14 +211,14 @@
          <widget class="QPushButton" name="butGridTool">
           <property name="minimumSize">
            <size>
-            <width>35</width>
-            <height>35</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>35</width>
-            <height>35</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
           <property name="toolTip">
@@ -249,14 +249,14 @@
          <widget class="QPushButton" name="butGridPoly">
           <property name="minimumSize">
            <size>
-            <width>35</width>
-            <height>35</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>35</width>
-            <height>35</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
           <property name="toolTip">
@@ -281,43 +281,23 @@
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="cbLabel">
-          <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Indicates whether or not to show labels for generated grids.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-          <property name="text">
-           <string>Label</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
          <widget class="QPushButton" name="butClear">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
-            <width>35</width>
-            <height>35</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>35</width>
-            <height>35</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
           <property name="toolTip">
@@ -338,7 +318,97 @@
           </property>
          </widget>
         </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="butHelp">
+          <property name="minimumSize">
+           <size>
+            <width>30</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>30</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Get more information about this tool and help on using it. This links to a webpage with up-to-date information about the tool. &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>images/info.png</normaloff>images/info.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>24</width>
+            <height>24</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="butGithub">
+          <property name="minimumSize">
+           <size>
+            <width>30</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>30</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:600;&quot;&gt;Report an issue with this tool.&lt;/span&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt; Using this channel is the best way to get attention quickly. Issues can be bug reports, enhancement requests or just questions. Anyone can view current issues, but to add a new issue you will need to sign up for a free Github account (very easy).&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>images/github.png</normaloff>images/github.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>24</width>
+            <height>24</height>
+           </size>
+          </property>
+         </widget>
+        </item>
        </layout>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbLabel">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Indicates whether or not to show labels for generated grids.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>Label</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_5">

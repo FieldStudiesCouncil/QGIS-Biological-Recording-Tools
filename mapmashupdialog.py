@@ -57,6 +57,8 @@ class MapmashupDialog(QWidget, ui_mapmashup.Ui_Mapmashup):
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.pbBrowseStyleFile.clicked.connect(self.browseStyleFile)
+        self.butHelp.clicked.connect(self.helpFile)
+        self.butGithub.clicked.connect(self.github)
         
         #http://stackoverflow.com/questions/20834064/how-to-create-qpixmap-with-dragimagebits-from-my-browser
         #Replace the leImageFolder line edit with the custom one that handles image drops
@@ -80,7 +82,15 @@ class MapmashupDialog(QWidget, ui_mapmashup.Ui_Mapmashup):
         self.butLoadImageBrowse.setIcon(QIcon( self.pathPlugin % "images/mashup3.png" ))
         self.butClearLast.setIcon(QIcon( self.pathPlugin % "images/removelayer.png" ))
         self.butClear.setIcon(QIcon( self.pathPlugin % "images/removelayers.png" ))
+        self.butHelp.setIcon(QIcon( self.pathPlugin % "images/info.png" ))
+        self.butGithub.setIcon(QIcon( self.pathPlugin % "images/github.png" ))
     
+    def helpFile(self):
+        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgismashuptool"))
+
+    def github(self):
+        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+        
     def showEvent(self, ev):
         # Load the environment stuff
         self.env = envmanager.envManager()

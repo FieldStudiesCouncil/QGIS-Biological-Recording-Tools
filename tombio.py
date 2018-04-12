@@ -102,8 +102,8 @@ class TomBio:
         self.dwMapmashup = None
         
         # Help dialog
-        icon_path = os.path.join(os.path.dirname(__file__),'images/tombio.png')
-        self.actionHelp = QAction(QIcon(icon_path), u"Help and Info", self.iface.mainWindow())
+        icon_path = os.path.join(os.path.dirname(__file__),'images/info.png')
+        self.actionHelp = QAction(QIcon(icon_path), u"Help and Info on FSC QGIS plugin", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&TomBio Tools", self.actionHelp)
         self.actionHelp.triggered.connect(self.showHelp)
         self.toolbar.addAction(self.actionHelp)
