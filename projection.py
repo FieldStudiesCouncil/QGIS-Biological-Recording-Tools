@@ -3,7 +3,7 @@
 /***************************************************************************
  osgr
         A class for reprojecting geometry etc
- FSC Tomorrow's Biodiversity productivity tools for biological recorders
+ FSC QGIS plugin for biological recorders
                               -------------------
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council

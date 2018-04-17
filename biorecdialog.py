@@ -3,7 +3,7 @@
 /***************************************************************************
 BiorecDialog
                                  A QGIS plugin
- FSC Tomorrow's Biodiversity productivity tools for biological recorders
+ FSC QGIS plugin for biological recorders
                              -------------------
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council
@@ -171,7 +171,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
         #self.guiFile.setVisible(True)    
 
-        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisbiorecstool"))
+        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisbiorecstool"))
 
     def github(self):
         QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))

@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>327</width>
-    <height>446</height>
+    <height>427</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>TomBio</string>
+   <string>FSC QGIS plugin</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -582,8 +582,6 @@
   <zorder>verticalSpacer</zorder>
   <zorder>groupBox</zorder>
   <zorder>cbApplyStyle</zorder>
-  <zorder>butGithub</zorder>
-  <zorder>butHelp</zorder>
  </widget>
  <customwidgets>
   <customwidget>

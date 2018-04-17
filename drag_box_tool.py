@@ -3,7 +3,7 @@
 /***************************************************************************
  drag_box_tool
         A class for dragging a box on the map
- FSC Tomorrow's Biodiversity productivity tools for biological recorders
+ FSC QGIS plugin for biological recorders
                               -------------------
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council

@@ -66,7 +66,7 @@ class Ui_Env(object):
 
     def retranslateUi(self, Env):
         _translate = QtCore.QCoreApplication.translate
-        Env.setWindowTitle(_translate("Env", "FSC Tom.bio - Environment"))
+        Env.setWindowTitle(_translate("Env", "FSC QGIS plugin - Environment"))
         self.groupBox.setTitle(_translate("Env", "External environment file"))
         self.pbExternalEnvFile.setToolTip(_translate("Env", "<html><head/><body><p>Set from an \'external\' environment file. The internal environment file is lost whenever the plugin is updated. To avoid the nuisance caused by this, you can keep your environment file somewhere safe on your computer and just link to it from here.</p></body></html>"))
         self.pbExternalEnvFile.setText(_translate("Env", "Browse"))

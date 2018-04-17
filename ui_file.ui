@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>FSC Tom.bio - Information</string>
+   <string>FSC QGIS plugin - Information</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

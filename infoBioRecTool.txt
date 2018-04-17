@@ -1,4 +1,0 @@
-Batch map image generation is occasionally slow with certain backgrounds - I've noticed it when using a particular WMS (web mapping service) to provide background mapping. If you are finding map or image generation slow, use this workflow: first get your map background just right (using WMS if you like) and then use the QGIS facility to save the map as a raster image. Now turn off all your background layers and load the single raster image you just created - it will look exactly the same but will avoid calls to WMS during map and image generation.
-
-If you are generating *very* large numbers of map layers, the progress bar may freeze, but the function is unaffected. I've noticed this when generating 400 maps layers together - the progress bar freezes at 20% (i.e. after about 80 layers), but all layers are generated without a problem.
-

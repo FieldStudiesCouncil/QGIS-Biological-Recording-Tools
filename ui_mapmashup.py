@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Mapmashup(object):
     def setupUi(self, Mapmashup):
         Mapmashup.setObjectName("Mapmashup")
-        Mapmashup.resize(327, 446)
+        Mapmashup.resize(327, 427)
         self.verticalLayout = QtWidgets.QVBoxLayout(Mapmashup)
         self.verticalLayout.setObjectName("verticalLayout")
         self.hlImageFolder = QtWidgets.QHBoxLayout()
@@ -226,15 +226,13 @@ class Ui_Mapmashup(object):
         self.verticalLayout.addItem(spacerItem1)
         self.groupBox.raise_()
         self.cbApplyStyle.raise_()
-        self.butGithub.raise_()
-        self.butHelp.raise_()
 
         self.retranslateUi(Mapmashup)
         QtCore.QMetaObject.connectSlotsByName(Mapmashup)
 
     def retranslateUi(self, Mapmashup):
         _translate = QtCore.QCoreApplication.translate
-        Mapmashup.setWindowTitle(_translate("Mapmashup", "TomBio"))
+        Mapmashup.setWindowTitle(_translate("Mapmashup", "FSC QGIS plugin"))
         self.leImageFolder.setToolTip(_translate("Mapmashup", "Path of folder for temp image files"))
         self.butBrowseImg.setToolTip(_translate("Mapmashup", "Browse for image folder"))
         self.butBrowseImg.setText(_translate("Mapmashup", "Image folder"))

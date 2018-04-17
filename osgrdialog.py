@@ -4,7 +4,7 @@
  OsgrDialog
                                  A QGIS plugin
  OS grid reference tools
- FSC Tomorrow's Biodiversity productivity tools for biological recorders
+ FSC QGIS plugin for biological recorders
                              -------------------
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council
@@ -100,7 +100,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.cboPrecisionChanged(0)
   
   def helpFile(self):
-        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisosgrtool"))
+        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisosgrtool"))
 
   def github(self):
         QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))

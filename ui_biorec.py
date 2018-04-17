@@ -463,7 +463,7 @@ class Ui_Biorec(object):
 
     def retranslateUi(self, Biorec):
         _translate = QtCore.QCoreApplication.translate
-        Biorec.setWindowTitle(_translate("Biorec", "TomBio"))
+        Biorec.setWindowTitle(_translate("Biorec", "FSC QGIS plugin"))
         self.butBrowse.setToolTip(_translate("Biorec", "Browse for CSV file"))
         self.butBrowse.setText(_translate("Biorec", "Create new source layer from CSV"))
         self.lblLayer.setText(_translate("Biorec", "Source layer"))

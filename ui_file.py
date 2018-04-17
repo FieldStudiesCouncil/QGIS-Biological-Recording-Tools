@@ -31,6 +31,6 @@ class Ui_File(object):
 
     def retranslateUi(self, File):
         _translate = QtCore.QCoreApplication.translate
-        File.setWindowTitle(_translate("File", "FSC Tom.bio - Information"))
+        File.setWindowTitle(_translate("File", "FSC QGIS plugin - Information"))
         self.pbClose.setText(_translate("File", "Close"))
 

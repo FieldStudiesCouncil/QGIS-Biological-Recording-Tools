@@ -1,7 +1,6 @@
 #/***************************************************************************
-# TomBio
 #
-# FSC Tomorrow's Biodiversity productivity tools for biological recorders
+# FSC QGIS plugin
 #                             -------------------
 #        begin                : 2014-02-17
 #        copyright            : (C) 2014 by Rich Burkmar, Field Studies Council

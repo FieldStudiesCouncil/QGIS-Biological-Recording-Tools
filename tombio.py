@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- TomBio
                                  A QGIS plugin
- FSC Tomorrow's Biodiversity tools for biological recorders
+ FSC QGIS Plugin for biological recorders
                               -------------------
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council
@@ -72,7 +71,7 @@ class TomBio:
         # OSGR tool
         icon_path = os.path.join(os.path.dirname(__file__),'images/osgrPoly.png')
         self.actionOsgr = QAction(QIcon(icon_path), u"OSGR Tool", self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&TomBio Tools", self.actionOsgr)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionOsgr)
         self.actionOsgr.triggered.connect(self.showOsgrDialog)
         self.toolbar.addAction(self.actionOsgr)
         self.dwOsgr = None
@@ -80,7 +79,7 @@ class TomBio:
         # Display Biological Records Tool
         icon_path = os.path.join(os.path.dirname(__file__),'images/maptaxa.png')
         self.actionBiorec = QAction(QIcon(icon_path), u"Biological Records Tool", self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&TomBio Tools", self.actionBiorec)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionBiorec)
         self.actionBiorec.triggered.connect(self.showBiorecDialog)
         self.toolbar.addAction(self.actionBiorec)
         self.dwBiorec = None
@@ -88,7 +87,7 @@ class TomBio:
         # NBN Tool
         icon_path = os.path.join(os.path.dirname(__file__),'images/nbn.png')
         self.actionNbn = QAction(QIcon(icon_path), u"NBN Atlas Tool", self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&TomBio Tools", self.actionNbn)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionNbn)
         self.actionNbn.triggered.connect(self.showNbnDialog)
         self.toolbar.addAction(self.actionNbn)
         self.dwNbn = None
@@ -96,7 +95,7 @@ class TomBio:
         # Map Mashup Tool
         icon_path = os.path.join(os.path.dirname(__file__),'images/mashup.png')
         self.actionMapMash = QAction(QIcon(icon_path), u"Map Mashup Tool", self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&TomBio Tools", self.actionMapMash)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionMapMash)
         self.actionMapMash.triggered.connect(self.showMapmashupDialog)
         self.toolbar.addAction(self.actionMapMash)
         self.dwMapmashup = None
@@ -104,13 +103,13 @@ class TomBio:
         # Help dialog
         icon_path = os.path.join(os.path.dirname(__file__),'images/info.png')
         self.actionHelp = QAction(QIcon(icon_path), u"Help and Info on FSC QGIS plugin", self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&TomBio Tools", self.actionHelp)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionHelp)
         self.actionHelp.triggered.connect(self.showHelp)
         self.toolbar.addAction(self.actionHelp)
         
         # Environment Options
         self.actionEnv = QAction(u"Environment Options", self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&TomBio Tools", self.actionEnv)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionEnv)
         self.actionEnv.triggered.connect(self.showEnvDialog)
         self.guiEnv = None
 
@@ -120,7 +119,7 @@ class TomBio:
         
     def showOsgrDialog(self):
         if self.dwOsgr is None:
-            self.dwOsgr = custDockWidget("FSC Tom.bio - OSGR Tool", self.iface.mainWindow())
+            self.dwOsgr = custDockWidget("FSC - OSGR Tool", self.iface.mainWindow())
             self.guiOsgr = osgrdialog.OsgrDialog(self.iface, self.dwOsgr)
             self.dwOsgr.setWidget(self.guiOsgr)
             self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dwOsgr)
@@ -134,7 +133,7 @@ class TomBio:
         
     def showNbnDialog(self):
         if self.dwNbn is None:
-            self.dwNbn = custDockWidget("FSC Tom.bio - NBN Atlas Tool", self.iface.mainWindow())
+            self.dwNbn = custDockWidget("FSC - NBN Atlas Tool", self.iface.mainWindow())
             self.guiNbn = nbndialog.NBNDialog(self.iface, self.dwNbn)
             self.dwNbn.setWidget(self.guiNbn)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwNbn)
@@ -150,7 +149,7 @@ class TomBio:
             
     def showMapmashupDialog(self):
         if self.dwMapmashup is None:
-            self.dwMapmashup = custDockWidget("FSC Tom.bio - Map Mashup Tool", self.iface.mainWindow())
+            self.dwMapmashup = custDockWidget("FSC - Map Mashup Tool", self.iface.mainWindow())
             self.guiMapmashup = mapmashupdialog.MapmashupDialog(self.iface, self.dwMapmashup)
             self.dwMapmashup.setWidget(self.guiMapmashup)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwMapmashup)
@@ -159,7 +158,7 @@ class TomBio:
             
     def showBiorecDialog(self):
         if self.dwBiorec is None:
-            self.dwBiorec = custDockWidget("FSC Tom.bio - Biological Records Tool", self.iface.mainWindow())
+            self.dwBiorec = custDockWidget("FSC - Biological Records Tool", self.iface.mainWindow())
             self.guiBiorec = biorecdialog.BiorecDialog(self.iface, self.dwBiorec)
             self.dwBiorec.setWidget(self.guiBiorec)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwBiorec)
@@ -167,7 +166,7 @@ class TomBio:
             self.dwBiorec.setVisible(True)
             
             #self.dwBiorec.setVisible(False)
-            #self.dwBiorec = custDockWidget("FSC Tom.bio - Biological Records Tool", self.iface.mainWindow())
+            #self.dwBiorec = custDockWidget("FSC - Biological Records Tool", self.iface.mainWindow())
             #self.guiBiorec = BiorecDialog(self.iface, self.dwBiorec)
             #self.dwBiorec.setWidget(self.guiBiorec)
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwBiorec)
@@ -180,12 +179,12 @@ class TomBio:
             
     def unload(self):
         # Remove the plugin menu item
-        self.iface.removePluginMenu(u"&TomBio Tools", self.actionOsgr)
-        self.iface.removePluginMenu(u"&TomBio Tools", self.actionBiorec)
-        self.iface.removePluginMenu(u"&TomBio Tools", self.actionNbn)
-        self.iface.removePluginMenu(u"&TomBio Tools", self.actionMapMash)
-        self.iface.removePluginMenu(u"&TomBio Tools", self.actionEnv)
-        self.iface.removePluginMenu(u"&TomBio Tools", self.actionHelp)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionOsgr)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionBiorec)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionEnv)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionHelp)
         
         #Remove the toolbar
         del self.toolbar

@@ -1,18 +1,15 @@
 # Default directories for Map Mashup tool
 # Uncomment and replace paths with those relevant to your own file system
-
 #mapmashup.imgfolder: C:\Users\fsc\Documents\Temp
 #mapmashup.regfolder: C:\Users\fsc\Documents\GIS Datafiles\MashupReg
 
 # Default directories for Biorec tool
 # Uncomment and replace paths with those relevant to your own file system
-
 #biorec.csvfolder: C:\Users\fsc\Documents\GIS Demo
 #biorec.atlasimagefolder: C:\Users\fsc\Documents\Temp\images
 #biorec.stylefilefolder: C:\Users\fsc\Documents\Temp\Styles
 
 # Biorec data specification column names
-
 biorec.gridrefcol: GridRef
 biorec.gridrefcol: Gridref
 biorec.taxoncol: ScientificName
@@ -24,6 +21,10 @@ biorec.abundancecol: Abundance
 biorec.abundancecol: Quantity
 biorec.scientificnames: True
 biorec.maketree: True
+
+# Default directory for the NBN tool
+# Uncomment and replace paths with those relevant to your own file system
+#nbn.downloadfolder: C:\Users\richardb\Documents\Work\Temp
 
 # Offsets for grid maps from points and grid generation
 # The example offsets below commonly applied to 5 km grid on

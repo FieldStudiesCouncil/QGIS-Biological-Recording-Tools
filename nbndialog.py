@@ -3,7 +3,7 @@
 /***************************************************************************
  NBNDialog
                                  A QGIS plugin
- FSC Tomorrow's Biodiversity productivity tools for biological recorders
+ FSC QGIS plugin for biological recorders
                              -------------------
         begin                : 2014-02-17
         copyright            : (C) 2014 by Rich Burkmar, Field Studies Council
@@ -69,14 +69,18 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         
         self.pbSpeciesWMS.clicked.connect(self.WMSFetchSpecies)
         self.butTaxonSearch.clicked.connect(self.taxonSearch)
+        self.leTaxonSearch.returnPressed.connect(self.taxonSearch)
         self.butClearLast.clicked.connect(self.removeMap)
         self.butClear.clicked.connect(self.removeMaps)
         self.butHelp.clicked.connect(self.helpFile)
         self.butGithub.clicked.connect(self.github)
         #self.pbRefreshDatasets.clicked.connect(self.refreshDatasets)
         self.pbRefreshDatasets.clicked.connect(self.refreshProviders)
+        self.pbRefreshSpeciesLists.clicked.connect(self.refreshSpeciesLists)
         self.pbUncheckAll.clicked.connect(self.uncheckAll)
+        self.pbUncheckAllSpeciesList.clicked.connect(self.uncheckAllSpeciesList)
         self.twProviders.itemClicked.connect(self.providersClick)
+        self.twSpeciesLists.itemClicked.connect(self.speciesListClick)
         self.twTaxa.itemClicked.connect(self.taxaTwClick)
         self.cbStartYear.stateChanged.connect(self.checkFilters)
         self.cbEndYear.stateChanged.connect(self.checkFilters)
@@ -85,8 +89,11 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.rbGR.toggled.connect(self.bufferEnableDisable)
         self.pbDownload.clicked.connect(self.downloadNBNObservations)
         self.pbClearFilters.clicked.connect(self.clearAllFilters)
+        self.pbClearTaxonFilters.clicked.connect(self.clearTaxonFilters)
         self.pbBrowseNbnOutputFolder.clicked.connect(self.browseNbnOutputFolder)
         self.twDownloaded.itemDoubleClicked.connect(self.downloadClicked)
+        self.twTaxa.itemDoubleClicked.connect(self.selectTaxa)
+        self.lwTaxa.itemDoubleClicked.connect(self.removeTaxa)
         self.cbShowAllMetadata.stateChanged.connect(self.showHideMetadataColumns)
         
         # Map canvas events
@@ -120,7 +127,9 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoNBNTool.txt")
         self.readProviderFile()
+        self.readSpeciesListFile()
         self.datasetSelectionChanged()
+        self.speciesListSelectionChanged()
         self.checkFilters()
         self.bufferEnableDisable()
         self.lblMetadata.setText("")
@@ -190,7 +199,17 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 twiDataset.setCheckState(0, Qt.Unchecked)
             
         self.datasetSelectionChanged()
-        
+
+    def uncheckAllSpeciesList(self):
+
+        for iListType in range(self.twSpeciesLists.topLevelItemCount()):
+            twiListType = self.twSpeciesLists.topLevelItem(iListType)
+            for iSpeciesList in range(twiListType.childCount()):
+                twiSpeciesList = twiListType.child(iSpeciesList)
+                twiSpeciesList.setCheckState(0, Qt.Unchecked)
+            
+        self.speciesListSelectionChanged()
+
     def bufferEnableDisable(self):
         if self.rbGR.isChecked():
             self.sbEasting.setEnabled(False)
@@ -290,6 +309,23 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             
         self.checkFilters()
 
+    def speciesListSelectionChanged(self):
+        
+        iChecked = 0
+        for iType in range(self.twSpeciesLists.topLevelItemCount()):
+            twiType = self.twSpeciesLists.topLevelItem(iType)
+            for iList in range(twiType.childCount()):
+                twiList = twiType.child(iList)
+                if twiList.checkState(0) == Qt.Checked:
+                    iChecked += 1
+                    
+        if iChecked == 0:
+            self.lblSpeciesListFilter.setText("No species lists selected.")
+        else:
+            self.lblSpeciesListFilter.setText(str(iChecked) + " species lists selected.")
+            
+        self.checkFilters()
+
     def refreshProviders(self):
 
         self.twProviders.clear()
@@ -311,6 +347,27 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         # Rebuild dataset tree
         self.readProviderFile()
         self.datasetSelectionChanged()
+
+    def refreshSpeciesLists(self):
+
+        self.twSpeciesLists.clear()
+        
+        url = 'https://lists.nbnatlas.org/ws/speciesList?max=1000'
+        res = self.restRequest(url)
+
+        if res is None:
+            return
+
+        responseText = res.data().decode('utf-8')
+
+        # Write the json data to a file
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "species-lists.json"))
+        with open(datafile, 'w') as jsonfile:
+            jsonfile.write(responseText)
+            
+        # Rebuild dataset tree
+        self.readSpeciesListFile()
+        self.speciesListSelectionChanged()
          
     def providersClick(self, twi):
 
@@ -365,6 +422,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         self.datasetSelectionChanged()
 
+    def speciesListClick(self):
+
+        self.speciesListSelectionChanged()
+
     def readProviderFile(self):
            
         datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "providers.json"))
@@ -392,6 +453,51 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         self.twProviders.sortItems(0, Qt.AscendingOrder)
 
+    def readSpeciesListFile(self):
+
+        datafile = self.pathPlugin % ("NBNCache%s%s" % (os.path.sep, "species-lists.json"))
+        if not os.path.isfile(datafile):
+            self.infoMessage("NBN Atlas species list file not found.")
+            return
+
+        try:
+            with open(datafile) as f:
+                jsonData = json.load(f)
+        except:
+            self.warningMessage("NBN Atlas data species list file failed to load. Use the refresh button to generate a new one.")
+            return
+
+        #List types are initialised to known list types so that order can be specified
+        knownListTypes = ["CONSERVATION_LIST", "SENSITIVE_LIST", "LOCAL_LIST", "COMMON_HABITAT"]
+        excludeListTypes = ["TEST"]
+        readListTypes = []
+        listTypes = []
+        for speciesList in jsonData["lists"]:
+            if not speciesList["listType"] in readListTypes and not speciesList["listType"] in excludeListTypes:
+                readListTypes.append(speciesList["listType"])
+
+        for speciesList in knownListTypes:
+            if speciesList in readListTypes:
+                listTypes.append(speciesList)
+
+        for speciesList in readListTypes:
+            if not speciesList in listTypes:
+                listTypes.append(speciesList)
+
+        for listType in listTypes:
+            twiListType = QTreeWidgetItem(self.twSpeciesLists)
+            twiListType.setText(0, listType.replace("_", " ").capitalize())
+
+        for speciesList in jsonData["lists"]:
+            listType=speciesList["listType"].replace("_", " ").capitalize()
+            matchItems = self.twSpeciesLists.findItems(listType, Qt.MatchExactly, 0)
+            if len(matchItems) == 1:
+                twiList = QTreeWidgetItem(matchItems[0])
+                twiList.setText(0, speciesList["listName"])
+                twiList.setText(1, speciesList["dataResourceUid"])
+                twiList.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiList.setCheckState(0, Qt.Unchecked) 
+
     def helpFile(self):
 
         ##iface.layerTreeView().setSelectionMode( QAbstractItemView.MultiSelection )
@@ -408,7 +514,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         
         #return
         
-        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisnbnatlastool"))
+        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisnbnatlastool"))
 
         #self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
         #self.guiFile.setVisible(True)
@@ -501,6 +607,13 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             except:
                 tFamily = ""
 
+            try:
+                tGenus = jTaxon["genus"]
+                if tFamily is None:
+                    tGenus = ""
+            except:
+                tGenus = ""
+
             if 'commonNameSingle' in jTaxon and jTaxon["commonNameSingle"] != "":
                 tName = jTaxon["name"] + " (" + jTaxon["commonNameSingle"] + ")"
             else:
@@ -514,6 +627,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 twiKingdom.setForeground(0, lightGrey)
                 twiKingdom.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
                 twiKingdom.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                try:
+                    twiKingdom.setToolTip(0, jTaxon["kingdomGuid"])
+                except:
+                    pass
                 #Add to dictionary
                 treeNodes[tKingdom] = twiKingdom
             elif tKingdom != "":
@@ -529,6 +646,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 twiPhylum.setForeground(0, lightGrey)
                 twiPhylum.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
                 twiPhylum.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                try:
+                    twiPhylum.setToolTip(0, jTaxon["phylumGuid"])
+                except:
+                    pass
                 #self.twTaxa.addTopLevelItem(twiPhylum)
                 #Add to dictionary
                 treeNodes[tPhylum] = twiPhylum
@@ -545,6 +666,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 twiClass.setForeground(0, lightGrey)
                 twiClass.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
                 twiClass.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                try:
+                    twiClass.setToolTip(0, jTaxon["classGuid"])
+                except:
+                    pass
                 #self.twTaxa.addTopLevelItem(twiClass)
                 #Add to dictionary
                 treeNodes[tClass] = twiClass
@@ -561,6 +686,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 twiOrder.setForeground(0, lightGrey)
                 twiOrder.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
                 twiOrder.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                try:
+                    twiOrder.setToolTip(0, jTaxon["orderGuid"])
+                except:
+                    pass
                 #self.twTaxa.addTopLevelItem(twiOrder)
                 #Add to dictionary
                 treeNodes[tOrder] = twiOrder
@@ -577,6 +706,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 twiFamily.setForeground(0, lightGrey)
                 twiFamily.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
                 twiFamily.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                try:
+                    twiFamily.setToolTip(0, jTaxon["familyGuid"])
+                except:
+                    pass
                 #self.twTaxa.addTopLevelItem(twiFamily)
                 #Add to dictionary
                 treeNodes[tFamily] = twiFamily
@@ -585,13 +718,33 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             if tFamily != "":
                 twiParent = twiFamily   
 
+            if tGenus != "" and not tGenus in(treeNodes.keys()):
+                #Create a new top level tree item for the taxon group
+                twiGenus = QTreeWidgetItem(twiParent)
+                twiGenus.setText(0, tGenus + ' (Genus)')
+                twiGenus.setExpanded(True)
+                twiGenus.setForeground(0, lightGrey)
+                twiGenus.setFlags(Qt.ItemIsEnabled) #By resetting the flags, we take off default isSelectable
+                twiGenus.setIcon(0, QIcon( self.pathPlugin % "images/taxonomy20x16.png" ))
+                try:
+                    twiGenus.setToolTip(0, jTaxon["genusGuid"])
+                except:
+                    pass
+                #Add to dictionary
+                treeNodes[tGenus] = twiGenus
+            elif tGenus != "":
+                twiGenus = treeNodes[tGenus]
+            if tGenus != "":
+                twiParent = twiGenus   
+
             #Create a child tree item for the preferred TVK group
             twiPTVK = QTreeWidgetItem(twiParent)
             twiPTVK.setData(0, Qt.ToolTipRole, jTaxon["guid"])
             twiPTVK.setText(0, tName)
             twiPTVK.setIcon(0, QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
-            twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-            twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
+            #twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            #twiPTVK.setFlags(Qt.ItemIsEnabled)
+            #twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number 
             twiPTVK.setExpanded(True)
             #self.twTaxa.addTopLevelItem(twiPTVK)
             #Add to dictionary
@@ -613,43 +766,60 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 if twiDataset.checkState(0) == Qt.Checked:
                     return True
         return False
+
+    def selectedSpeciesLists(self):
+        speciesLists = []
+        for iListType in range(self.twSpeciesLists.topLevelItemCount()):
+            twiListType = self.twSpeciesLists.topLevelItem(iListType)
+            for iSpeciesList in range(twiListType.childCount()):
+                twiSpeciesList = twiListType.child(iSpeciesList)
+                if twiSpeciesList.checkState(0) == Qt.Checked:
+                    speciesLists.append(twiSpeciesList.text(1))
+        
+        if len(speciesLists) > 0:
+            return speciesLists
+        else:
+            return None
                        
     def getSelectedTVK(self):
-       
-        iCount = 0
 
-        if len(self.treeNodesExact) > 0:
-            for twiKey in self.treeNodesExact:
-                if self.treeNodesExact[twiKey].checkState(0) == Qt.Checked:
-                    selectedTVK = self.treeNodesExact[twiKey].data(0, Qt.ToolTipRole)
-                    iCount += 1
-                    break
-        if len(self.treeNodesFuzzy) > 0:
-            for twiKey in self.treeNodesFuzzy:
-                if self.treeNodesFuzzy[twiKey].checkState(0) == Qt.Checked:
-                    selectedTVK = self.treeNodesFuzzy[twiKey].data(0, Qt.ToolTipRole)
-                    iCount += 1
-                    break
-        
-        #Check item in treeview is selected
-        if iCount == 0:
+        if self.lwTaxa.count() == 0:
+            self.logMessage("No taxa selected")
             return None
         else:
-            return selectedTVK
-        
+            i = 0
+            tvks = []
+            while i < self.lwTaxa.count():
+                lwi = self.lwTaxa.item(i)
+                tvks.append(lwi.toolTip())
+                i += 1
+
+            self.logMessage("Taxa selected: " + str(len(tvks)))
+            return tvks
+
     def makeFilterQuery(self):
 
         #Filters
         fq = ''
 
         #Taxon
-        if not self.getSelectedTVK() is None:
+        tvks = self.getSelectedTVK()
+        if not tvks is None:
             if fq == '':
                 fq = "&fq="
             else:
                 fq = fq + '+AND+'
-            fq = fq + 'lsid:' + self.getSelectedTVK()
-       
+
+            if len(tvks) == 1:
+                fq = fq + 'lsid:' + tvks[0]
+            else:
+                fq = fq + '(lsid:' + tvks[0]
+                i = 1
+                while i < len(tvks):
+                    fq = fq + '+OR+lsid:' + tvks[i]
+                    i += 1
+                fq = fq + ')'
+
         #Year filter
         startYear = None
         endYear = None
@@ -674,6 +844,23 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
                 fq = fq + '+AND+'
             fq = fq + 'year:[' + str(startYear) + '+TO+' + str(endYear) + ']'
 
+
+        #Species lists
+        if not self.selectedSpeciesLists() is None:
+            if fq == '':
+                fq = "&fq="
+            else:
+                fq = fq + '+AND+'
+            guids = self.selectedSpeciesLists()
+            if len(guids) == 1:
+                fq = fq + 'species_list_uid:' + guids[0]
+            else:
+                fq = fq + '(species_list_uid:' + guids[0]
+                i = 1
+                while i < len(guids):
+                    fq = fq + '+OR+species_list_uid:' + guids[i]
+                    i += 1
+                fq = fq + ')'
 
         #Dataset providers and datasets
         iDatasetCount = 0
@@ -731,6 +918,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             fq = fq + fqd
 
         #Return filter query
+        self.logMessage("fq: " + fq)
         return fq
 
     def getLayerName(self):
@@ -738,10 +926,13 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         layerName = ""
 
         #Taxon
-        guid = self.getSelectedTVK()
-        if not guid is None:
-            taxon = self.taxonDetails(guid)
-            layerName += " " + taxon["taxonConcept"]["nameString"]
+        tvks = self.getSelectedTVK()
+        if not tvks is None:
+            if len(tvks) == 1:
+                taxon = self.taxonDetails(tvks[0])
+                layerName += " " + taxon["taxonConcept"]["nameString"]
+            else:
+                layerName += " multiple taxa"
 
         #Year filters
         startYear = None
@@ -783,6 +974,14 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         elif len(datasets) > 1:
             layerName += " datasets-several"
 
+        #Species lists
+        if not self.selectedSpeciesLists() is None:
+            guids = self.selectedSpeciesLists()
+            if len(guids) == 1:
+                layerName += " list-" + guids[0]
+            else:
+                layerName += " lists-several"
+
         #Polygon
         polySearch = self.getSelectedFeatureWKT()
         if not polySearch is None:
@@ -792,22 +991,27 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
     def WMSFetchSpecies(self):
 
-        guid = self.getSelectedTVK()
-        if guid is None:
+        tvks = self.getSelectedTVK()
+        if tvks is None:
             self.iface.messageBar().pushMessage("Info", "You must first specify a taxon filter for a WMS map layer.", level=Qgis.Info)
             return
 
-        #Get full taxon details for the selected guid
-        taxon = self.taxonDetails(guid)
-        taxonName = taxon["taxonConcept"]["nameString"]
-        taxonRank = taxon["taxonConcept"]["rankString"]
+        if len(tvks) > 1:
+            self.iface.messageBar().pushMessage("Info", "You must only specify one taxon filter for a WMS map layer.", level=Qgis.Info)
+            return
 
         #Check that taxon rank is allowable given current limitations of Atlas WMS
         allowedRanks = ["kingdom", "phylum", "class", "order", "family", "genus", "species"]
+
+        tvk=tvks[0]
+        taxon = self.taxonDetails(tvk)
+        taxonName = taxon["taxonConcept"]["nameString"]
+        taxonRank = taxon["taxonConcept"]["rankString"]
+
         if not taxonRank in allowedRanks:
             self.infoMessage(("The taxonomic rank - " + taxonRank + " - of " + taxonName + " is not one "
-                              "which can be used with the NBN Atlas' current implementation of WMS "
-                              "from within QGIS. Allowed ranks include, family, genus and species"))
+                                "which can be used with the NBN Atlas' current implementation of WMS "
+                                "from within QGIS. Allowed ranks include, family, genus and species"))
             return
 
         #parentGuid = taxon["taxonConcept"]["parentGuid"]
@@ -1071,8 +1275,8 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             return
 
         #A taxon or dataset filter must be specified
-        if self.getSelectedTVK() is None and not self.datasetsSelected() and self.getSelectedFeatureWKT() is None:
-            self.iface.messageBar().pushMessage("Info", "First specify one or more of taxon, dataset or polygon filters.", level=Qgis.Info)
+        if self.getSelectedTVK() is None and self.selectedSpeciesLists() is None and not self.datasetsSelected() and self.getSelectedFeatureWKT() is None:
+            self.iface.messageBar().pushMessage("Info", "First specify one or more of taxon, dataset, species list or polygon filters.", level=Qgis.Info)
             return
 
         # Update filter display
@@ -1102,6 +1306,9 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
 
         self.restRequest(endpoint, None, callType="download", downloadInfo={"twi": twi, "csv": fileName, "reply": None})
 
+    def clearTaxonFilters(self):
+        self.lwTaxa.clear()
+
     def clearAllFilters(self):
 
         #Date filters
@@ -1115,12 +1322,15 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         #    self.treeNodesFuzzy[twiKey].setCheckState(0, Qt.Unchecked)
         
         self.leTaxonSearch.setText("")
-        self.twTaxa.clear()
+        self.lwTaxa.clear()
         self.treeNodesExact = {} 
         self.treeNodesFuzzy = {} 
 
         #Dataset filter
         self.uncheckAll()
+
+        #Specieslist filter
+        self.uncheckAllSpeciesList()
 
         #Polygon
         if self.getSelectedFeatureWKT() is not None:
@@ -1139,6 +1349,8 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.cbIndTaxon.setChecked(self.getSelectedTVK() is not None)
         # Dataset
         self.cbIndDataset.setChecked(self.datasetsSelected())   
+        # Species List
+        self.cbIndSpeciesList.setChecked(self.selectedSpeciesLists() is not None)
         # polygon
         self.cbIndPolygon.setChecked(self.getSelectedFeatureWKT() is not None)     
  
@@ -1316,6 +1528,22 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             twiDownload.setIcon(0, QIcon( self.pathPlugin % "images/cross.png" ))
         finally:
             reply.deleteLater()
+
+    def selectTaxa(self, twi, iCol):
+
+        if len(twi.toolTip(0)) > 0:
+            lwiSelected = QListWidgetItem(self.lwTaxa)
+            lwiSelected.setText(twi.text(0))
+            lwiSelected.setIcon(QIcon( self.pathPlugin % "images/Taxon20x16.png" ))
+            lwiSelected.setToolTip(twi.toolTip(0))
+
+        self.checkFilters()
+       
+    def removeTaxa(self, lwi):
+        iRow = self.lwTaxa.row(lwi)
+        self.lwTaxa.takeItem(iRow)
+
+        self.checkFilters()
 
     def downloadClicked(self, twi, iCol):
 

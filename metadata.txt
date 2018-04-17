@@ -13,7 +13,7 @@
 [general]
 name=TomBio tools
 qgisMinimumVersion=3.0
-description=FSC Tomorrow's Biodiversity tools for biological recorders.
+description=FSC QGIS Plugin for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at 
     biological recorders. It streamlines many of the tasks commonly  
 	required from GIS by biological recorders including viewing NBN  
@@ -24,15 +24,31 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	context.
 version=3.0.0
 author=Rich Burkmar, Field Studies Council
-email=richardb@field-studies-council.org
+email=r.burkmar@field-studies-council.org
 
 # end of mandatory metadata
 
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-
-changelog=2.8.0
+changelog=3.0.0
+    - Refactored to be compatible with QGIS v3.
+    - Added automatic batch map image (or PDF) generation via composer
+    for the biological records tool. (Previously this required manual 
+    intervention - a button click - to produce each map.)
+    - Major improvements to NBN tool including exposing metadata from
+    NBN downloads (e.g. data providers), adding a new species list
+    filter option and ability to filter on multiple selected taxa. 
+    Also several other minor usability enhancements to this tool.
+    - Added automatic saving of current style in QML style file
+    when generating permanent shapefiles from temporary shapefiles
+    in biological records tool.
+    - Added help buttons on individual tools to link directly to
+    relevant help web pages.
+    - Added a button on each tool to go directly to GitHub repository
+    where issues can be raised.
+    - Fixed some minor reported bugs.
+  2.8.0
 	- Complete replacement of NBN Tool with NBN Atlas Tool. The former
 	depended on NBN Gateway web services which were retired at the end
 	March 2017 when the NBN switched from the Gateway to the new Atlas
@@ -55,7 +71,7 @@ changelog=2.8.0
 	- Added the ability to offset user-defined grids (OSGB Tool)
 	and atlas maps (BioRec Tool) - GitHub issue #5. Offsets are
 	specified in the environment file (see online documentation
-	www.tombio.uk/qgisenvoptions).
+	www.fscbiodiversity.uk/qgisenvoptions).
   2.6.2
     - Fixes a problem with date filters not working and causing error.
   2.6.1
@@ -232,7 +248,7 @@ changelog=2.8.0
 # tags are comma separated with spaces allowed
 tags=biological records, NBN, OSGB, Ordnance Survey, UK Species Inventory
 
-homepage=http://www.tombio.uk/qgisplugin
+homepage=http://www.fscbiodiversity.uk/qgisplugin
 tracker=https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues
 repository=https://github.com/burkmarr/QGIS-Biological-Recording-Tools
 icon=icon.png
