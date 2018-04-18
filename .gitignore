@@ -49,10 +49,11 @@ Temporary Items
 *.pyproj
 *.pyc
 *.vs
-.vs
+.vs/*
 #resources_rc.py
 iniBioRec.txt
 #ui_*.py
 
 # =========================
+
 
