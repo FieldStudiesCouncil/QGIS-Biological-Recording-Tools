@@ -23,6 +23,7 @@ import math
 import re
 from qgis.core import *
 from . import envmanager
+# -*- coding: utf-8 -*-
 
 class osgr:
 
@@ -274,6 +275,8 @@ class osgr:
         return QgsGeometry.fromPolygonXY([points])
             
     def checkGR(self, grLocate):
+
+        grLocate = re.sub(r'\W+', '', grLocate)
     
         if grLocate.__len__() < 2:
             return (0, "Invalid grid reference - must be at least two characters")

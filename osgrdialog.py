@@ -64,6 +64,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     # Connect the controls to their events
     self.cbGROnClick.clicked.connect(self.cbGROnClickClicked)
     self.cbGRShowSquare.clicked.connect(self.cbGRShowSquareClicked)
+    self.cbGRPan.clicked.connect(self.cbGRPanClicked)
     self.cboPrecision.currentIndexChanged.connect(self.cboPrecisionChanged)
     self.butLocate.clicked.connect(self.butLocateClicked)
     self.butGridTool.clicked.connect(self.butGridToolClicked)
@@ -267,7 +268,10 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
         rect = QgsRectangle(ll, ur)
         centre = QgsPointXY(res[0], res[1])
         #rect = QgsRectangle(centre, centre)
+        setzoom = self.iface.mapCanvas().scale()
         self.canvas.setExtent(rect)
+        if self.cbGRPan.isChecked():
+            self.iface.mapCanvas().zoomScale(setzoom)
         self.canvas.refresh()
         
         if precision == 1:
@@ -333,6 +337,10 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
   def cbGRShowSquareClicked(self):
     self.clearMapGraphics()
+
+  def cbGRPanClicked(self):
+    self.clearMapGraphics()
+
         
   def clearMapGraphics(self):
     # Delete any rubberband graphics
@@ -346,6 +354,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     if (tool != self.clickTool):
         self.cbGROnClick.setChecked(False)
         self.cbGRShowSquare.setChecked(False)
+        self.cbGROnClick.setChecked(False)
         #pass
     if (tool != self.dragTool):
         self.butGridTool.setChecked(False)
