@@ -23,6 +23,7 @@ import math
 import re
 from qgis.core import *
 from . import envmanager
+# -*- coding: utf-8 -*-
 
 class osgr:
 
@@ -307,6 +308,8 @@ class osgr:
         return QgsGeometry.fromPolygonXY([points])
             
     def checkGR(self, grLocate):
+
+        grLocate = re.sub(r'\W+', '', grLocate)
     
         reIrish100kmGR = re.compile('^[a-zA-Z]$')
         reOS100kmGR = re.compile('^[a-zA-Z][a-zA-Z]$')
