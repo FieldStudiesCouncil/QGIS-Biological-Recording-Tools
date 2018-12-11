@@ -245,7 +245,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.osgrLayer.boxDragged(xMin, yMin, xMax, yMax, selectedFeatures, self.isOSGB(), trans)
      
   def butLocateClicked(self, pos):
-  
+
     # The functionality to locate by grid reference 
     # is only available in map canvas is OSGB
     if not self.isOSGB(True):
