@@ -9,14 +9,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>683</width>
-    <height>1100</height>
+    <width>245</width>
+    <height>292</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+  <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
     <widget class="QComboBox" name="cboPrecision">
      <property name="toolTip">
@@ -116,51 +116,8 @@
      <property name="title">
       <string>Grid Ref at mouse cursor</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="cbGROnClick">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Update grid reference only when map is clicked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>On click</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QCheckBox" name="cbGRShowSquare">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show grid square corresponding to grid reference. (For UK National Grid only.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>Show grid square</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="cbGRPan">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pan to OS grid rather than zoom to when the Locate button is clicked&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>Pan to</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3">
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="0" column="0" colspan="2">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QLineEdit" name="leOSGR">
@@ -173,41 +130,87 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="butLocate">
+         <widget class="QPushButton" name="butZoom">
           <property name="minimumSize">
            <size>
-            <width>75</width>
+            <width>40</width>
             <height>23</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>75</width>
+            <width>40</width>
             <height>23</height>
            </size>
           </property>
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Locate the map at the specified grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Zoom the map to the specified grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>Locate</string>
+           <string>Zoom</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="butPan">
+          <property name="minimumSize">
+           <size>
+            <width>40</width>
+            <height>22</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>40</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pan the map to the specified grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Pan</string>
           </property>
          </widget>
         </item>
        </layout>
       </item>
-      <item row="0" column="3">
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>120</height>
-         </size>
-        </property>
-       </spacer>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QCheckBox" name="cbGROnClick">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Update grid reference only when map is clicked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>On click</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cbGRShowSquare">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show grid square corresponding to grid reference. (For UK National Grid only.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Show grid square</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
