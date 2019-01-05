@@ -20,14 +20,20 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=3.0.0
+version=3.1.0
 author=Rich Burkmar, Field Studies Council
 email=r.burkmar@field-studies-council.org
 
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.0.0
+changelog=3.1.0
+    - This release made to deal with a bug that was introduced with a
+    change to the QGIS API introduced with version 3.4.3 of QGIS which
+    resulted in the biological records tool hanging.
+    - Also includes a minor enhancement to the OSGR tool to allow users
+    to plan to grid references OR zoom to them.
+  3.0.0
     - Refactored to be compatible with QGIS v3.
     - Added automatic batch map image (or PDF) generation via composer
     for the biological records tool. (Previously this required manual 
