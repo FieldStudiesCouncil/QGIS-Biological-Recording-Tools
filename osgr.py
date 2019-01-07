@@ -155,6 +155,9 @@ class osgr:
         osQuadrantSuffixes.append(("NE",1, 1))
         self.osQuadrantSuffixes = osQuadrantSuffixes
     
+    def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "Biological Records Tool", level)
+
     def getTetradSuffix(self, easting, northing):
         rem = int(easting % 10000)
         indexEast = rem // 2000
@@ -177,6 +180,8 @@ class osgr:
         
     def enFromGR(self, grLocate):
         retCheck = self.checkGR(grLocate)
+
+        #self.logMessage(grLocate)
         
         ##Testing checking
         #return (0,0,0,retCheck[1] + " " + retCheck[2])
@@ -327,7 +332,8 @@ class osgr:
         if grLocate.__len__() == 1:
             for t in self.irish100kPrefixes:
                 if (t[0] == grLocate.upper()):
-                    return (100000, "100 km gr", "irish")
+                    #return (100000, "100 km gr", "irish")
+                    pass
             return (0, "Invalid 100 km prefix", "invalid")
 
         if grLocate.__len__() == 2:
@@ -345,8 +351,10 @@ class osgr:
         elif reIrish100kmGR.match(grLocate[0:1]):
             for t in self.irish100kPrefixes:
                 if (t[0] == grLocate[0:1].upper()):
-                    grType = "irish"
-                    break
+                    #grType = "irish"
+                    #break
+                    #self.logMessage("Irish " + grLocate)
+                    return (0, "Invalid 100 km prefix", "invalid")
 
         if grType == "":
             return (0, "Invalid 100 km prefix", "invalid")

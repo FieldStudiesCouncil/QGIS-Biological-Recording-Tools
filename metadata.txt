@@ -20,14 +20,18 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at
 	from the internet. Although originally designed for use in the the UK, 
 	enhancements have been made to improved utility in any geographical 
 	context.
-version=3.1.0
+version=3.1.1
 author=Rich Burkmar, Field Studies Council
 email=r.burkmar@field-studies-council.org
 
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.1.0
+changelog=3.1.1
+    - Bug fix (introduced with 3.1.0) whereby Irish GRs were causing
+    biological records tool to crash. (Irish GRs currently ignored,
+    but intending to add enhancement to deal with them in 2019.)
+  3.1.0
     - This release made to deal with a bug that was introduced with a
     change to the QGIS API introduced with version 3.4.3 of QGIS which
     resulted in the biological records tool hanging.
