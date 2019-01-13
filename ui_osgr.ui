@@ -9,14 +9,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>380</width>
-    <height>456</height>
+    <width>245</width>
+    <height>292</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
+  <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
     <widget class="QComboBox" name="cboPrecision">
      <property name="toolTip">
@@ -116,7 +116,7 @@
      <property name="title">
       <string>Grid Ref at mouse cursor</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
@@ -130,24 +130,46 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="butLocate">
+         <widget class="QPushButton" name="butZoom">
           <property name="minimumSize">
            <size>
-            <width>75</width>
+            <width>40</width>
             <height>23</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>75</width>
+            <width>40</width>
             <height>23</height>
            </size>
           </property>
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Locate the map at the specified grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Zoom the map to the specified grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>Locate</string>
+           <string>Zoom</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="butPan">
+          <property name="minimumSize">
+           <size>
+            <width>40</width>
+            <height>22</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>40</width>
+            <height>23</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pan the map to the specified grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Pan</string>
           </property>
          </widget>
         </item>
@@ -449,21 +471,21 @@
         </item>
        </layout>
       </item>
+      <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>5</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
      </layout>
     </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>170</height>
-      </size>
-     </property>
-    </spacer>
    </item>
   </layout>
  </widget>

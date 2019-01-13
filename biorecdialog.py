@@ -105,7 +105,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.butSaveImage.setIcon(QIcon( self.pathPlugin % "images/saveimage.png" ))
         self.butShowAll.setIcon(QIcon( self.pathPlugin % "images/layershow.png" ))
         self.butHideAll.setIcon(QIcon( self.pathPlugin % "images/layerhide.png" ))
-   
+
 
         #Inits
         self.blockGR = False
@@ -124,7 +124,11 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #self.fcbGridRefCol.setFilters( QgsFieldProxyModel.String )
         #self.fcbXCol.setFilters( QgsFieldProxyModel.Numeric )
         #self.fcbYCol.setFilters( QgsFieldProxyModel.Numeric )
-        
+
+        #self.fcbGridRefCol.setAllowEmptyFieldName(True)
+        #self.fcbXCol.setAllowEmptyFieldName(True)
+        #self.fcbYCol.setAllowEmptyFieldName(True)
+
         self.layerSelected()
         
     def outputFormatChanged(self):
@@ -200,11 +204,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.cboMapType.setCurrentIndex(0)
             
     def enableDisableGridRef(self):
-    
+
+        if self.blockGR:
+            return
+
         self.blockGR = True
-       
+
         if self.csvLayer != None:
-            if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:
+
+            if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:                
                 #QGis.GeometryType.NoGeometry = 4
                 #QGis.GeometryType.UnknownGeometry = 3
 
@@ -214,12 +222,14 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 self.lblXCol.setEnabled(True)
                 self.fcbYCol.setEnabled(True)
                 self.lblYCol.setEnabled(True)
-                
+
                 if self.fcbGridRefCol.currentField() != "" and not self.blockXY:
-                    
-                    self.fcbXCol.setField(None)
-                    self.fcbYCol.setField(None)
-                    
+
+                    if self.fcbXCol.currentField() != "":
+                        self.fcbXCol.setField("not set")
+                    if self.fcbYCol.currentField() != "":
+                        self.fcbYCol.setField("not set")
+
                 if self.fcbGridRefCol.currentField() != "":
 
                     self.pswInputCRS.setEnabled(False)
@@ -230,8 +240,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                     self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
             
                     if self.cboMapType.currentText().startswith("User-defined"):
-                        self.cboMapType.setCurrentIndex(0)
-                        
+                        self.cboMapType.setCurrentIndex(0)      
+
                 else:
                     self.pswInputCRS.setEnabled(True)
                     self.lblInputCRS.setEnabled(True)
@@ -246,11 +256,14 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 bClear = True
         else:
             bClear = True
-            
+        
         if bClear:
-            self.fcbGridRefCol.setField(None)
-            self.fcbXCol.setField(None)
-            self.fcbYCol.setField(None)
+            if self.fcbGridRefCol.currentField() != "":
+                self.fcbGridRefCol.setField("not set")
+            if self.fcbXCol.currentField() != "":
+                self.fcbXCol.setField("not set")
+            if self.fcbYCol.currentField() != "":
+                self.fcbYCol.setField("not set")
             self.fcbGridRefCol.setEnabled(False)
             self.lblGridRefCol.setEnabled(False)
             self.fcbXCol.setEnabled(False)
@@ -263,11 +276,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.blockGR = False
         
     def enableDisableXY(self):
-    
+
+        if self.blockXY:
+            return
+
         self.blockXY = True
         
         if (self.fcbXCol.currentField() != "" or self.fcbYCol.currentField() != "") and not self.blockGR:
-            self.fcbGridRefCol.setField(None)
+            if self.fcbGridRefCol.currentField() != "":
+                self.fcbGridRefCol.setField("not set")
 
         self.enableDisableGridRef()
         
@@ -340,9 +357,9 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.leStyleFile.setToolTip(fileName)
             
     def browseCSV(self):
-    
+
         self.setCSV(None)
-        
+  
     def setCSV(self, nbnFile):
         
         #Reload env
@@ -534,8 +551,9 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.mlcbSourceLayer.setLayer(lyr)
             
     def layerSelected(self):
-        
+
         if self.csvLayer != self.mlcbSourceLayer.currentLayer():
+
             # Clear all current values for standard combo boxes
             self.cboTaxonCol.clear()
             self.cboGroupingCol.clear()
@@ -543,7 +561,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
             # Clear taxon tree
             self.initTreeView()
-        
+
             self.csvLayer = self.mlcbSourceLayer.currentLayer()
             
             if self.csvLayer != None:
@@ -561,7 +579,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.fcbGridRefCol.setLayer(self.csvLayer)
             self.fcbXCol.setLayer(self.csvLayer)
             self.fcbYCol.setLayer(self.csvLayer)
-    
+
             if self.csvLayer != None:
                 #Initialise the tree model
                 self.initTreeView()
@@ -606,7 +624,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                                 self.fcbYCol.setField(field.name())
                                 break
                             index += 1
-                        
+
                 # Set default value for Taxon column
                 if self.isNBNCSV:
                     index = 1
@@ -655,7 +673,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 #automatically selected from drop-down.
                 #if self.env.getEnvValue("biorec.maketree") == "True":
                     #self.listTaxa(True) 
-
+            
             self.enableDisableTaxa()
             self.enableDisableGridRef()
             self.enableDisableXY()

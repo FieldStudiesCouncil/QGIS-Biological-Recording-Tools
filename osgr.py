@@ -23,6 +23,7 @@ import math
 import re
 from qgis.core import *
 from . import envmanager
+# -*- coding: utf-8 -*-
 
 class osgr:
 
@@ -87,6 +88,35 @@ class osgr:
         os100kPrefixes.append(("HU",4, 11))
         os100kPrefixes.append(("HP",4, 12))
         self.os100kPrefixes = os100kPrefixes
+
+        # Initialise the Irish 100 k prefixes list
+        irish100kPrefixes = []
+        irish100kPrefixes.append(("V",0, 0))
+        irish100kPrefixes.append(("W",1, 0))
+        irish100kPrefixes.append(("X",2, 0))
+        irish100kPrefixes.append(("Y",3, 0))
+        irish100kPrefixes.append(("Z",4, 0))
+        irish100kPrefixes.append(("Q",0, 1))
+        irish100kPrefixes.append(("R",1, 1))
+        irish100kPrefixes.append(("S",2, 1))
+        irish100kPrefixes.append(("T",3, 1))
+        irish100kPrefixes.append(("U",4, 1))
+        irish100kPrefixes.append(("L",0, 2))
+        irish100kPrefixes.append(("M",1, 2))
+        irish100kPrefixes.append(("N",2, 2))
+        irish100kPrefixes.append(("O",3, 2))
+        irish100kPrefixes.append(("P",4, 2))
+        irish100kPrefixes.append(("F",0, 3))
+        irish100kPrefixes.append(("G",1, 3))
+        irish100kPrefixes.append(("H",2, 3))
+        irish100kPrefixes.append(("J",3, 3))
+        irish100kPrefixes.append(("K",4, 3))
+        irish100kPrefixes.append(("A",0, 4))
+        irish100kPrefixes.append(("B",1, 4))
+        irish100kPrefixes.append(("C",2, 4))
+        irish100kPrefixes.append(("D",3, 4))
+        irish100kPrefixes.append(("E",4, 4))
+        self.irish100kPrefixes = irish100kPrefixes
         
         # Initialise the tetrad suffix list
         osTetradSuffixes = []
@@ -125,6 +155,9 @@ class osgr:
         osQuadrantSuffixes.append(("NE",1, 1))
         self.osQuadrantSuffixes = osQuadrantSuffixes
     
+    def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "Biological Records Tool", level)
+
     def getTetradSuffix(self, easting, northing):
         rem = int(easting % 10000)
         indexEast = rem // 2000
@@ -147,7 +180,13 @@ class osgr:
         
     def enFromGR(self, grLocate):
         retCheck = self.checkGR(grLocate)
+
+        #self.logMessage(grLocate)
         
+        ##Testing checking
+        #return (0,0,0,retCheck[1] + " " + retCheck[2])
+        ##########
+
         if retCheck[0] == 0:
             return (0,0,0,retCheck[1])
             
@@ -274,19 +313,11 @@ class osgr:
         return QgsGeometry.fromPolygonXY([points])
             
     def checkGR(self, grLocate):
+
+        grLocate = re.sub(r'\W+', '', grLocate)
     
-        if grLocate.__len__() < 2:
-            return (0, "Invalid grid reference - must be at least two characters")
-            
-        prefixFound = False
-        for t in self.os100kPrefixes:
-            if (t[0] == grLocate[0:2].upper()):
-                prefixFound = True
-                break
-        if prefixFound == False:
-            return (0, "Invalid 100 km two-letter prefix")
-            
-        re100kmGR = re.compile('^[a-zA-Z][a-zA-Z]$')
+        reIrish100kmGR = re.compile('^[a-zA-Z]$')
+        reOS100kmGR = re.compile('^[a-zA-Z][a-zA-Z]$')
         reHectadGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9]$')
         reQuadrantGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][a-zA-Z][a-zA-Z]$') #re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9](((NW|NE)|SW)|SE)$')
         reTetradGR= re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][a-zA-Z]$') #re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][a-np-zA-NP-Z]$')
@@ -294,41 +325,75 @@ class osgr:
         reSixFigGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9]$')
         reEightFigGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
         reTenFigGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
-        
-        if re100kmGR.match(grLocate):
-            return (100000, "100 km gr")
+
+        if grLocate.__len__() == 0:
+            return (0, "Invalid grid reference - must be at least one character", "invalid")
             
-        if reHectadGR.match(grLocate):
-            return (10000, "hectad")
+        if grLocate.__len__() == 1:
+            for t in self.irish100kPrefixes:
+                if (t[0] == grLocate.upper()):
+                    #return (100000, "100 km gr", "irish")
+                    pass
+            return (0, "Invalid 100 km prefix", "invalid")
+
+        if grLocate.__len__() == 2:
+            for t in self.os100kPrefixes:
+                if (t[0] == grLocate.upper()):
+                    return (100000, "100 km gr", "os")
+            return (0, "Invalid 100 km prefix", "invalid")
+
+        grType = ""
+        if reOS100kmGR.match(grLocate[0:2]):
+            for t in self.os100kPrefixes:
+                if (t[0] == grLocate[0:2].upper()):
+                    grType = "os"
+                    break
+        elif reIrish100kmGR.match(grLocate[0:1]):
+            for t in self.irish100kPrefixes:
+                if (t[0] == grLocate[0:1].upper()):
+                    #grType = "irish"
+                    #break
+                    #self.logMessage("Irish " + grLocate)
+                    return (0, "Invalid 100 km prefix", "invalid")
+
+        if grType == "":
+            return (0, "Invalid 100 km prefix", "invalid")
+
+        if grType == "irish":
+            grTest = "x" + grLocate
+        else:
+            grTest = grLocate
+
+        if reHectadGR.match(grTest):
+            return (10000, "hectad", grType)
             
-        if reQuadrantGR.match(grLocate):
-            suf = grLocate[4:6].upper()
+        if reQuadrantGR.match(grTest):
+            suf = grTest[4:6].upper()
             if (suf != "NW" and suf != "NE" and suf != "SW" and suf != "SE"):
-                return (0, "Invalid quadrant suffix - must be 'NW', 'NE', 'SW' or 'SE'.")
+                return (0, "Invalid quadrant suffix - must be 'NW', 'NE', 'SW' or 'SE'.", "invalid")
             else:
-                return (5000, "quadrant")
+                return (5000, "quadrant", grType)
             
-        if reTetradGR.match(grLocate):
-            if (grLocate[4:5].upper() == "O"):
-                return (0, "Invalid tetrad suffix - cannot be 'O'.")
+        if reTetradGR.match(grTest):
+            if (grTest[4:5].upper() == "O"):
+                return (0, "Invalid tetrad suffix - cannot be 'O'.", "invalid")
             else:
-                return (2000, "tetrad")
+                return (2000, "tetrad", grType)
             
-        if reMonadGR.match(grLocate):
-            return (1000, "monad")
+        if reMonadGR.match(grTest):
+            return (1000, "monad", grType)
             
-        if reSixFigGR.match(grLocate):
-            return (100, "6 fig")
+        if reSixFigGR.match(grTest):
+            return (100, "6 fig", grType)
             
-        if reEightFigGR.match(grLocate):
-            return (10, "8 fig")
+        if reEightFigGR.match(grTest):
+            return (10, "8 fig", grType)
             
-        if reTenFigGR.match(grLocate):
-            return (1, "10 fig")
+        if reTenFigGR.match(grTest):
+            return (1, "10 fig", grType)
             
-        return (0, "Invalid grid reference")
-    
-    
+        return (0, "Invalid grid reference", "invalid")
+       
     def grFromEN(self, easting, northing, precision):
 
         # For any passed arguments that cannot be returned as a value

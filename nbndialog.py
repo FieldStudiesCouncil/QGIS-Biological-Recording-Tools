@@ -1071,7 +1071,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
   
         #rlayer = QgsRasterLayer(str(uri.encodedUri()), self.getLayerName() + " WMS", 'wms')
         #For v3, using str(uri.encodedUri()) no longer works. The leading b and single quotes
-        #are not valide. Can't find a better way to generate a string from byte array than this below.
+        #are not valid. Can't find a better way to generate a string from byte array than this below.
         encodedUri = str(uri.encodedUri())
         rlayer = QgsRasterLayer(encodedUri[2:len(encodedUri)-1], self.getLayerName() + " WMS", 'wms')
 
