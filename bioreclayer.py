@@ -448,7 +448,7 @@ class biorecLayer(QObject):
                 if self.iColGr > -1:
                     xOriginal = None
                     yOriginal = None
-                    # Geocoding from OS grid ref
+                    # Geocoding from grid ref
                     try:
                         grOriginal = str(feature.attributes()[self.iColGr]).replace(" ", "")
                     except:
@@ -506,9 +506,14 @@ class biorecLayer(QObject):
                         if ret[1] != "":
                             self.pteLog.appendPlainText(ret[1])
                         gr = ret[0]
+
+                        self.logMessage("Call GR " + gr)
                         geom = self.osgr.geomFromGR(gr, symbol)
+
+                        
                     else:
                         # Get atlas geometry from x & y
+                        self.logMessage("made geom from x y")
                         ret = self.projection.xyToGridGeom(xOriginal, yOriginal, gridPrecision, symbol)
                         if ret[2] != "":
                             self.pteLog.appendPlainText(ret[2])

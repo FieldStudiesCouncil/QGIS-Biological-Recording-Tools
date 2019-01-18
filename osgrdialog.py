@@ -255,7 +255,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
   def locateOnGR(self, zoom):
 
     # The functionality to locate by grid reference 
-    # is only available in map canvas is OSGB
+    # is only available if map canvas is OSGB
     if not self.isOSGB(True):
         return
         
