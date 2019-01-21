@@ -27,6 +27,7 @@ from PyQt5.QtGui import *
 from . import osgr
 from . import envmanager
 from . import projection
+import re
 
 class biorecLayer(QObject):
 
@@ -105,6 +106,7 @@ class biorecLayer(QObject):
         
     def setCrs(self, crsInput, crsOutput):
         #self.projection = projection.projection(QgsCoordinateReferenceSystem(crsInput), self.canvas.mapSettings().destinationCrs())
+
         self.projection = projection.projection(QgsCoordinateReferenceSystem(crsInput), QgsCoordinateReferenceSystem(crsOutput))
         self.crsInput = crsInput
         self.crsOutput = crsOutput
@@ -285,16 +287,20 @@ class biorecLayer(QObject):
                 geom = None
                 if self.iColGr > -1:
                     try:
+                        #Remove spaces from GRs
                         gr = feature.attributes()[self.iColGr].replace(" ", "")
+                        #Remove leading I from GRs (used by BTO to indicate Irish GR)
+                        if gr[0].upper() == "I":
+                            gr = gr[1:]
                     except:
                         gr = "NULL"
                         
                     if gr != "NULL":
                         #Get geometry from OSGR
                         if mapType == "Records as points":
-                            geom = self.osgr.geomFromGR(gr, "point")
+                            geom = self.osgr.geomFromGR(gr, "point", self.crsOutput)
                         else:
-                            geom = self.osgr.geomFromGR(gr, "square")
+                            geom = self.osgr.geomFromGR(gr, "square", self.crsOutput)
                 elif self.iColX > -1:
                     try:
                         strX = str(feature.attributes()[self.iColX]).strip()
@@ -450,7 +456,11 @@ class biorecLayer(QObject):
                     yOriginal = None
                     # Geocoding from grid ref
                     try:
+                        #Remove spaces from GRs
                         grOriginal = str(feature.attributes()[self.iColGr]).replace(" ", "")
+                        #Remove leading I from GRs (used by BTO to indicate Irish GR)
+                        if grOriginal[0].upper() == "I":
+                            grOriginal = grOriginal[1:]
                     except:
                         grOriginal = "NULL"
                         
@@ -507,10 +517,9 @@ class biorecLayer(QObject):
                             self.pteLog.appendPlainText(ret[1])
                         gr = ret[0]
 
-                        self.logMessage("Call GR " + gr)
-                        geom = self.osgr.geomFromGR(gr, symbol)
+                        #self.logMessage("Call GR " + gr)
+                        geom = self.osgr.geomFromGR(gr, symbol, self.crsOutput)
 
-                        
                     else:
                         # Get atlas geometry from x & y
                         self.logMessage("made geom from x y")

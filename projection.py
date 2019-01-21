@@ -25,15 +25,24 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
 from . import envmanager
+from . import osgr
+
+
 
 class projection:
 
-    def __init__(self, crsInput, crsCanvas):
+    def __init__(self, crsInput, crsOutput):
 
-        self.transformCrs = QgsCoordinateTransform(crsInput, crsCanvas, QgsProject.instance())
+        self.transformCrs = QgsCoordinateTransform(crsInput, crsOutput, QgsProject.instance())
 
         # Load the environment stuff
         self.env = envmanager.envManager()
+
+        # Get a reference to an osgr object
+        self.osgr = osgr.osgr()
+        
+        # Save a reference to the output crs
+        self.crsOutputAuthID = crsOutput.authid()
 
     def logMessage(self, strMessage, level=Qgis.Info):
         QgsMessageLog.logMessage(strMessage, "Projection module", level)
@@ -112,8 +121,11 @@ class projection:
                 err = "There was a problem deriving the grid square coordinates."
                    
         # The working grid reference is derived from the bottom left of grid square
-        
-        if x != None and y != None:
+        if self.crsOutputAuthID == "EPSG:27700":
+            gr = self.osgr.grFromEN(x, y, gridPrecision, "os")
+        elif self.crsOutputAuthID == "EPSG:29903":
+            gr = self.osgr.grFromEN(x, y, gridPrecision, "irish")
+        elif x != None and y != None:
             gr = str(x) + "#" + str(y)
         else:
             gr = ""

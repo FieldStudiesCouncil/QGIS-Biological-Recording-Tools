@@ -249,7 +249,7 @@ class osgr:
             
         return (easting, northing, precision, message, gridType)
 
-    def geomFromGR(self, gr, type):
+    def geomFromGR(self, gr, type, crsOutput):
         loc = self.enFromGR(gr)
         precision = loc[2]
         gridType = loc[4]
@@ -309,11 +309,13 @@ class osgr:
             # Circle
             geom = self.circleGeom(loc[0], loc[1], precision / 2)
 
-        #The OSGR tool only supports two types of grid references - British National Grid ('os') and Irish Grid ('irish')
-        #If the grid reference is Irish, then the geometry generated needs to be converted to British national grid because
-        #the output layer is always initialise generated in OSGB (it can of course be converted later).
+        #The OSGR tool only supports two types of grid references - British National Grid ('os') and Irish Grid ('irish').
+        #the CRS of the output layer can be set to any CRS.
         if gridType == "irish":
-            trans = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), QgsCoordinateReferenceSystem("EPSG:27700"), QgsProject.instance())
+            trans = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), QgsCoordinateReferenceSystem(crsOutput), QgsProject.instance())
+            geom.transform(trans)
+        elif gridType == "os":
+            trans = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), QgsCoordinateReferenceSystem(crsOutput), QgsProject.instance())
             geom.transform(trans)
 
         return geom
@@ -474,7 +476,7 @@ class osgr:
                     break
                 
         if prefix == "":
-            return ""
+            return "na"
             
         if precision == 1:
             intDigits = 5

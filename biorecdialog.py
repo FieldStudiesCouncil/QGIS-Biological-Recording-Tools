@@ -76,9 +76,13 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.fcbGridRefCol.fieldChanged.connect(self.enableDisableGridRef)
         self.fcbXCol.fieldChanged.connect(self.enableDisableXY)
         self.fcbYCol.fieldChanged.connect(self.enableDisableXY)
-        self.cbMatchCRS.stateChanged.connect(self.matchCRSClick)
+        #self.cbMatchCRS.stateChanged.connect(self.matchCRSClick)
         self.pswInputCRS.crsChanged.connect(self.inputCrsSelected)
         self.cboOutputFormat.currentIndexChanged.connect(self.outputFormatChanged)
+        self.rbOutCrsBritish.toggled.connect(self.outCrsRadio)
+        self.rbOutCrsIrish.toggled.connect(self.outCrsRadio)
+        self.rbOutCrsOther.toggled.connect(self.outCrsRadio)
+        self.rbOutCrsInput.toggled.connect(self.outCrsRadio)
         
         # Load the environment stuff
         self.env = envmanager.envManager()
@@ -112,11 +116,18 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.blockXY = False
         self.dsbGridSize.setEnabled(False)
         self.lastWaitMessage = None
-        self.cbMatchCRS.setChecked(True)
-        self.isNBNCSV = None
-        self.qgsOutputCRS.setEnabled(False)
+        #self.cbMatchCRS.setChecked(True)
+        self.rbOutCrsInput.setChecked(True)
         
-        self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
+        self.isNBNCSV = None
+        #self.qgsOutputCRS.setEnabled(False)
+        #self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
+        
+        self.pswInputCRS.setOptionVisible(self.pswInputCRS.CrsNotSet,True)
+        self.pswInputCRS.setNotSetText("CRS not set")
+
+        self.pswOutputCRS.setOptionVisible(self.pswOutputCRS.CrsNotSet,True)
+        self.pswOutputCRS.setNotSetText("CRS not set")
         
         self.mlcbSourceLayer.setFilters( QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.NoGeometry )
         self.mlcbTaxonMetaDataLayer.setFilters( QgsMapLayerProxyModel.NoGeometry )
@@ -179,28 +190,47 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
     def github(self):
         QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+
+    def outCrsRadio(self):
+        if self.rbOutCrsBritish.isChecked():
+            self.pswOutputCRS.setEnabled(False)
+            self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
+
+        elif self.rbOutCrsIrish.isChecked():
+            self.pswOutputCRS.setEnabled(False)
+            self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:29903"))
+
+        elif self.rbOutCrsInput.isChecked():
+            self.pswOutputCRS.setEnabled(False)
+            self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
+
+        elif self.rbOutCrsOther.isChecked():
+            self.pswOutputCRS.setEnabled(True)
+            self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem(None))
+        
         
     def checkMapType(self):
+
+        # These checks could go in MapRecords. Some of them are duplicated between these functions.
+        # Those in here are to prevent selection, but not much advantage in doing this.
     
         if self.cboMapType.currentText().startswith("User-defined"):
             if self.fcbGridRefCol.currentField() != "":
-                self.infoMessage("Can't set a user-defined grid size when using OS grid references as input")
+                self.infoMessage("Can't set a user-defined grid size when using grid references as input")
                 self.cboMapType.setCurrentIndex(0)
             else:
                 self.dsbGridSize.setEnabled(True)
         else:
             self.dsbGridSize.setValue(0)
             self.dsbGridSize.setEnabled(False)
-            
+ 
         if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
-        
-            if self.pswInputCRS.crs().authid() != "EPSG:27700":
-                self.infoMessage("Only points or user-defined grid for input data that are not OSGB (EPSG:27700)")
+            if self.pswOutputCRS.crs().authid() != "EPSG:27700" and self.pswOutputCRS.crs().authid() != "EPSG:29903":
+                self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770)")
                 self.cboMapType.setCurrentIndex(0)
             
-        if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":
-            
-            self.infoMessage("'Records as grid squares' only available for input as OS grid references")
+        if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":       
+            self.infoMessage("'Records as grid squares' only available for input as grid references")
             self.cboMapType.setCurrentIndex(0)
             
     def enableDisableGridRef(self):
@@ -232,27 +262,25 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
                 if self.fcbGridRefCol.currentField() != "":
 
+                    #When grid references are used for input, Input CRS is not set
+                    self.pswInputCRS.setCrs(QgsCoordinateReferenceSystem(None))
                     self.pswInputCRS.setEnabled(False)
-                    self.lblInputCRS.setEnabled(False)
-                    self.pswInputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
-                    self.pswOutputCRS.setEnabled(False)
-                    self.lblOutputCRS.setEnabled(False)
-                    self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
+
+                    #self.pswInputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
+                    #self.pswOutputCRS.setEnabled(False)
+                    #self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
             
                     if self.cboMapType.currentText().startswith("User-defined"):
                         self.cboMapType.setCurrentIndex(0)      
 
                 else:
                     self.pswInputCRS.setEnabled(True)
-                    self.lblInputCRS.setEnabled(True)
-                    self.pswOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
-                    self.lblOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
-                    pass
+                    #self.pswOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
+                    self.pswOutputCRS.setEnabled(not self.rbOutCrsInput.isChecked())
                     
                 bClear = False
             else:
                 self.pswInputCRS.setEnabled(False)
-                self.lblInputCRS.setEnabled(False)
                 bClear = True
         else:
             bClear = True
@@ -291,17 +319,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.checkMapType()
         
         self.blockXY = False
-
-    def matchCRSClick(self):
-       
-        if self.fcbGridRefCol.currentField() != "":
-            self.pswOutputCRS.setEnabled(False)
-            self.lblOutputCRS.setEnabled(False)
-        else:
-            self.pswOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
-            self.lblOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
-        if self.cbMatchCRS.isChecked():
-            self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
             
     def enableDisableTaxa(self):
     
@@ -318,7 +335,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             
     def inputCrsSelected(self, crs):
     
-        if self.cbMatchCRS.isChecked():
+        #if self.cbMatchCRS.isChecked():
+        if self.rbOutCrsInput.isChecked():
             self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
         
         self.checkMapType()
@@ -566,7 +584,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             
             if self.csvLayer != None:
                 self.pswInputCRS.setCrs(self.csvLayer.crs())
-                if self.cbMatchCRS.isChecked():
+                #if self.cbMatchCRS.isChecked():
+                if self.rbOutCrsInput.isChecked():
                     self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
             
             #Need to enable field selectors in order to set values
@@ -697,6 +716,11 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
         # Initialise progress bar
         self.progBatch.setValue(0)
+
+        # Return if no output CRS
+        if self.pswOutputCRS.crs().authid() == "":
+            self.iface.messageBar().pushMessage("Info", "You must specify an output CRS", level=Qgis.Info)
+            return
         
         # Return if no grid reference or X & Y fields selected - but only for layers without geometry
         if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:
@@ -706,12 +730,12 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.fcbGridRefCol.currentField() == ""
             
             if self.fcbGridRefCol.currentField() == "" and (self.fcbXCol.currentField() == "" or self.fcbYCol.currentField() == ""):
-                self.iface.messageBar().pushMessage("Info", "You must select either an OS grid ref column or both X and Y columns for CSV layers", level=Qgis.Info)
+                self.iface.messageBar().pushMessage("Info", "You must select either a Grid Ref column or both X and Y columns for CSV layers", level=Qgis.Info)
                 return
             
         # Return if Grid ref selected with user-defined grid
         if self.fcbGridRefCol.currentField() != "" and self.cboMapType.currentText().startswith("User-defined"):
-            self.iface.messageBar().pushMessage("Info", "You cannot specify a user-defined grid with input of OS grid references", level=Qgis.Info)
+            self.iface.messageBar().pushMessage("Info", "You cannot specify a user-defined grid with input of grid references", level=Qgis.Info)
             return
            
         
@@ -729,11 +753,11 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if self.cboMapType.currentText().startswith("User-defined") and self.dsbGridSize.value() == 0:
             self.iface.messageBar().pushMessage("Info", "You must specify a grid size if specifying a user-defined atlas", level=Qgis.Info)
             return
-        
-        # Return X & Y input selected, but not records as points or user-defined grid selected
-        if self.fcbXCol.currentField() != "" and self.pswInputCRS.crs().authid() != "EPSG:27700":
-            if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText()== ("Records as points"):
-                self.iface.messageBar().pushMessage("Info", "For CRS other than OSGB, you must create records as points or a user-defined atlas",level=Qgis.Info)
+
+        # Return if a grid option selected, but the output CRS is not Irish or British Grid
+        if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
+            if self.pswOutputCRS.crs().authid() != "EPSG:27700" and self.pswOutputCRS.crs().authid() != "EPSG:29903":
+                self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770)")
                 return
         
         # Make a list of all the selected taxa
@@ -1103,7 +1127,20 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         layer.setColY(self.fcbYCol.currentIndex())
         
         layer.setTransparency(self.hsLayerTransparency.value())
-        #layer.setCrs(self.lblInputCRS.text(), self.lblOutputCRS.text())
+
+        ##If no input CRS specified, use British National Grid because these are grid
+        ##references - this will accommodate Irish GRs.
+
+        #if self.pswInputCRS.crs().authid() == "":
+        #    authID = "EPSG:27700"
+        #else:
+        #    authID = self.pswInputCRS.crs().authid()
+
+        #self.logMessage("Input Auth ID: " + self.pswInputCRS.crs().authid())
+        #self.logMessage("Auth ID: " + authID)
+
+        #layer.setCrs(authID, self.pswOutputCRS.crs().authid())
+
         layer.setCrs(self.pswInputCRS.crs().authid(), self.pswOutputCRS.crs().authid())
         layer.setGridSize(self.dsbGridSize.value())
         
