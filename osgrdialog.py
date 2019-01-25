@@ -46,13 +46,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     # Get a reference to an osgr object and an osgrLayer object
     self.osgr = osgr.osgr()
     self.osgrLayer = osgrLayer.osgrLayer(iface)
-    
-    # Make a coordinate translator. Also need global references to OSGB and canvas CRSs since
-    # they cannot be retrieved from a translator object.
-    self.canvasCrs = self.canvas.mapSettings().destinationCrs()
-    self.osgbCrs = QgsCoordinateReferenceSystem("EPSG:27700")
-    self.transformCrs = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"),  QgsProject.instance())
-    
+      
     # Set the button graphics
     self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
     self.butGridTool.setIcon(QIcon( self.pathPlugin % "images/osgr.png" ))
@@ -76,6 +70,9 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.dsbGridSize.valueChanged.connect(self.setPrecision)
     self.butHelp.clicked.connect(self.helpFile)
     self.butGithub.clicked.connect(self.github)
+    self.rbOutCrsBritish.toggled.connect(self.cboPrecisionChanged)
+    self.rbOutCrsIrish.toggled.connect(self.cboPrecisionChanged)
+    self.rbOutCrsOther.toggled.connect(self.cboPrecisionChanged)
     
     # Handle canvas events
     self.canvas.mapToolSet.connect(self.mapToolClicked)
@@ -99,8 +96,9 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.northing = 0
     self.LabelChecked()
     self.grPrecision = 0
+    self.grType = "os"
     self.cboPrecisionChanged(0)
-  
+    
   def helpFile(self):
         QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisosgrtool"))
 
@@ -112,15 +110,10 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
 
   def warningMessage(self, strMessage):
     self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
+
+  def logMessage(self, strMessage, level=Qgis.Info):
+    QgsMessageLog.logMessage(strMessage, "OSGR Tool", level)
  
-  def setEnableDisable(self):
-    if self.cboPrecision.currentIndex() == 8:
-        # User-defined grid-size selected
-        self.dsbGridSize.setEnabled(True)
-    else:
-        self.dsbGridSize.setValue(0)
-        self.dsbGridSize.setEnabled(False)
-        
   def gridControlsEnable(self):
     self.gridControlsEnableDisable(True)
     
@@ -138,21 +131,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
   def isUserDefinedGrid(self):
     return (self.dsbGridSize.value() > 0)
-    
-  def isOSGB(self, showMessage=False):
-    self.checkTransform()
-    if self.canvasCrs != self.osgbCrs:
-        if showMessage:
-            self.iface.messageBar().pushMessage("Info", "The map canvas CRS needs to be set to EPSG:27700 for this function", level=Qgis.Warning)
-        return False
-    else:
-        return True
-        
-  def checkTransform(self):
-    if self.canvasCrs != self.canvas.mapSettings().destinationCrs():
-        self.canvasCrs = self.canvas.mapSettings().destinationCrs()
-        self.transformCrs = QgsCoordinateTransform(self.canvasCrs, self.osgbCrs, QgsProject.instance())
-    
+  
   def setProgBarValue(self, value):
     self.pbGridSquares.setValue(value)
     
@@ -177,61 +156,95 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
       self.canvas.unsetMapTool(self.dragTool)
       
   def boxDragged(self):
-    self.GenerateSquares(self.dragTool.xMinimum, self.dragTool.yMinimum, self.dragTool.xMaximum, self.dragTool.yMaximum)
+    #The bounds passed into this function are in map projection units - so first thing to do is to convert
+    #These to British or Irish grid if one of these selected.
+    if self.rbOutCrsBritish.isChecked() and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:27700":
+        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"), QgsProject.instance())
+    elif self.rbOutCrsIrish.isChecked() and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:29903":
+        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:29903"), QgsProject.instance())
+    else:
+        transGrid = None
+
+    if transGrid is None:
+        xMin = self.dragTool.xMinimum
+        yMin = self.dragTool.yMinimum
+        xMax = self.dragTool.xMaximum
+        yMax = self.dragTool.yMaximum
+    else:
+        point = QgsPointXY(float(self.dragTool.xMinimum), float(self.dragTool.yMinimum))
+        gridPoint = transGrid.transform(point)
+        xMin = gridPoint.x()
+        yMin = gridPoint.y()
+        point = QgsPointXY(float(self.dragTool.xMaximum), float(self.dragTool.yMaximum))
+        gridPoint = transGrid.transform(point)
+        xMax = gridPoint.x()
+        yMax = gridPoint.y()
+
+    self.GenerateSquares(xMin, yMin, xMax, yMax)
     
   def GridPoly(self):
   
-    # Only do the grid poly if map CRS is OSGB or if the the grid is of
-    # a user defined, precision.
-    if not self.isOSGB() and not self.isUserDefinedGrid():
-        self.warningMessage("The project map CRS must be OSGB *or* you must be using a user-defined grid size")
-        return
-        
     layer = self.iface.activeLayer()
     if layer.type() == QgsMapLayer.VectorLayer:
         selectedFeatures = layer.selectedFeatures()
+        
         if len(selectedFeatures) > 0:
-            rectLayer = layer.boundingBoxOfSelected()
- 
-            # The selected features layer could be in any CRS. If it's not the same as the canvas CRS
-            # we will have to transform the selected features.
-            # We transform the bounding rectangle here and pass the transformation object
-            # to the osgrLayer to transform the selected feature geometries.
 
-            ##? Why not transform the actual geometry of the selected feature rather than it's BBox?##
-            
-            if self.canvas.mapSettings().destinationCrs() !=  layer.crs():
-                #QgsMessageLog.logMessage("CRS transform", "OSGR Tool")
+            if self.grType == "os" and layer.crs().authid() != "EPSG:27700":
+                trans = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem("EPSG:27700"), QgsProject.instance())
+            elif self.grType == "irish" and layer.crs().authid() != "EPSG:29903":
+                trans = QgsCoordinateTransform(layer.crs(), QgsCoordinateReferenceSystem("EPSG:29903"), QgsProject.instance())
+            elif self.grType == "other" and layer.crs().authid() != self.canvas.mapSettings().destinationCrs().authid():
                 trans = QgsCoordinateTransform(layer.crs(), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
-                try:
-                    rect = trans.transform(rectLayer)
-                except:
-                    self.iface.messageBar().pushMessage("Warning", "The bounding rectangle of the selected feature cannot be transformed from its layer's CRS to the current map CRS.", level=Qgis.Warning)
-                    return
             else:
                 trans = None
-                rect = rectLayer
-                
-            self.GenerateSquares(rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum(), selectedFeatures, trans)
+
+            minx = None
+            max = None
+            miny = None
+            maxy = None
+
+            selectedGeometries = []
+            for ftrSelected in selectedFeatures:
+                geom = ftrSelected.geometry()
+                if not trans is None:
+                    geom.transform(trans)
+                selectedGeometries.append(geom)
+                bbox = geom.boundingBox()
+                if minx is None:
+                    minx = bbox.xMinimum()
+                    miny = bbox.yMinimum()
+                    maxx = bbox.xMaximum()
+                    maxy = bbox.yMaximum()
+                else:
+                    if bbox.xMinimum() < minx:
+                        minx = bbox.xMinimum()
+                    if bbox.yMinimum() < miny:
+                        miny = bbox.yMinimum()
+                    if bbox.xMaximum() > maxx:
+                        maxx = bbox.xMaximum()
+                    if bbox.yMaximum() > maxy:
+                        maxy = bbox.yMaximum()
+
+            self.GenerateSquares(minx, miny, maxx, maxy, selectedGeometries, self.iface.activeLayer().crs())
         else:
             self.iface.messageBar().pushMessage("Info", "There are no features selected in the active layer.", level=Qgis.Info)
     else:
         self.iface.messageBar().pushMessage("Info", "The active layer is not a vector layer.", level=Qgis.Info)
     
-  def GenerateSquares(self, xMin, yMin, xMax, yMax, selectedFeatures=[], trans=None):
-  
-    if not self.isOSGB() and not self.isUserDefinedGrid():
-        self.warningMessage("The project map CRS must be OSGB *or* you must be using a user-defined grid size")
-        return
-        
+  def GenerateSquares(self, xMin, yMin, xMax, yMax, selectedGeometries=[], selectedFeaturesCrs=None):
+
+    #The bounds passed into this function should be expressed in the CRS of grid type - British, Irish or other (map canvas) 
+    if selectedFeaturesCrs is not None:
+        crsAuthId = selectedFeaturesCrs.authid()
+    else:
+        crsAuthId = "none"
+    self.logMessage(str(xMin) + " " +  str(yMin)+ " " +  str(xMax)+ " " +  str(yMax)+ " " +  str(len(selectedGeometries))+ " " +  crsAuthId)
+
     if self.precision == 0:
-        self.infoMessage("User-defined grid size must be greater than zero")
+        self.infoMessage("Grid size must be greater than zero")
         return
-        
-    if self.osgrLayer.getCRS() != None and self.canvas.mapSettings().destinationCrs() != self.osgrLayer.getCRS():
-        self.warningMessage("The grid layer CRS does not match the project map CRS. First delete the grid layer.")
-        return
-        
+
     llx = (xMin // self.precision) * self.precision
     lly = (yMin // self.precision) * self.precision
     
@@ -244,7 +257,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
             return
     self.gridControlsEnableDisable(False)
     
-    self.osgrLayer.boxDragged(xMin, yMin, xMax, yMax, selectedFeatures, self.isOSGB(), trans)
+    self.osgrLayer.GenerateSquares(xMin, yMin, xMax, yMax, selectedGeometries, selectedFeaturesCrs)
      
   def butZoomClicked(self):
       self.locateOnGR(True)
@@ -254,11 +267,6 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
 
   def locateOnGR(self, zoom):
 
-    # The functionality to locate by grid reference 
-    # is only available if map canvas is OSGB
-    if not self.isOSGB(True):
-        return
-        
     res = self.osgr.enFromGR(self.leOSGR.text())
     
     if res[0] == 0:
@@ -274,7 +282,18 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
         ur = QgsPointXY(x1, y1)
         rect = QgsRectangle(ll, ur)
         centre = QgsPointXY(res[0], res[1])
-        #rect = QgsRectangle(centre, centre)
+
+        # Transform geometry if map canvas CRS doesn't match GR
+        if self.rbOutCrsBritish.isChecked() and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:27700":
+            trans = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
+        elif self.rbOutCrsIrish.isChecked() and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:29903":
+            trans = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
+        else:
+            trans = None
+
+        if trans is not None:
+            rect = trans.transformBoundingBox(rect)
+        
         setzoom = self.iface.mapCanvas().scale()
         self.canvas.setExtent(rect)
         if not zoom:
@@ -302,38 +321,50 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
    
   def cboPrecisionChanged(self, int):
     # Set precision and colour for grid square
-    if self.cboPrecision.currentIndex() == 0:
-        precision = 1
-        colour = QColor(0,0,0)
-    elif self.cboPrecision.currentIndex() == 1:
-        precision = 10
-        colour = QColor(255,0,255)
-    elif self.cboPrecision.currentIndex() == 2:
-        precision = 100
-        colour = QColor(255,0,0)
-    elif self.cboPrecision.currentIndex() == 3:
-        precision = 1000
-        colour = QColor(0,255,255)
-    elif self.cboPrecision.currentIndex() == 4:
-        precision = 2000
-        colour = QColor(0,255,0)
-    elif self.cboPrecision.currentIndex() == 5:
-        precision = 5000
-        colour = QColor(255,255,0)
-    elif self.cboPrecision.currentIndex() == 6:
-        precision = 10000
-        colour = QColor(128,128,218)
-    elif self.cboPrecision.currentIndex() == 7:
-        precision = 100000
-        colour = QColor(0,0,255)
-    else:
-        #User defined grid square
+    if self.rbOutCrsBritish.isChecked() or self.rbOutCrsIrish.isChecked():
+        if self.cboPrecision.currentIndex() == 0:
+            precision = 1
+            self.grColour = QColor(0,0,0)
+        elif self.cboPrecision.currentIndex() == 1:
+            precision = 10
+            self.grColour = QColor(255,0,255)
+        elif self.cboPrecision.currentIndex() == 2:
+            precision = 100
+            self.grColour = QColor(255,0,0)
+        elif self.cboPrecision.currentIndex() == 3:
+            precision = 1000
+            self.grColour = QColor(0,255,255)
+        elif self.cboPrecision.currentIndex() == 4:
+            precision = 2000
+            self.grColour = QColor(0,255,0)
+        elif self.cboPrecision.currentIndex() == 5:
+            precision = 5000
+            self.grColour = QColor(255,255,0)
+        elif self.cboPrecision.currentIndex() == 6:
+            precision = 10000
+            self.grColour = QColor(128,128,218)
+        elif self.cboPrecision.currentIndex() == 7:
+            precision = 100000
+            self.grColour = QColor(0,0,255)
+
+        if self.rbOutCrsBritish.isChecked():
+            self.grType = "os"
+        elif self.rbOutCrsIrish.isChecked():
+            self.grType = "irish"
+
+        self.cboPrecision.setEnabled(True)
+        self.dsbGridSize.setEnabled(False)
+        self.dsbGridSize.setValue(0)
+
+    elif self.rbOutCrsOther.isChecked():
         precision = self.dsbGridSize.value()
-        colour = QColor(255,0,255)
-      
-    self.setEnableDisable() #Must come before precision set
+        self.grColour = QColor(255,0,255)
+        self.grType = "other"
+        self.cboPrecision.setEnabled(False)
+        self.dsbGridSize.setEnabled(True)
+    
+    self.osgrLayer.setGrType(self.grType)
     self.setPrecision(precision)
-    self.grColour = colour
     self.displayOSGR(QgsPoint(self.easting,self.northing))
 
   def cbGROnClickClicked(self):
@@ -376,15 +407,18 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
         pass
         
   def displayOSGR(self, point):
-     
-    self.checkTransform()
-        
-    #Transform the map canvas points if maps canvas is not set to OSGB
-    #UNLESS a user-defined grid is set - this always works in the CRS
-    #of the map canvas
-    if self.canvasCrs != self.osgbCrs and not self.isUserDefinedGrid():
+
+    #Transform the map canvas points if maps canvas is not set to British or Irish grid
+    if self.grType == "os" and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:27700":
+        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:27700"), QgsProject.instance())
+    elif self.grType == "irish" and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:29903":
+        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), QgsCoordinateReferenceSystem("EPSG:29903"), QgsProject.instance())
+    else:
+        transGrid = None
+
+    if transGrid is not None:
         try:
-            transPoint = self.transformCrs.transform(point)
+            transPoint = transGrid.transform(point)
         except:
             self.leOSGR.setText("")
             self.clearMapGraphics()
@@ -396,7 +430,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.easting = transPoint.x()
     self.northing = transPoint.y()
     
-    gr = self.osgr.grFromEN(transPoint.x(),transPoint.y(), self.grPrecision)
+    gr = self.osgr.grFromEN(transPoint.x(),transPoint.y(), self.grPrecision, self.grType)
     if gr != "na":
         self.leOSGR.setText(gr)
     else:
@@ -404,22 +438,29 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
             
     #Show the grid square if appropriate 
     self.clearMapGraphics()
-    
-    #Only do this for canvas in OSGB or if there's a user-defined grid size
-    if self.canvasCrs == self.osgbCrs or self.isUserDefinedGrid(): 
-         
-        #if (self.leOSGR.text() != "" or self.isUserDefinedGrid()) and self.cbGRShowSquare.isChecked():
-        if self.cbGRShowSquare.isChecked() and self.grPrecision > 0:
-        
-            x0 = (transPoint.x()//self.grPrecision) * self.grPrecision
-            y0 = (transPoint.y()//self.grPrecision) * self.grPrecision
-            r = QgsRubberBand(self.canvas, False)  # False = a polyline
-            points = [QgsPoint(x0,y0), QgsPoint(x0,y0 + self.grPrecision), QgsPoint(x0 + self.grPrecision, y0 + self.grPrecision), QgsPoint(x0 + self.grPrecision,y0), QgsPoint(x0,y0)]
-            
-            r.setToGeometry(QgsGeometry.fromPolyline(points), None)
-            r.setColor(self.grColour)
-            r.setWidth(2)
-            self.rbGridSquare = r
+       
+    if self.cbGRShowSquare.isChecked() and self.grPrecision > 0:
+        x0 = (transPoint.x()//self.grPrecision) * self.grPrecision
+        y0 = (transPoint.y()//self.grPrecision) * self.grPrecision
+        r = QgsRubberBand(self.canvas, False)  # False = a polyline
+        points = [QgsPoint(x0,y0), QgsPoint(x0,y0 + self.grPrecision), QgsPoint(x0 + self.grPrecision, y0 + self.grPrecision), QgsPoint(x0 + self.grPrecision,y0), QgsPoint(x0,y0)]
+        square = QgsGeometry.fromPolyline(points)
+
+        #Transform the transformed geom back to canvas geom if maps canvas is not set to British or Irish grid
+        if self.grType == "os" and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:27700":
+            transCanvas = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
+        elif self.grType == "irish" and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:29903":
+            transCanvas = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
+        else:
+            transCanvas = None
+
+        if transCanvas is not None:
+            square.transform(transCanvas)
+
+        r.setToGeometry(square, None)
+        r.setColor(self.grColour)
+        r.setWidth(2)
+        self.rbGridSquare = r
            
   def canvasClicked(self, point, button):
     self.displayOSGR(point)

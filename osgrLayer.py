@@ -59,6 +59,9 @@ class osgrLayer(QObject):
   def infoMessage(self, strMessage):
     self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
     
+  def logMessage(self, strMessage, level=Qgis.Info):
+        QgsMessageLog.logMessage(strMessage, "OSGR Tool", level)
+
   def createLayer(self):
   
     # Create layer with the same CRS as the canvas.
@@ -117,6 +120,9 @@ class osgrLayer(QObject):
     except:
         pass
     
+  def setGrType(self, grType):
+    self.grType = grType
+
   def setPrecision(self, precision):
     self.precision = precision
   
@@ -150,24 +156,9 @@ class osgrLayer(QObject):
   def cancelGrid(self):
     self.cancel = True
 
-  def boxDragged(self, xMin, yMin, xMax, yMax, selectedFeatures=[], isOSGB=False, trans=None):
+  def GenerateSquares(self, xMin, yMin, xMax, yMax, selectedGeometries=[], selectedFeaturesCrs=None):
     
     self.canvas.setRenderFlag(False)
-    
-    # If selectedFeatures is not empty, then extract geometry to a list.
-    # Also transform geometry if trans object is not empty. The trans object will transform from the
-    # projection of the selected layer to the projection of the map canvas.
-    # If the selected features list is not empty, ensure that square overlaps feature before adding
-    selectedGeometries = []
-    if len(selectedFeatures) > 0:
-        for ftrSelected in selectedFeatures:
-            geom = ftrSelected.geometry()
-            if not trans is None:
-                try:
-                    geom.transform(trans)
-                except:
-                    pass
-            selectedGeometries.append(geom)
 
     # If layer is not present, create it
     try:
@@ -209,38 +200,55 @@ class osgrLayer(QObject):
         while y < yMax:
             # add a feature for the grid square (if it has a valid GR)
             
-            if isOSGB:
+            if self.grType == "os" or self.grType == "irish":
                 # This may return string 'na' if the precision 
-                # is not a valid one for OSGR.
-                gr = self.osgr.grFromEN(x,y,self.precision)
+                # is not a valid one for the grid.
+                gr = self.osgr.grFromEN(x,y,self.precision, self.grType)
             else:
                 gr = ""
                 
-            # If not projection is OSGB then always make a square (subject to overlap where appropriate).
-            # If projection is OSGB then only make a square if valid GR or precision not standard
-            # OSGB precision (denoted by 'na' in GR).
-            
-            if not isOSGB or (isOSGB and gr != ""):
+            # If grid type os 'other' then always make a square (subject to overlap where appropriate).
+            # If grid type is 'os' or 'irish' only make a square if valid GR
+            if self.grType == "other" or  (gr != "" and gr != "na"):
                         
-                #self.infoMessage("gr is " + gr + " precision is " + str(self.precision))
-                
                 points = [[QgsPointXY(x,y), QgsPointXY(x,y + self.precision), QgsPointXY(x + self.precision,y + self.precision), QgsPointXY(x + self.precision,y)]]
-                fet = QgsFeature()
-                fet.setGeometry(QgsGeometry.fromPolygonXY(points))
-                
-                if gr != "na":
-                    fet.setAttributes([self.precisionText, gr])
-                    #self.pr.addFeatures([fet])
-                else:
-                    fet.setAttributes([self.precisionText, ""])
-                
-                # If the selected geometry list is not empty, ensure that square overlaps geometry before adding
+                square = QgsGeometry.fromPolygonXY(points)
+
+                #At this point we have a square generated in the correct CRS - British, Irish or other (map canvas CRS)
+                #and we can check to see if it overlaps with passed in geometries which have been passed in with
+                #the correct CRS.
+                include = False
                 if len(selectedGeometries) > 0:
+                    self.logMessage("testing oerlap")
                     for geom in selectedGeometries:
-                        if geom.intersects(fet.geometry()):
-                            self.vl.addFeatures([fet])
+                        if geom.intersects(square):
+                            self.logMessage("overlap found")
+                            include = True
                             break
                 else:
+                    include = True
+
+                if include:
+                    #Transform square to output layer CRS if required
+                    if self.grType == "os" and self.vl.crs().authid() != "EPSG:27700":
+                        transGrid = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), self.vl.crs(), QgsProject.instance())
+                    elif self.grType == "irish" and self.vl.crs().authid() != "EPSG:29903":
+                        transGrid = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), self.vl.crs(), QgsProject.instance())
+                    elif self.grType == "other" and self.vl.crs().authid() != self.canvas.mapSettings().destinationCrs().authid():
+                        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), self.vl.crs(), QgsProject.instance())
+                    else:
+                        transGrid = None
+                    if transGrid is not None:
+                        square.transform(transGrid)
+
+                    fet = QgsFeature()
+                    fet.setGeometry(square)
+                
+                    if gr != "na":
+                        fet.setAttributes([self.precisionText, gr])
+                    else:
+                        fet.setAttributes([self.precisionText, ""])
+                
                     self.vl.addFeatures([fet])
                     
             y += self.precision

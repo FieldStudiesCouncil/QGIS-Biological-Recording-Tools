@@ -208,30 +208,30 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.pswOutputCRS.setEnabled(True)
             self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem(None))
         
-        
     def checkMapType(self):
+        pass
 
         # These checks could go in MapRecords. Some of them are duplicated between these functions.
         # Those in here are to prevent selection, but not much advantage in doing this.
     
-        if self.cboMapType.currentText().startswith("User-defined"):
-            if self.fcbGridRefCol.currentField() != "":
-                self.infoMessage("Can't set a user-defined grid size when using grid references as input")
-                self.cboMapType.setCurrentIndex(0)
-            else:
-                self.dsbGridSize.setEnabled(True)
-        else:
-            self.dsbGridSize.setValue(0)
-            self.dsbGridSize.setEnabled(False)
+        #if self.cboMapType.currentText().startswith("User-defined"):
+        #    if self.fcbGridRefCol.currentField() != "":
+        #        self.infoMessage("Can't set a user-defined grid size when using grid references as input")
+        #        self.cboMapType.setCurrentIndex(0)
+        #    else:
+        #        self.dsbGridSize.setEnabled(True)
+        #else:
+        #    self.dsbGridSize.setValue(0)
+        #    self.dsbGridSize.setEnabled(False)
  
-        if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
-            if self.pswOutputCRS.crs().authid() != "EPSG:27700" and self.pswOutputCRS.crs().authid() != "EPSG:29903":
-                self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770)")
-                self.cboMapType.setCurrentIndex(0)
+        #if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
+        #    if self.pswOutputCRS.crs().authid() != "EPSG:27700" and self.pswOutputCRS.crs().authid() != "EPSG:29903":
+        #        self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770)")
+        #        self.cboMapType.setCurrentIndex(0)
             
-        if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":       
-            self.infoMessage("'Records as grid squares' only available for input as grid references")
-            self.cboMapType.setCurrentIndex(0)
+        #if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":       
+        #    self.infoMessage("'Records as grid squares' only available for input as grid references")
+        #    self.cboMapType.setCurrentIndex(0)
             
     def enableDisableGridRef(self):
 
@@ -721,6 +721,16 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if self.pswOutputCRS.crs().authid() == "":
             self.iface.messageBar().pushMessage("Info", "You must specify an output CRS", level=Qgis.Info)
             return
+
+        # Return if grid ref field set and user-defined grid is set
+        if self.fcbGridRefCol.currentField() != "" and self.cboMapType.currentText().startswith("User-defined"):
+            self.infoMessage("Can't set a user-defined grid size when using grid references as input")
+            return
+
+        # Return if output is records as grid squares but grid ref column not set
+        if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":       
+            self.infoMessage("'Records as grid squares' only available for input as grid references")
+            return
         
         # Return if no grid reference or X & Y fields selected - but only for layers without geometry
         if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:
@@ -754,10 +764,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.iface.messageBar().pushMessage("Info", "You must specify a grid size if specifying a user-defined atlas", level=Qgis.Info)
             return
 
-        # Return if a grid option selected, but the output CRS is not Irish or British Grid
-        if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
+        # Return if a grid option selected, but the output CRS is not Irish or British Grid (unless input is grid references)
+        if self.fcbGridRefCol.currentField() == "" and not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
             if self.pswOutputCRS.crs().authid() != "EPSG:27700" and self.pswOutputCRS.crs().authid() != "EPSG:29903":
-                self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770)")
+                self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770) where input is not grid references")
                 return
         
         # Make a list of all the selected taxa

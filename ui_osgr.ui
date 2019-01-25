@@ -9,101 +9,182 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>245</width>
-    <height>292</height>
+    <width>272</width>
+    <height>369</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_3">
+  <layout class="QVBoxLayout" name="verticalLayout_4">
    <item>
-    <widget class="QComboBox" name="cboPrecision">
-     <property name="toolTip">
-      <string>Set the OSGR precision.</string>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Grid size / Grid Ref precision</string>
      </property>
-     <property name="currentIndex">
-      <number>2</number>
-     </property>
-     <item>
-      <property name="text">
-       <string>10 figure</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>8 figure</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>6 figure</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Monad (1 km square)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Tetrad (2 km square)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Quadrant (5 km square)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Hectad (10 km square)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>100 km square</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>User specified</string>
-      </property>
-     </item>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QComboBox" name="cboPrecision">
+        <property name="toolTip">
+         <string>Set the OSGR precision.</string>
+        </property>
+        <property name="currentIndex">
+         <number>2</number>
+        </property>
+        <item>
+         <property name="text">
+          <string>10 figure</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>8 figure</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>6 figure</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Monad (1 km square)</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Tetrad (2 km square)</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Quadrant (5 km square)</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Hectad (10 km square)</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>100 km square</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Grid size:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="dsbGridSize">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>Set a size for the grid squares in the unitsused by the current project map CRS.</string>
+          </property>
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="maximum">
+           <double>100000000.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>1.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <item>
+         <widget class="QRadioButton" name="rbOutCrsBritish">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>British</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="rbOutCrsIrish">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Irish</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="rbOutCrsOther">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Other</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Grid size:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QDoubleSpinBox" name="dsbGridSize">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="toolTip">
-        <string>Set a size for the grid squares in the unitsused by the current project map CRS.</string>
-       </property>
-       <property name="decimals">
-        <number>3</number>
-       </property>
-       <property name="maximum">
-        <double>100000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>100.000000000000000</double>
-       </property>
-      </widget>
-     </item>
-    </layout>
    </item>
    <item>
     <widget class="QGroupBox" name="gbGridRef">
@@ -190,7 +271,7 @@
         <item>
          <widget class="QCheckBox" name="cbGRShowSquare">
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show grid square corresponding to grid reference. (For UK National Grid only.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show grid square corresponding to grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
            <string>Show grid square</string>
@@ -224,7 +305,7 @@
       </size>
      </property>
      <property name="title">
-      <string>OS grid squares</string>
+      <string>Grid squares</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
