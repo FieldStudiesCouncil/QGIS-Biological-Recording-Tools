@@ -782,16 +782,18 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             return
             
         if self.cboBatchMode.currentIndex() == 0 or self.cboTaxonCol.currentIndex() == 0:
+            self.progBatch.setValue(0)
+            self.progBatch.setMaximum(100)
             self.createMapLayer(selectedTaxa)
         else:
-            self.progBatch.setMaximum(len(selectedTaxa))
+            self.progBatch.setMaximum(len(selectedTaxa) * 100)
             i = 0
             self.folderError = False
             self.imageError = False
             for taxa in selectedTaxa:
                 if not self.cancelBatchMap:
+                    self.progBatch.setValue(i * 100)
                     i=i+1
-                    self.progBatch.setValue(i)
                     self.createMapLayer([taxa])
                     #This is needed to allow interruptions. Now safe to use
                     #because layers not actually added to map until after all created.
@@ -1126,7 +1128,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
     def createMapLayer(self, selectedTaxa):
         
         # Initialsie the map layer
-        layer = bioreclayer.biorecLayer(self.iface, self.csvLayer, self.pteLog)
+        layer = bioreclayer.biorecLayer(self.iface, self.csvLayer, self.pteLog, self.progBatch)
 
         layer.setTaxa(selectedTaxa)
         layer.setColTaxa(self.cboTaxonCol.currentIndex() - 1)

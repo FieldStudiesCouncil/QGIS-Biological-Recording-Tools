@@ -32,6 +32,7 @@ from qgis.utils import *
 from . import osgr
 from . import osgrLayer
 from . import drag_box_tool
+import re
 
 class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
@@ -41,7 +42,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.setupUi(self)
     self.canvas = iface.mapCanvas()
     self.iface = iface
-    self.rbGridSquare = QgsRubberBand(self.canvas, False)
+    #self.rbGridSquare = QgsRubberBand(self.canvas, False)
 
     # Get a reference to an osgr object and an osgrLayer object
     self.osgr = osgr.osgr()
@@ -51,6 +52,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
     self.butGridTool.setIcon(QIcon( self.pathPlugin % "images/osgr.png" ))
     self.butGridPoly.setIcon(QIcon( self.pathPlugin % "images/osgrPoly.png" ))
+    self.butPaste.setIcon(QIcon( self.pathPlugin % "images/osgrPaste.png" ))
     self.butClear.setIcon(QIcon( self.pathPlugin % "images/cross.png" ))
     self.butHelp.setIcon(QIcon( self.pathPlugin % "images/info.png" ))
     self.butGithub.setIcon(QIcon( self.pathPlugin % "images/github.png" ))
@@ -58,7 +60,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     # Connect the controls to their events
     self.cbGROnClick.clicked.connect(self.cbGROnClickClicked)
     self.cbGRShowSquare.clicked.connect(self.cbGRShowSquareClicked)
-    #self.cbGRPan.clicked.connect(self.cbGRPanClicked)
+    self.cbGRShowPoint.clicked.connect(self.cbGRShowPointClicked)
     self.cboPrecision.currentIndexChanged.connect(self.cboPrecisionChanged)
     self.butZoom.clicked.connect(self.butZoomClicked)
     self.butPan.clicked.connect(self.butPanClicked)
@@ -73,6 +75,8 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.rbOutCrsBritish.toggled.connect(self.cboPrecisionChanged)
     self.rbOutCrsIrish.toggled.connect(self.cboPrecisionChanged)
     self.rbOutCrsOther.toggled.connect(self.cboPrecisionChanged)
+    self.leOSGR.returnPressed.connect(self.butZoomClicked)
+    self.butPaste.clicked.connect(self.butPasteClicked)
     
     # Handle canvas events
     self.canvas.mapToolSet.connect(self.mapToolClicked)
@@ -185,6 +189,11 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
   def GridPoly(self):
   
     layer = self.iface.activeLayer()
+
+    if layer is None:
+        self.iface.messageBar().pushMessage("Info", "No active layer is in layers panel.", level=Qgis.Info)
+        return
+
     if layer.type() == QgsMapLayer.VectorLayer:
         selectedFeatures = layer.selectedFeatures()
         
@@ -258,7 +267,21 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.gridControlsEnableDisable(False)
     
     self.osgrLayer.GenerateSquares(xMin, yMin, xMax, yMax, selectedGeometries, selectedFeaturesCrs)
-     
+
+  def butPasteClicked(self):
+      try:
+        txt = QApplication.clipboard().text()
+      except:
+        txt = ""
+
+      #Replace any non alphanumeric characters with a space
+      txt = re.sub('[^0-9a-zA-Z]+', ' ', txt)
+
+      #Split on white space
+      grs = txt.split()
+      self.logMessage(str(grs))
+      self.osgrLayer.GenerateSquaresFromArray(grs)
+      
   def butZoomClicked(self):
       self.locateOnGR(True)
 
@@ -370,22 +393,27 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
   def cbGROnClickClicked(self):
     # Make the GR tool the current map tool
     self.canvas.setMapTool(self.clickTool)
-    self.leOSGR.setText("")
-    self.clearMapGraphics()
+    self.clearMapGraphics(True, True)
     
   def cbGRShowSquareClicked(self):
-    self.clearMapGraphics()
+    self.clearMapGraphics(True, False)
 
-  def cbGRPanClicked(self):
-    self.clearMapGraphics()
-
-        
-  def clearMapGraphics(self):
+  def cbGRShowPointClicked(self):
+    self.clearMapGraphics(False, True)
+   
+  def clearMapGraphics(self, bSquare, bPoint):
     # Delete any rubberband graphics
-    try:
-        self.canvas.scene().removeItem(self.rbGridSquare)
-    except:
-        pass
+    if bSquare:
+        try:
+            self.canvas.scene().removeItem(self.rbGridSquare)
+        except:
+            pass
+
+    if bPoint:
+        try:
+            self.canvas.scene().removeItem(self.rbGridPoint)
+        except:
+            pass
     
   def mapToolClicked(self, tool):
     # We get here whenever the mapTool changes - useful for un-setting custom mapTool buttons
@@ -421,7 +449,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
             transPoint = transGrid.transform(point)
         except:
             self.leOSGR.setText("")
-            self.clearMapGraphics()
+            self.clearMapGraphics(True, True)
             return
     else:
         transPoint = point
@@ -436,16 +464,16 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     else:
         self.leOSGR.setText("")
             
-    #Show the grid square if appropriate 
-    self.clearMapGraphics()
+    #Show the grid square and point if appropriate 
+    self.clearMapGraphics(True, True)
        
-    if self.cbGRShowSquare.isChecked() and self.grPrecision > 0:
+    if (self.cbGRShowSquare.isChecked() and self.grPrecision > 0) or self.cbGRShowPoint.isChecked():
         x0 = (transPoint.x()//self.grPrecision) * self.grPrecision
         y0 = (transPoint.y()//self.grPrecision) * self.grPrecision
-        r = QgsRubberBand(self.canvas, False)  # False = a polyline
+        centrePoint =  QgsGeometry.fromPointXY(QgsPointXY(x0 + self.grPrecision/2, y0 + self.grPrecision/2))
         points = [QgsPoint(x0,y0), QgsPoint(x0,y0 + self.grPrecision), QgsPoint(x0 + self.grPrecision, y0 + self.grPrecision), QgsPoint(x0 + self.grPrecision,y0), QgsPoint(x0,y0)]
         square = QgsGeometry.fromPolyline(points)
-
+        
         #Transform the transformed geom back to canvas geom if maps canvas is not set to British or Irish grid
         if self.grType == "os" and self.canvas.mapSettings().destinationCrs().authid() != "EPSG:27700":
             transCanvas = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), self.canvas.mapSettings().destinationCrs(), QgsProject.instance())
@@ -456,14 +484,23 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
 
         if transCanvas is not None:
             square.transform(transCanvas)
+            centrePoint.transform(transCanvas)
 
-        r.setToGeometry(square, None)
-        r.setColor(self.grColour)
-        r.setWidth(2)
-        self.rbGridSquare = r
-           
+        if self.cbGRShowPoint.isChecked():
+            rPoint = QgsRubberBand(self.canvas, False)
+            rPoint.setToGeometry(centrePoint, None)
+            rPoint.setColor(self.grColour)
+            self.rbGridPoint = rPoint
+
+        if self.cbGRShowSquare.isChecked() and self.grPrecision > 0:
+            rSquare = QgsRubberBand(self.canvas, False)
+            rSquare.setToGeometry(square, None)
+            rSquare.setColor(self.grColour)
+            rSquare.setWidth(2)
+            self.rbGridSquare = rSquare
+        
   def canvasClicked(self, point, button):
     self.displayOSGR(point)
     
   def __unload(self):
-    self.clearMapGraphics()
+    self.clearMapGraphics(True, True)

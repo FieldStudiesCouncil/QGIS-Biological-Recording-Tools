@@ -156,6 +156,30 @@ class osgrLayer(QObject):
   def cancelGrid(self):
     self.cancel = True
 
+
+  def addSquare(self, gr, grType, precisionText, square):
+     #Transform square to output layer CRS if required
+    if grType == "os" and self.vl.crs().authid() != "EPSG:27700":
+        transGrid = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), self.vl.crs(), QgsProject.instance())
+    elif grType == "irish" and self.vl.crs().authid() != "EPSG:29903":
+        transGrid = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), self.vl.crs(), QgsProject.instance())
+    elif grType == "other" and self.vl.crs().authid() != self.canvas.mapSettings().destinationCrs().authid():
+        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), self.vl.crs(), QgsProject.instance())
+    else:
+        transGrid = None
+    if transGrid is not None:
+        square.transform(transGrid)
+
+    fet = QgsFeature()
+    fet.setGeometry(square)
+                
+    if gr != "na":
+        fet.setAttributes([precisionText, gr])
+    else:
+        fet.setAttributes([precisionText, ""])
+                
+    self.vl.addFeatures([fet])
+
   def GenerateSquares(self, xMin, yMin, xMax, yMax, selectedGeometries=[], selectedFeaturesCrs=None):
     
     self.canvas.setRenderFlag(False)
@@ -229,27 +253,7 @@ class osgrLayer(QObject):
                     include = True
 
                 if include:
-                    #Transform square to output layer CRS if required
-                    if self.grType == "os" and self.vl.crs().authid() != "EPSG:27700":
-                        transGrid = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:27700"), self.vl.crs(), QgsProject.instance())
-                    elif self.grType == "irish" and self.vl.crs().authid() != "EPSG:29903":
-                        transGrid = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:29903"), self.vl.crs(), QgsProject.instance())
-                    elif self.grType == "other" and self.vl.crs().authid() != self.canvas.mapSettings().destinationCrs().authid():
-                        transGrid = QgsCoordinateTransform(self.canvas.mapSettings().destinationCrs(), self.vl.crs(), QgsProject.instance())
-                    else:
-                        transGrid = None
-                    if transGrid is not None:
-                        square.transform(transGrid)
-
-                    fet = QgsFeature()
-                    fet.setGeometry(square)
-                
-                    if gr != "na":
-                        fet.setAttributes([self.precisionText, gr])
-                    else:
-                        fet.setAttributes([self.precisionText, ""])
-                
-                    self.vl.addFeatures([fet])
+                    self.addSquare(gr, self.grType, self.precisionText, square)
                     
             y += self.precision
             
@@ -280,6 +284,87 @@ class osgrLayer(QObject):
     self.canvas.setRenderFlag(True)
     self.progChange.emit(0)
     self.gridComplete.emit()
-    #self.vl.triggerRepaint()
+
+  def GenerateSquaresFromArray(self, grs):
+    
+    self.canvas.setRenderFlag(False)
+
+    # If layer is not present, create it
+    try:
+       self.vl.startEditing()
+    except:
+        # Create grid layer
+       self.createLayer()
+       self.vl.startEditing()
+    
+    # Apply any offsets specified in environment file
+    self.env = envmanager.envManager()
+    try:
+        offsetX = float(self.env.getEnvValue("biorec.xGridOffset"))
+    except:
+        offsetX = 0
+
+    try:
+        offsetY = float(self.env.getEnvValue("biorec.yGridOffset"))
+    except:
+        offsetY = 0
+
+    self.cancel = False
+    iCount = 0
+    iMax = len(grs)
+    self.progMax.emit(iMax)
+    self.progChange.emit(0)
+    
+    for gr in grs:
+
+        ret = self.osgr.checkGR(gr)
+        precisionText = ret[1]
+        grType = ret[2]
+
+        if grType == "os":
+            crs = "EPSG:27700"
+        elif grType == "irish":
+            crs = "EPSG:29903"
+        else:
+            crs = None
+        
+        if crs is not None:
+
+            self.logMessage("processing " + gr + " " + crs)
+
+            square = self.osgr.geomFromGR(gr, "square", crs)
+            self.addSquare(gr, grType, precisionText, square)
+
+        # Process other events so if user clicks cancel button, this operation is cancelled.
+        iCount += 1
+        self.progChange.emit(iCount)
+        if iCount % 100 == 0:
+            QCoreApplication.processEvents()
+        if self.cancel:
+            break
+
+    self.cancel = False
+    if self.cancel:
+        self.vl.rollBack(True)
+    else:
+        # Commit changes
+        self.vl.commitChanges()
+        # update layer's extent when new features have been added
+        # because change of extent in provider is not propagated to the layer
+        self.vl.updateExtents()
+        
+    self.vl.removeSelection()
+    self.canvas.setRenderFlag(True)
+    self.progChange.emit(0)
+    self.gridComplete.emit()
+
+
+
+
+
+
+
+
+
     
     

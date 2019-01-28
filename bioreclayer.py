@@ -24,6 +24,7 @@ from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from . import osgr
 from . import envmanager
 from . import projection
@@ -31,7 +32,7 @@ import re
 
 class biorecLayer(QObject):
 
-    def __init__(self, iface, csvLayer, pteLog):
+    def __init__(self, iface, csvLayer, pteLog, progress):
   
         super(biorecLayer,self).__init__()
         self.canvas = iface.mapCanvas()
@@ -40,6 +41,7 @@ class biorecLayer(QObject):
         # Store passed parameters
         self.csvLayer = csvLayer
         self.pteLog = pteLog
+        self.progress = progress
         
         # Other defaults
         self.name = "Biological records"
@@ -196,7 +198,6 @@ class biorecLayer(QObject):
     def addFieldsToTable(self, mapType):
     
         # This procedure makes a map of either points or squares - one for each record.
-        
         for field in self.csvLayer.dataProvider().fields():
             attr = field.name()
             fieldType = field.typeName()
@@ -213,25 +214,6 @@ class biorecLayer(QObject):
                 if not bIsNumeric: 
                     self.pr.addAttributes([QgsField(attr, QVariant.String)])
 
-        # Set up output map layer with attributes of types 
-        # specified by in environment file.
-        #for field in self.csvLayer.dataProvider().fields():
-            #attr = field.name()
-            #if attr != "":)
-                #bIsNumeric = False
-                #for colNumeric in self.env.getEnvValues("biorec.intcol"):
-                    #if attr == colNumeric:
-                        #self.pr.addAttributes([QgsField(attr, QVariant.Int)])
-                        #bIsNumeric = True
-                        #break
-                #for colNumeric in self.env.getEnvValues("biorec.dblcol"):
-                    #if attr == colNumeric:
-                        #self.pr.addAttributes([QgsField(attr, QVariant.Double)])
-                        #bIsNumeric = True
-                        #break
-                #if not bIsNumeric: 
-                    #self.pr.addAttributes([QgsField(attr, QVariant.String)])
-
         self.vl.startEditing()   
         
         fets = []
@@ -245,18 +227,20 @@ class biorecLayer(QObject):
                 #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
 
-            #request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter))
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iter = self.csvLayer.getFeatures(request)
-            fets = fets + self.makeFeatures(iter, mapType) 
+            iLength = len(list(self.csvLayer.getFeatures(request)))
+            
+            fets = fets + self.makeFeatures(iter, iLength, mapType)
         else:
             # No taxa selected, so get all features from CSV
             iter = self.csvLayer.getFeatures()
+            iLength = len(list(self.csvLayer.getFeatures()))
             if len(self.taxa) == 0: 
-                fets = self.makeFeatures(iter, mapType)
+                fets = self.makeFeatures(iter, iLength, mapType)
             else:
                 # More than one taxa selected
-                fets = self.makeFeatures(iter, mapType, True)
+                fets = self.makeFeatures(iter, iLength, mapType, True)
                
         self.vl.addFeatures(fets)
         self.vl.commitChanges()
@@ -264,11 +248,19 @@ class biorecLayer(QObject):
         self.vl.removeSelection()
         self.translationError = ""
         
-    def makeFeatures(self, iter, mapType, bFilterTaxaV2=False):
+    def makeFeatures(self, iter, iLength, mapType, bFilterTaxaV2=False):
 
+        #self.progress.setValue(0)
+        #self.progress.setMaximum(iLength)
         fets = []
+
+        progStart = self.progress.value()
+        i = 0
         for feature in iter:
-        
+            i=i+1
+            self.progress.setValue(progStart + 100 * i / iLength)
+            QApplication.processEvents() 
+
             if bFilterTaxaV2:
 
                 try:

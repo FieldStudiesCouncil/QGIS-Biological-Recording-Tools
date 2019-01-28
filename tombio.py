@@ -115,7 +115,7 @@ class TomBio:
 
     def showHelp(self):
         #showPluginHelp()
-        QDesktopServices().openUrl(QUrl("http://www.tombio.uk/qgisplugin"))
+        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisplugin"))
         
     def showOsgrDialog(self):
         if self.dwOsgr is None:
@@ -128,7 +128,7 @@ class TomBio:
             self.dwOsgr.setVisible(True)
             
     def closeOsgrDialog(self):
-        self.guiOsgr.clearMapGraphics()
+        self.guiOsgr.clearMapGraphics(True, True)
         self.guiOsgr.cbGRShowSquare.setChecked(False)
         
     def showNbnDialog(self):
