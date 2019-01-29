@@ -29,6 +29,7 @@ from . import osgr
 from . import envmanager
 from . import projection
 import re
+from datetime import date
 
 class biorecLayer(QObject):
 
@@ -93,6 +94,9 @@ class biorecLayer(QObject):
         
     def setColTaxa(self, iColTaxa):
         self.iColTaxa = iColTaxa
+
+    def setColDate(self, iColDate):
+        self.iColDate = iColDate
 
     def setColAb(self, iColAb):
         self.iColAb = iColAb
@@ -250,14 +254,13 @@ class biorecLayer(QObject):
         
     def makeFeatures(self, iter, iLength, mapType, bFilterTaxaV2=False):
 
-        #self.progress.setValue(0)
-        #self.progress.setMaximum(iLength)
         fets = []
-
         progStart = self.progress.value()
         i = 0
         for feature in iter:
             i=i+1
+            err=""
+            geom = None
             self.progress.setValue(progStart + 100 * i / iLength)
             QApplication.processEvents() 
 
@@ -286,6 +289,7 @@ class biorecLayer(QObject):
                             gr = gr[1:]
                     except:
                         gr = "NULL"
+                        err = "Invalid Grid Ref"
                         
                     if gr != "NULL":
                         #Get geometry from OSGR
@@ -293,6 +297,10 @@ class biorecLayer(QObject):
                             geom = self.osgr.geomFromGR(gr, "point", self.crsOutput)
                         else:
                             geom = self.osgr.geomFromGR(gr, "square", self.crsOutput)
+
+                        if geom == None:
+                            err = self.osgr.checkGR(gr)[1]
+
                 elif self.iColX > -1:
                     try:
                         strX = str(feature.attributes()[self.iColX]).strip()
@@ -318,13 +326,8 @@ class biorecLayer(QObject):
                             err = ret[1]
                         else:
                             err = "Invalid x and or y values"
-                        
-                        if geom == None:
-                            self.pteLog.appendPlainText(err)
-                            errMap = "Translation errors - see log tab"
-                            if errMap != self.translationError:
-                                #self.warningMessage(errMap)
-                                self.translationError = errMap
+                    else:
+                        err = "Invalid x and or y values"
                 else:
                     #Get the geometry from the map layer
                     pnt = feature.geometry().asPoint()
@@ -338,7 +341,13 @@ class biorecLayer(QObject):
                     fet = QgsFeature()
                     fet.setGeometry(geom)
                     fet.setAttributes(feature.attributes())
-                    fets.append(fet)    
+                    fets.append(fet)
+
+
+                if geom == None:
+                    self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
+                    self.translationError = "Translation errors - see log tab"
+
         return fets
         
     def addFieldsToAtlas(self, mapType, symbolType):
@@ -350,11 +359,17 @@ class biorecLayer(QObject):
             self.pr.addAttributes([QgsField("Abundance", QVariant.Int)])
         self.pr.addAttributes([QgsField("Richness", QVariant.Int)])
         if self.env.getEnvValue("biorec.outtrim") != "true":
+            self.pr.addAttributes([QgsField("FirstYear", QVariant.Int)])
+        if self.env.getEnvValue("biorec.outtrim") != "true":
+            self.pr.addAttributes([QgsField("LastYear", QVariant.Int)])
+        if self.env.getEnvValue("biorec.outtrim") != "true":
             self.pr.addAttributes([QgsField("Taxa", QVariant.String)])
             
         self.vl.startEditing()
         
-        if mapType.startswith("10 m"):
+        if mapType.startswith("1 m"):
+            gridPrecision = 1
+        elif mapType.startswith("10 m"):
             gridPrecision = 10
         elif mapType.startswith("100 m"):
             gridPrecision = 100
@@ -386,19 +401,20 @@ class biorecLayer(QObject):
                 strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
                 #QgsMessageLog.logMessage(strFilter, 'biorec')
 
-            #request = QgsFeatureRequest().setFilterExpression(QgsExpression(strFilter
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iter = self.csvLayer.getFeatures(request)
-            #fetsDict.update(self.makeAtlasFeatures(iter, gridPrecision, symbol))
-            fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
+            iLength = len(list(self.csvLayer.getFeatures(request)))
+
+            fetsDict = self.makeAtlasFeatures(iter, iLength, gridPrecision, symbol)
         else:
             iter = self.csvLayer.getFeatures()
+            iLength = len(list(self.csvLayer.getFeatures()))
             if len(self.taxa) == 0:
                 # No taxa selected, so get all features from CSV
-                fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol)
+                fetsDict = self.makeAtlasFeatures(iter, iLength, gridPrecision, symbol)
             else:
                 # More than one taxon selected - so filter based on taxa
-                fetsDict = self.makeAtlasFeatures(iter, gridPrecision, symbol, True)
+                fetsDict = self.makeAtlasFeatures(iter, iLength, gridPrecision, symbol, True)
 
         # Now loop through the dictionary and create a feature for each one
         fets=[]
@@ -408,7 +424,7 @@ class biorecLayer(QObject):
             fet = QgsFeature()
             fet.setGeometry(fetDict[0])
             if self.env.getEnvValue("biorec.outtrim") != "true":
-                attrs = [gr, fetDict[1], fetDict[2], fetDict[3], fetDict[4]]
+                attrs = [gr, fetDict[1], fetDict[2], fetDict[3], fetDict[4], fetDict[5], fetDict[6]]
             else:
                 attrs = [gr, fetDict[1], fetDict[3]]
             fet.setAttributes(attrs)
@@ -420,13 +436,21 @@ class biorecLayer(QObject):
         self.vl.removeSelection()
         self.translationError = ""
         
-    def makeAtlasFeatures(self, iter, gridPrecision, symbol, bFilterTaxaV2=False):
+    def makeAtlasFeatures(self, iter, iLength, gridPrecision, symbol, bFilterTaxaV2=False):
    
         fetsDict = {}
         taxaDict = {}
+        thisYear = date.today().year
+        
+        i=0
+        progStart = self.progress.value()
 
         for feature in iter:
-            
+            err = ""
+            geom = None
+            i=i+1
+            self.progress.setValue(progStart + 100 * i / iLength)
+
             taxon = ""
             
             if bFilterTaxaV2:
@@ -449,12 +473,13 @@ class biorecLayer(QObject):
                     # Geocoding from grid ref
                     try:
                         #Remove spaces from GRs
-                        grOriginal = str(feature.attributes()[self.iColGr]).replace(" ", "")
+                        grOriginal = str(feature.attributes()[self.iColGr]).replace(" ", "")   
                         #Remove leading I from GRs (used by BTO to indicate Irish GR)
                         if grOriginal[0].upper() == "I":
                             grOriginal = grOriginal[1:]
                     except:
                         grOriginal = "NULL"
+                        err = "Invalid grid reference"
                         
                     if grOriginal == "NULL":
                         grOriginal = None
@@ -473,6 +498,8 @@ class biorecLayer(QObject):
                     if strX == "NULL" or strY == "NULL":
                         xOriginal = None
                         yOriginal = None
+                        err = "Invalid x and or y values"
+
                     else:
                         try:
                             xOriginal = float(strX)
@@ -480,6 +507,7 @@ class biorecLayer(QObject):
                         except:
                             xOriginal = None
                             yOriginal = None
+                            err = "Invalid x and or y values"
                 else:
                     #Get the geometry from the map layer
                     pnt = feature.geometry().asPoint()
@@ -501,54 +529,65 @@ class biorecLayer(QObject):
                                 abundance = 1
                         except:
                             abundance = 1
-                    
+
+                    #Year stuff
+                    year = 0
+                    if self.iColDate > -1:
+                        try:
+                            year = int(str(feature.attributes()[self.iColDate]))
+                        except:
+                            year = 0
+                        if year < 1000 or year > thisYear:
+                            year = 0
+
                     if self.iColGr > -1:
                         # Get atlas geometry from grid reference
                         ret = self.osgr.convertGr(grOriginal, gridPrecision)
                         if ret[1] != "":
-                            self.pteLog.appendPlainText(ret[1])
+                            err = ret[1]
                         gr = ret[0]
-
-                        #self.logMessage("Call GR " + gr)
                         geom = self.osgr.geomFromGR(gr, symbol, self.crsOutput)
 
                     else:
                         # Get atlas geometry from x & y
-                        self.logMessage("made geom from x y")
                         ret = self.projection.xyToGridGeom(xOriginal, yOriginal, gridPrecision, symbol)
                         if ret[2] != "":
-                            self.pteLog.appendPlainText(ret[2])
-                            err = "Translation errors - see log tab"
-                            if self.translationError != err:
-                                #self.warningMessage(err)
-                                self.translationError = err
-
+                            err = "Invalid x and or y values (" + ret[2] + ")"
                         gr = ret[0]
                         geom = ret[1]
                     
                     if not geom is None:
                         if fetsDict.get(gr, None) == None:
-                            fetsDict[gr] = [geom, 1, abundance, 1, ""]
+                            fetsDict[gr] = [geom, 1, abundance, 1, year, year, ""]
                             taxaDict[gr] = [taxon]
                         else:
                             #Records
                             fetsDict[gr][1]+=1
                             #Abundance
                             fetsDict[gr][2]+=abundance
+                            #StartYear
+                            if year > 0 and (fetsDict[gr][4] == 0 or year < fetsDict[gr][4]):
+                                fetsDict[gr][4] = year
+                            #EndYear
+                            if year > 0 and (fetsDict[gr][5] == 0 or year > fetsDict[gr][5]):
+                                fetsDict[gr][5] = year
                             #Richness & Taxa
                             if not taxon in taxaDict[gr]:
                                 fetsDict[gr][3]+=1 
                                 taxaDict[gr].append(taxon)
-                                #fetsDict[gr][4]+="#"+taxon
+
+                if geom == None:
+                    self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
+                    self.translationError = "Translation errors - see log tab"
                             
         #Sort taxaDict to ensure that the taxa attribute includes taxa in 
         #same order for all grid references.
         for gr in fetsDict.keys():
             taxaDict[gr].sort()
             for taxon in taxaDict[gr]:
-                fetsDict[gr][4]+="#"+taxon
+                fetsDict[gr][6]+="#"+taxon
             #Trim off first hash
-            fetsDict[gr][4]=fetsDict[gr][4][1:]
+            fetsDict[gr][6]=fetsDict[gr][6][1:]
             
         return fetsDict
         

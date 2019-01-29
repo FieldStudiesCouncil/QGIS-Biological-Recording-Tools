@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>346</width>
-    <height>608</height>
+    <width>373</width>
+    <height>577</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -77,6 +77,12 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="editable">
+            <bool>false</bool>
+           </property>
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
          <item row="2" column="0">
@@ -93,6 +99,9 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -111,45 +120,53 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
-         <item row="4" column="0">
+         <item row="5" column="0">
           <widget class="QLabel" name="lblAbundanceColumn">
            <property name="text">
             <string>Abundance Column</string>
            </property>
           </widget>
          </item>
-         <item row="4" column="1">
-          <widget class="QComboBox" name="cboAbundanceCol">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Optional column with abundance data</string>
+         <item row="5" column="1">
+          <widget class="QgsFieldComboBox" name="fcbAbundanceCol">
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item row="6" column="0">
+          <widget class="QLabel" name="lblGroupingCol">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Grouping Column</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QgsFieldComboBox" name="fcbGroupingCol">
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
           <widget class="QLabel" name="lblTaxonCol">
            <property name="text">
             <string>Taxon Column</string>
            </property>
           </widget>
          </item>
-         <item row="6" column="1">
-          <widget class="QComboBox" name="cboTaxonCol">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Select column with species names</string>
+         <item row="7" column="1">
+          <widget class="QgsFieldComboBox" name="fcbTaxonCol">
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -169,29 +186,17 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="1">
-          <widget class="QComboBox" name="cboGroupingCol">
-           <property name="enabled">
+         <item row="4" column="1">
+          <widget class="QgsFieldComboBox" name="fcbDateCol">
+           <property name="allowEmptyFieldName">
             <bool>true</bool>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Optionally select a grouping column</string>
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="lblGroupingCol">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>Grouping Column</string>
+            <string>Year Column</string>
            </property>
           </widget>
          </item>
@@ -843,6 +848,11 @@
        <item>
         <property name="text">
          <string>Records as grid squares</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1 m atlas (10 fig gr)</string>
         </property>
        </item>
        <item>

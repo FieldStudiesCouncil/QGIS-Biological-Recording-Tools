@@ -519,10 +519,10 @@ class osgr:
         fromPrecision = ret[0]
         
         if toPrecision < fromPrecision:
-            return ("", "Output grid precision exceeds precision of grid reference " + grIn + ".")
+            return ("", "Output grid precision (" + str(toPrecision) + ") exceeds precision of grid reference " + grIn + " (" + str(fromPrecision) +").")
         
         if toPrecision == 5000 and fromPrecision == 2000:
-            return ("", "Record with grid reference " + grIn + "omitted because tetrads cannot always be unambiguously assigned to a quadrant.")
+            return ("", "Record with grid reference " + grIn + " omitted because tetrads cannot always be unambiguously assigned to a quadrant.")
         
         easting = self.enFromGR(grIn)[0]
         northing = self.enFromGR(grIn)[1]

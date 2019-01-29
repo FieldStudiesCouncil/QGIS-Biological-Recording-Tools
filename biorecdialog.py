@@ -70,8 +70,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.pbCancel.clicked.connect(self.cancelBatch)
         self.butHelp.clicked.connect(self.helpFile)
         self.butGithub.clicked.connect(self.github)
-        self.cboTaxonCol.currentIndexChanged.connect(self.enableDisableTaxa)
-        self.cboMapType.currentIndexChanged.connect(self.checkMapType)
+        self.fcbTaxonCol.fieldChanged.connect(self.enableDisableTaxa)
+        #self.cboMapType.currentIndexChanged.connect(self.checkMapType)
         self.mlcbSourceLayer.layerChanged.connect(self.layerSelected)
         self.fcbGridRefCol.fieldChanged.connect(self.enableDisableGridRef)
         self.fcbXCol.fieldChanged.connect(self.enableDisableXY)
@@ -207,32 +207,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         elif self.rbOutCrsOther.isChecked():
             self.pswOutputCRS.setEnabled(True)
             self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem(None))
-        
-    def checkMapType(self):
-        pass
-
-        # These checks could go in MapRecords. Some of them are duplicated between these functions.
-        # Those in here are to prevent selection, but not much advantage in doing this.
-    
-        #if self.cboMapType.currentText().startswith("User-defined"):
-        #    if self.fcbGridRefCol.currentField() != "":
-        #        self.infoMessage("Can't set a user-defined grid size when using grid references as input")
-        #        self.cboMapType.setCurrentIndex(0)
-        #    else:
-        #        self.dsbGridSize.setEnabled(True)
-        #else:
-        #    self.dsbGridSize.setValue(0)
-        #    self.dsbGridSize.setEnabled(False)
- 
-        #if not self.cboMapType.currentText().startswith("User-defined") and not self.cboMapType.currentText() == "Records as points":
-        #    if self.pswOutputCRS.crs().authid() != "EPSG:27700" and self.pswOutputCRS.crs().authid() != "EPSG:29903":
-        #        self.infoMessage("Only points or user-defined grid can be use for output CRS that is not either Irish or British Grid (EPSG:29903 or EPSG:2770)")
-        #        self.cboMapType.setCurrentIndex(0)
-            
-        #if self.cboMapType.currentText() == "Records as grid squares" and self.fcbGridRefCol.currentField() == "":       
-        #    self.infoMessage("'Records as grid squares' only available for input as grid references")
-        #    self.cboMapType.setCurrentIndex(0)
-            
+                
     def enableDisableGridRef(self):
 
         if self.blockGR:
@@ -299,8 +274,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.fcbYCol.setEnabled(False)
             self.lblYCol.setEnabled(False)
      
-        self.checkMapType()
-       
         self.blockGR = False
         
     def enableDisableXY(self):
@@ -316,20 +289,18 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         self.enableDisableGridRef()
         
-        self.checkMapType()
-        
         self.blockXY = False
             
     def enableDisableTaxa(self):
     
-        if self.cboTaxonCol.currentIndex() == 0:
-            self.cboGroupingCol.setCurrentIndex(0)
-            self.cboGroupingCol.setEnabled(False)
+        if self.fcbTaxonCol.currentIndex() == 0:
+            self.fcbGroupingCol.setCurrentIndex(0)
+            self.fcbGroupingCol.setEnabled(False)
             self.lblGroupingCol.setEnabled(False)
             self.cbIsScientific.setChecked(False)
             self.cbIsScientific.setEnabled(False)     
         else:
-            self.cboGroupingCol.setEnabled(True)
+            self.fcbGroupingCol.setEnabled(True)
             self.cbIsScientific.setEnabled(True)
             self.lblGroupingCol.setEnabled(True)
             
@@ -339,8 +310,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if self.rbOutCrsInput.isChecked():
             self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
         
-        self.checkMapType()
-            
     def browseImageFolder(self):
     
         #Reload env
@@ -416,13 +385,13 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #Init the tree view
         self.initTreeView()
         
-        if self.cboTaxonCol.currentIndex() == 0:
+        if self.fcbTaxonCol.currentIndex() == 0:
             if not suppressMessage:
                 self.infoMessage("No taxon column selected")
             return
             
-        iColGrouping = self.cboGroupingCol.currentIndex() - 1
-        iColTaxon = self.cboTaxonCol.currentIndex() - 1
+        iColGrouping = self.fcbGroupingCol.currentIndex() - 1
+        iColTaxon = self.fcbTaxonCol.currentIndex() - 1
         bScientific = self.cbIsScientific.isChecked()
         
         if iColTaxon == -1:
@@ -536,12 +505,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         for i in range(self.tvTaxa.model().rowCount()):
             self.tvTaxa.model().item(i,0).setCheckState(Qt.Unchecked)
             self.setChildrenItems(self.tvTaxa.model().item(i,0), Qt.Unchecked)
-              
-    def addItemToFieldLists(self, item):
-        self.cboTaxonCol.addItem(item)
-        self.cboGroupingCol.addItem(item)
-        self.cboAbundanceCol.addItem(item)
-        
+                
     def loadCsv(self, fileName, isNBNCSV):
     
         self.isNBNCSV = isNBNCSV
@@ -572,11 +536,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         if self.csvLayer != self.mlcbSourceLayer.currentLayer():
 
-            # Clear all current values for standard combo boxes
-            self.cboTaxonCol.clear()
-            self.cboGroupingCol.clear()
-            self.cboAbundanceCol.clear()
-
             # Clear taxon tree
             self.initTreeView()
 
@@ -598,16 +557,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.fcbGridRefCol.setLayer(self.csvLayer)
             self.fcbXCol.setLayer(self.csvLayer)
             self.fcbYCol.setLayer(self.csvLayer)
+            self.fcbAbundanceCol.setLayer(self.csvLayer)
+            self.fcbGroupingCol.setLayer(self.csvLayer)
+            self.fcbTaxonCol.setLayer(self.csvLayer)
+            self.fcbDateCol.setLayer(self.csvLayer)
 
             if self.csvLayer != None:
                 #Initialise the tree model
                 self.initTreeView()
-            
-                #Add the fields to the relevant drop-down lists
-                self.addItemToFieldLists("")
-                for field in self.csvLayer.dataProvider().fields():
-                    self.addItemToFieldLists(field.name())
-                
+
                 # Set default value for GridRef column
                 if self.isNBNCSV:
                     index = 1
@@ -649,7 +607,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
                         if field.name() == "Matched Scientific Name":
-                            self.cboTaxonCol.setCurrentIndex(index)
+                            self.fcbTaxonCol.setCurrentIndex(index)
+                            self.fcbTaxonCol.setCurrentIndex(index)
                             break
                         index += 1
                 else:
@@ -657,7 +616,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                         index = 1
                         for field in self.csvLayer.dataProvider().fields():
                             if field.name() == colTaxon:
-                                self.cboTaxonCol.setCurrentIndex(index)
+                                self.fcbTaxonCol.setCurrentIndex(index)
                                 break
                             index += 1
                         
@@ -666,7 +625,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
                         if field.name() == colGrouping:
-                            self.cboGroupingCol.setCurrentIndex(index)
+                            self.fcbGroupingCol.setCurrentIndex(index)
                             break
                         index += 1
                         
@@ -675,10 +634,19 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
                         if field.name() == colAbundance:
-                            self.cboAbundanceCol.setCurrentIndex(index)
+                            self.fcbAbundanceCol.setCurrentIndex(index)
                             break
                         index += 1
-                
+
+                # Set default value for Date column
+                for colDate in self.env.getEnvValues("biorec.datecol"):
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        if field.name() == colDate:
+                            self.fcbDateCol.setCurrentIndex(index)
+                            break
+                        index += 1
+
                 # Set scientific names checkbox if set in environment
                 if self.env.getEnvValue("biorec.scientificnames") == "True":
                     self.cbIsScientific.setChecked(True)
@@ -777,14 +745,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             for i in range(self.tvTaxa.model().rowCount()):
                 selectedTaxa.extend(self.getCheckedTaxa(self.tvTaxa.model().item(i,0)))
             
-        if len(selectedTaxa) == 0 and self.cboTaxonCol.currentIndex() > 0:
+        if len(selectedTaxa) == 0 and self.fcbTaxonCol.currentIndex() > 0:
             self.iface.messageBar().pushMessage("Info", "No taxa selected.", level=Qgis.Info)
             return
             
-        if self.cboBatchMode.currentIndex() == 0 or self.cboTaxonCol.currentIndex() == 0:
+        if self.cboBatchMode.currentIndex() == 0 or self.fcbTaxonCol.currentIndex() == 0:
             self.progBatch.setValue(0)
-            self.progBatch.setMaximum(100)
+            self.progBatch.setMaximum(100)  #bioreclayer increments progress in percentage points
             self.createMapLayer(selectedTaxa)
+            self.progBatch.setValue(0)
         else:
             self.progBatch.setMaximum(len(selectedTaxa) * 100)
             i = 0
@@ -792,7 +761,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.imageError = False
             for taxa in selectedTaxa:
                 if not self.cancelBatchMap:
-                    self.progBatch.setValue(i * 100)
+                    self.progBatch.setValue(i * 100) #bioreclayer increments progress in percentage points
                     i=i+1
                     self.createMapLayer([taxa])
                     #This is needed to allow interruptions. Now safe to use
@@ -1131,27 +1100,16 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         layer = bioreclayer.biorecLayer(self.iface, self.csvLayer, self.pteLog, self.progBatch)
 
         layer.setTaxa(selectedTaxa)
-        layer.setColTaxa(self.cboTaxonCol.currentIndex() - 1)
-        layer.setColAb(self.cboAbundanceCol.currentIndex() - 1)
+        layer.setColTaxa(self.fcbTaxonCol.currentIndex() - 1)
+        layer.setColAb(self.fcbAbundanceCol.currentIndex() - 1)
 
-        layer.setColGr(self.fcbGridRefCol.currentIndex())
-        layer.setColX(self.fcbXCol.currentIndex())
-        layer.setColY(self.fcbYCol.currentIndex())
+        layer.setColGr(self.fcbGridRefCol.currentIndex() -1)
+        layer.setColX(self.fcbXCol.currentIndex() -1)
+        layer.setColY(self.fcbYCol.currentIndex() -1)
+
+        layer.setColDate(self.fcbDateCol.currentIndex() -1)
         
         layer.setTransparency(self.hsLayerTransparency.value())
-
-        ##If no input CRS specified, use British National Grid because these are grid
-        ##references - this will accommodate Irish GRs.
-
-        #if self.pswInputCRS.crs().authid() == "":
-        #    authID = "EPSG:27700"
-        #else:
-        #    authID = self.pswInputCRS.crs().authid()
-
-        #self.logMessage("Input Auth ID: " + self.pswInputCRS.crs().authid())
-        #self.logMessage("Auth ID: " + authID)
-
-        #layer.setCrs(authID, self.pswOutputCRS.crs().authid())
 
         layer.setCrs(self.pswInputCRS.crs().authid(), self.pswOutputCRS.crs().authid())
         layer.setGridSize(self.dsbGridSize.value())
