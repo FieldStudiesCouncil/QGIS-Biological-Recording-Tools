@@ -29,7 +29,18 @@ from . import nbndialog
 from . import mapmashupdialog
 from . import biorecdialog
 from . import envdialog
-import os.path
+
+from .add_grid_ref_provider import AddGridRefProvider
+from qgis.core import QgsProcessingAlgorithm, QgsApplication
+
+import os
+import sys
+import inspect
+import processing
+
+cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+if cmd_folder not in sys.path:
+    sys.path.insert(0, cmd_folder)
 
 class custDockWidget(QDockWidget):
 
@@ -48,6 +59,7 @@ class custDockWidget(QDockWidget):
 class TomBio:
 
     def __init__(self, iface):
+        
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
@@ -62,6 +74,9 @@ class TomBio:
 
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
+
+        # Init point layers Processing tool
+        self.provider = AddGridRefProvider()
                 
     def initGui(self):
 
@@ -99,6 +114,13 @@ class TomBio:
         self.actionMapMash.triggered.connect(self.showMapmashupDialog)
         self.toolbar.addAction(self.actionMapMash)
         self.dwMapmashup = None
+
+        # GRs to points Processing tool
+        icon_path = os.path.join(os.path.dirname(__file__),'images/gr2point.png')
+        self.actionGRs2Points = QAction(QIcon(icon_path), u"Add GRs to point layers", self.iface.mainWindow())
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionGRs2Points)
+        self.actionGRs2Points.triggered.connect(self.showGRs2PointsProcessingTools)
+        self.toolbar.addAction(self.actionGRs2Points)
         
         # Help dialog
         icon_path = os.path.join(os.path.dirname(__file__),'images/info.png')
@@ -113,9 +135,12 @@ class TomBio:
         self.actionEnv.triggered.connect(self.showEnvDialog)
         self.guiEnv = None
 
+        # Add Grid Ref to point layer Processing tool
+        QgsApplication.processingRegistry().addProvider(self.provider)
+
     def showHelp(self):
         #showPluginHelp()
-        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisplugin"))
+        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisplugin"))    
         
     def showOsgrDialog(self):
         if self.dwOsgr is None:
@@ -155,6 +180,9 @@ class TomBio:
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dwMapmashup)
         else:
             self.dwMapmashup.setVisible(True)
+
+    def showGRs2PointsProcessingTools(self):
+         processing.execAlgorithmDialog('FSC:Add GRs to point layers', {})
             
     def showBiorecDialog(self):
         if self.dwBiorec is None:
@@ -183,8 +211,12 @@ class TomBio:
         self.iface.removePluginMenu(u"&FSC Tools", self.actionBiorec)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionGRs2Points)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionEnv)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionHelp)
         
+        # Remove the Grid Ref to points Processing tool
+        QgsApplication.processingRegistry().removeProvider(self.provider)
+
         #Remove the toolbar
         del self.toolbar

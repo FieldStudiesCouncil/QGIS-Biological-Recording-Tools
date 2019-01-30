@@ -87,6 +87,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.pbBuffer.clicked.connect(self.generateBuffer)
         self.pbClearLastBuffer.clicked.connect(self.removeBuffer)
         self.rbGR.toggled.connect(self.bufferEnableDisable)
+        self.rbEN.toggled.connect(self.bufferEnableDisable)
         self.pbDownload.clicked.connect(self.downloadNBNObservations)
         self.pbClearFilters.clicked.connect(self.clearAllFilters)
         self.pbClearTaxonFilters.clicked.connect(self.clearTaxonFilters)
@@ -211,17 +212,18 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.speciesListSelectionChanged()
 
     def bufferEnableDisable(self):
-        if self.rbGR.isChecked():
-            self.sbEasting.setEnabled(False)
-            self.sbNorthing.setEnabled(False)
-            self.lePointBufferGR.setEnabled(True)
-        else:
-            self.sbEasting.setEnabled(True)
-            self.sbNorthing.setEnabled(True)
-            self.lePointBufferGR.setEnabled(False)
-           
+        gr = self.rbGR.isChecked()
+        en = self.rbEN.isChecked()
+        self.lePointBufferGR.setEnabled(gr)
+        self.sbEasting.setEnabled(en)
+        self.sbNorthing.setEnabled(en)
+        self.rbBritishEN.setEnabled(en)
+        self.rbIrishEN.setEnabled(en)
+
     def generateBuffer(self):
     
+        gridType = ""
+
         if self.rbGR.isChecked():
             #Get grid mid point of GR
             gridRef = self.lePointBufferGR.text().strip()
@@ -234,18 +236,29 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
             
             easting = ret[0]
             northing = ret[1]
+            gridType = ret[4]
         else:
             easting = self.sbEasting.value()
             northing = self.sbNorthing.value()
             
-            sName = str(easting) + "/" + str(northing)
+            if self.rbBritishEN.isChecked():
+                gridType = "os"
+            else:
+                gridType= "irish"
             
+            sName = str(easting) + "/" + str(northing) + " (" + gridType + ")"
+
         sName = sName + " " + str(self.sbBuffer.value()) + "m"
         
         geom = self.osgr.circleGeom(easting, northing, self.sbBuffer.value())
         
         # Create layer 
-        self.vl = QgsVectorLayer("Polygon?crs=epsg:27700", sName, "memory")
+        if gridType == "os":
+            epsg = "27700"
+        else:
+            epsg = "29903"
+
+        self.vl = QgsVectorLayer("Polygon?crs=epsg:" + epsg, sName, "memory")
         self.pr = self.vl.dataProvider()
         self.buffers.append(self.vl.id())
 
@@ -1372,16 +1385,14 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         
         ret = None
         filterGeom = None
-        
         layer = self.iface.activeLayer()
-
         try:
             if layer is not None:
                 if layer.type() == QgsMapLayer.VectorLayer:
                     selectedFeatures = layer.selectedFeatures()
                     if len(selectedFeatures) == 1:
                         feature = selectedFeatures[0]
-                        if feature.geometry().wkbType() == QgsWkbTypes.Polygon: #QGis.WKBPolygon:
+                        if feature.geometry().type() == QgsWkbTypes.PolygonGeometry: #QGis.WKBPolygon:
                             filterGeom = feature.geometry()
         except:
             filterGeom = None
