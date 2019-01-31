@@ -36,7 +36,7 @@ from .add_grid_ref_algorithm import AddGridRefAlgorithm
 
 class AddGridRefProvider(QgsProcessingProvider):
 
-    def __init__(self):
+    def __init__(self, iface):
         QgsProcessingProvider.__init__(self)
 
         # Load algorithms

@@ -76,7 +76,7 @@ class TomBio:
                 QCoreApplication.installTranslator(self.translator)
 
         # Init point layers Processing tool
-        self.provider = AddGridRefProvider()
+        self.provider = AddGridRefProvider(iface)
                 
     def initGui(self):
 

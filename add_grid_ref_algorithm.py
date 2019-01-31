@@ -30,10 +30,12 @@ __copyright__ = '(C) 2019 by Field Studies Council'
 
 __revision__ = '$Format:%H$'
 
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import (QCoreApplication, QVariant)
 from qgis.core import (QgsProcessing,
+                       QgsMessageLog,
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
+                       QgsField,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterString,
@@ -63,15 +65,32 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
     GRTYPE = 'GRYPE'
     PRECISIONS = 'PRECISIONS'
     PREFIX = 'PREFIX'
-    aGrTypes = ["British National Grid", "Irish National Grid"]
-    aPrecisions = ["10 figure GR (1 m)",
-                "8 figure GR (10 m)",
-                "6 figure GR (100 m)",
-                "Monad (1 km)", 
-                "Tetrad (2 km)", 
-                "Quadrant (5 km)",
-                "Hectad (10 km)",
-                "100 km"]
+    lGrTypes = ["British National Grid", "Irish National Grid"]
+    #aPrecisions = ["10 figure GR (1 m)",
+    #            "8 figure GR (10 m)",
+    #            "6 figure GR (100 m)",
+    #            "Monad (1 km)", 
+    #            "Tetrad (2 km)", 
+    #            "Quadrant (5 km)",
+    #            "Hectad (10 km)",
+    #            "100 km"]
+
+    dPrecisions = {
+            "10 figure GR (1 m)": 1,
+            "8 figure GR (10 m)": 10,
+            "6 figure GR (100 m)": 100,
+            "Monad (1 km)": 1000,
+            "Tetrad (2 km)": 2000,
+            "Quadrant (5 km)": 5000,
+            "Hectad (10 km)": 10000,
+            "100 km": 100000
+        }
+    aPrecisions = []
+    for key, value in dPrecisions.items():
+        aPrecisions.append(key)
+
+    def logMessage(self, message):
+        QgsMessageLog.logMessage(message, "Add Grid Ref Algorithm")
 
     def initAlgorithm(self, config):
         """
@@ -94,7 +113,7 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterEnum(
                 self.GRTYPE,
                 self.tr('Select British or Irish National Grid'),
-                self.aGrTypes,
+                self.lGrTypes,
                 False # Single select
             )
         )
@@ -135,17 +154,34 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
-        # Retrieve the feature source and sink. The 'dest_id' variable is used
+        # Retrieve the feature source.
+        source = self.parameterAsSource(parameters, self.INPUT, context)
+        fields = source.fields()
+
+        # Get the field prefix
+        prefix = self.parameterAsString (parameters, self.PREFIX, context)
+        prefix = prefix.replace(" ", "")
+        self.logMessage("Prefix is " + prefix)
+
+        # Get the precision choices and make the appropriate output fields
+        precisions = self.parameterAsEnums (parameters, self.PRECISIONS, context)
+        for p in precisions:
+            self.logMessage("Precision is " + self.aPrecisions[p])
+
+        
+        #newField = QgsField("rtmp", QVariant.String)
+        #fields.append(newField)
+
+        # Create the feature sink. The 'dest_id' variable is used
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
-        source = self.parameterAsSource(parameters, self.INPUT, context)
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT,
-                context, source.fields(), source.wkbType(), source.sourceCrs())
+                context, fields, source.wkbType(), source.sourceCrs())
 
     
         # Get the other parameters
         grtype = self.parameterAsEnum (parameters, self.GRTYPE, context)
-        
+        self.logMessage("grtype is " + str(grtype))
 
         # Compute the number of steps to display within the progress bar and
         # get features from source
