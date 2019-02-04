@@ -136,6 +136,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.lblMetadata.setText("")
         self.defaultColumns = []
         self.cbShowAllMetadata.setEnabled(False)
+       
 
         self.WMSType = self.enum(species=1, dataset=2, designation=3)
 
@@ -143,11 +144,26 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         self.cboDownloadReason.addItem("Reason for download", -99)
         url = 'https://logger.nbnatlas.org/service/logger/reasons'
         res = self.restRequest(url)
+        self.reasonTips = {}
         if not res is None:
             jsonData = json.loads(res.data()) 
             for reason in jsonData:
-                QgsMessageLog.logMessage("reason: " + reason["name"], "NBN Tool") 
-                self.cboDownloadReason.addItem(reason["name"], reason["id"])
+                if not reason["deprecated"]:
+                    splitName = reason["name"].split("|")
+                    self.cboDownloadReason.addItem(splitName[0], reason["id"])
+
+                    tip = ""
+                    if len(splitName) > 1:
+                        tip = splitName[1]
+                    self.reasonTips[reason["id"]] = tip
+
+        self.cboDownloadReason.currentIndexChanged.connect(self.downloadReasonChanged)
+
+    def downloadReasonChanged(self):
+        if self.cboDownloadReason.currentData() != -99:
+            self.cboDownloadReason.setToolTip(self.reasonTips[self.cboDownloadReason.currentData()])
+        else:
+            self.cboDownloadReason.setToolTip("Specify a reason for NBN download")
 
     def browseNbnOutputFolder(self):
     

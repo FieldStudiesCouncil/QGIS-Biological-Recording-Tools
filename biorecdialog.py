@@ -71,7 +71,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.butHelp.clicked.connect(self.helpFile)
         self.butGithub.clicked.connect(self.github)
         self.fcbTaxonCol.fieldChanged.connect(self.enableDisableTaxa)
-        #self.cboMapType.currentIndexChanged.connect(self.checkMapType)
+        self.cboMapType.currentIndexChanged.connect(self.checkMapType)
         self.mlcbSourceLayer.layerChanged.connect(self.layerSelected)
         self.fcbGridRefCol.fieldChanged.connect(self.enableDisableGridRef)
         self.fcbXCol.fieldChanged.connect(self.enableDisableXY)
@@ -142,6 +142,13 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         self.layerSelected()
         
+    def checkMapType(self):
+        if self.cboMapType.currentText().startswith("User-defined"):
+           self.dsbGridSize.setEnabled(True)
+        else:
+           self.dsbGridSize.setValue(0)
+           self.dsbGridSize.setEnabled(False)
+
     def outputFormatChanged(self):
         format = self.cboOutputFormat.currentText()
         if (format == "GeoJSON") or (format == "Shapefile"):

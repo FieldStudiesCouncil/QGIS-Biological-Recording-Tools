@@ -67,6 +67,8 @@ class projection:
             
     def xyToGridGeom(self, xOriginal, yOriginal, gridPrecision, type):
            
+        #self.logMessage(str(xOriginal) + " " + str(yOriginal) + " " + str(gridPrecision) + " " + str(type))
+
         # First convert the input x and y to the map canvas x and y
         xIn = None
         yIn = None
@@ -99,6 +101,8 @@ class projection:
                 
         # Get the x and y of the bottom left of the grid square
 
+        #self.logMessage(str(xIn) + " " + str(yIn) + " " + str(gridPrecision) + " " + str(type))
+
         # Apply any offsets specified in environment file
         try:
             offsetX = float(self.env.getEnvValue("biorec.xGridOffset"))
@@ -121,14 +125,14 @@ class projection:
                 err = "There was a problem deriving the grid square coordinates."
                    
         # The working grid reference is derived from the bottom left of grid square
+        gr = ""
         if self.crsOutputAuthID == "EPSG:27700":
-            gr = self.osgr.grFromEN(x, y, gridPrecision, "os")
+            gr = self.osgr.grFromEN(x, y, gridPrecision, "os") # Will return na if user-set precision which does not match standard GR precisions
         elif self.crsOutputAuthID == "EPSG:29903":
-            gr = self.osgr.grFromEN(x, y, gridPrecision, "irish")
-        elif x != None and y != None:
+            gr = self.osgr.grFromEN(x, y, gridPrecision, "irish") # Will return na if user-set precision which does not match standard GR precisions
+
+        if (gr == "" or gr == "na") and x != None and y != None:
             gr = str(x) + "#" + str(y)
-        else:
-            gr = ""
             
         if x == None or y == None:
             geom = None
@@ -153,6 +157,8 @@ class projection:
                 points.append(QgsPointXY(x1,y1))
             geom = QgsGeometry.fromPolygonXY([points])
             
+        #self.logMessage(str(gr) + " " + str(err))
+
         return [gr, geom, err]
         
      

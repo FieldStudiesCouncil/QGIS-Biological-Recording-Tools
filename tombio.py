@@ -75,7 +75,7 @@ class TomBio:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
-        # Init point layers Processing tool
+        # Init Add GRs to layers Processing tool
         self.provider = AddGridRefProvider(iface)
                 
     def initGui(self):
@@ -117,7 +117,7 @@ class TomBio:
 
         # GRs to points Processing tool
         icon_path = os.path.join(os.path.dirname(__file__),'images/gr2point.png')
-        self.actionGRs2Points = QAction(QIcon(icon_path), u"Add GRs to point layers", self.iface.mainWindow())
+        self.actionGRs2Points = QAction(QIcon(icon_path), u"Add GRs to layers", self.iface.mainWindow())
         self.iface.addPluginToMenu(u"&FSC Tools", self.actionGRs2Points)
         self.actionGRs2Points.triggered.connect(self.showGRs2PointsProcessingTools)
         self.toolbar.addAction(self.actionGRs2Points)
@@ -182,7 +182,7 @@ class TomBio:
             self.dwMapmashup.setVisible(True)
 
     def showGRs2PointsProcessingTools(self):
-         processing.execAlgorithmDialog('FSC:Add GRs to point layers', {})
+         processing.execAlgorithmDialog('FSC:Add GRs to layers', {})
             
     def showBiorecDialog(self):
         if self.dwBiorec is None:

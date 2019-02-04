@@ -12,236 +12,123 @@
 name=TomBio tools
 qgisMinimumVersion=3.0
 description=FSC QGIS Plugin for biological recorders.
-about=This is a plugin for QGIS desktop GIS which is aimed primarily at 
-    biological recorders. It streamlines many of the tasks commonly  
-	required from GIS by biological recorders including viewing NBN  
-	maps (via the NBN WMS), displaying biological records from CSV files, 
-	working with UK OS grid references and registering raster map images  
-	from the internet. Although originally designed for use in the the UK, 
-	enhancements have been made to improved utility in any geographical 
-	context.
-version=3.1.1
+about=This is a plugin for QGIS desktop GIS which is aimed primarily at biological recorders. It streamlines many of the tasks commonly required from GIS by biological recorders including viewing NBN maps (via the NBN WMS), displaying biological records from CSV files, working with UK OS grid references and registering raster map images from the internet. Although originally designed for use in the the UK, enhancements have been made to improved utility in any geographical context.
+version=3.2.0
 author=Rich Burkmar, Field Studies Council
 email=r.burkmar@field-studies-council.org
 
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.1.1
-    - Bug fix (introduced with 3.1.0) whereby Irish GRs were causing
-    biological records tool to crash. (Irish GRs currently ignored,
-    but intending to add enhancement to deal with them in 2019.)
+changelog=3.2.0
+    - Added ability to handle Irish as well is British grid references. This change has affected the Biological Records tool, the OSGR tool and the point and buffer utility on the NBN Atlas tool. The Biological Records tool can now understand Irish as well as British grid references and will correctly generate squares based on them. Note that it will deal with mixed input which includes both Irish and British grid references. It will also deal with Irish grid references which are prefixed with the letter 'I'. The grid OSGR tool can now determine position or locate to a position based on Irish as well as British GRs. It can also produce grids based on Irish GRs.
+    - Added a new 'GR to Layer' tool that will add GRs (of user-defined precision) to any vector layer. (If not a point layer, then the GRs are based on the centroid of the feature). Users can also choose to add easting/northing and lat/long to the output layer. This new tool follows the QGIS 'processing framework' standards and can therefore be incorporated into processing models if required.
+    - OSGR has a new 'paste grid squares' button which allows users to paste any text containing recognisable grid references into the 'OS Grid Squares' layer.
+    - OSGR tool enhanced to include both grid square and centre point markers. The latter are easier to see when zoomed out.
+    - Use of the OSGR grid generation or GR location features is no longer restricted to Map Views with British National Grid - these features operate regardless of the map view CRS.
+    - GR displayed on OSGR tool no longer disappears when 'on click' check-box selected.
+    - Hitting return whilst focus is in the grid reference text box on the OSGR tool automatically invokes the zoom to GR behaviour.
+    - The ability to derive 'start year' and 'end year' columns for aggregated maps has been added to the Biological Records tool.
+    - A one metre aggregation option has been added to the Biological Records tool.
+    - The Biological Records tool progress bar has been updated so that it better shows progression through individual layer generation operations.
+    - The Biological Records tool loggin has been improved to show row number of input CSV where bad grid references are found.
+    - The 'download reason' drop-down on the NBN Atlas tool has been updated to filter out deprecated reasons and to better parse the reason field.
+  3.1.1
+    - Bug fix (introduced with 3.1.0) whereby Irish GRs were causing biological records tool to crash. (Irish GRs currently ignored, but intending to add enhancement to deal with them in 2019.)
   3.1.0
-    - This release made to deal with a bug that was introduced with a
-    change to the QGIS API introduced with version 3.4.3 of QGIS which
-    resulted in the biological records tool hanging.
-    - Also includes a minor enhancement to the OSGR tool to allow users
-    to plan to grid references OR zoom to them.
+    - This release made to deal with a bug that was introduced with a change to the QGIS API introduced with version 3.4.3 of QGIS which resulted in the biological records tool hanging.
+    - Also includes a minor enhancement to the OSGR tool to allow users to plan to grid references OR zoom to them.
   3.0.0
     - Refactored to be compatible with QGIS v3.
-    - Added automatic batch map image (or PDF) generation via composer
-    for the biological records tool. (Previously this required manual 
-    intervention - a button click - to produce each map.)
-    - Major improvements to NBN tool including exposing metadata from
-    NBN downloads (e.g. data providers), adding a new species list
-    filter option and ability to filter on multiple selected taxa. 
-    Also several other minor usability enhancements to this tool.
-    - Added automatic saving of current style in QML style file
-    when generating permanent shapefiles from temporary shapefiles
-    in biological records tool.
-    - Added help buttons on individual tools to link directly to
-    relevant help web pages.
-    - Added a button on each tool to go directly to GitHub repository
-    where issues can be raised.
+    - Added automatic batch map image (or PDF) generation via composer for the biological records tool. (Previously this required manual intervention - a button click - to produce each map.)
+    - Major improvements to NBN tool including exposing metadata from NBN downloads (e.g. data providers), adding a new species list filter option and ability to filter on multiple selected taxa. Also several other minor usability enhancements to this tool.
+    - Added automatic saving of current style in QML style file when generating permanent shapefiles from temporary shapefiles in biological records tool.
+    - Added help buttons on individual tools to link directly to relevant help web pages.
+    - Added a button on each tool to go directly to GitHub repository where issues can be raised.
     - Fixed some minor reported bugs.
   2.8.0
-	- Complete replacement of NBN Tool with NBN Atlas Tool. The former
-	depended on NBN Gateway web services which were retired at the end
-	March 2017 when the NBN switched from the Gateway to the new Atlas
-	architecture, completely replacing the web services API when they
-	did so. The new NBN Atlas Tool is modelled on the old NBN Gateway
-	Tool but there are a number of differences. The two main functions,
-	1) quickly creating WMS layers for different taxon and 2)
-	downloading raw records, remain at the core of the new tool.
-	- Fixed a problem with circle generation - from both the point and
-	buffer utility in the NBN Tool and creating atlas maps with circles
-	in the Biological Recording Tool - that, under some circumstances,
-	created circles with 'invalid' geometry.
+	- Complete replacement of NBN Tool with NBN Atlas Tool. The former depended on NBN Gateway web services which were retired at the end March 2017 when the NBN switched from the Gateway to the new Atlas architecture, completely replacing the web services API when they did so. The new NBN Atlas Tool is modelled on the old NBN Gateway Tool but there are a number of differences. The two main functions, 1) quickly creating WMS layers for different taxon and 2) downloading raw records, remain at the core of the new tool.
+	- Fixed a problem with circle generation - from both the point and buffer utility in the NBN Tool and creating atlas maps with circles in the Biological Recording Tool - that, under some circumstances, created circles with 'invalid' geometry.
   2.7.4
-	- Fixed a bug with the handling of non-standard alphabetic
-	characters in taxon names. See GitHub 
-	issue #6.
+	- Fixed a bug with the handling of non-standard alphabetic characters in taxon names. See GitHub issue #6.
   2.7.0
-    - Fixed a bug with handling of non-alphabetic characters in
-	taxon names (e.g. brackets and periods) - GitHub issue #4.
-	- Added the ability to offset user-defined grids (OSGB Tool)
-	and atlas maps (BioRec Tool) - GitHub issue #5. Offsets are
-	specified in the environment file (see online documentation
-	www.fscbiodiversity.uk/qgisenvoptions).
+    - Fixed a bug with handling of non-alphabetic characters in taxon names (e.g. brackets and periods) - GitHub issue #4.
+	- Added the ability to offset user-defined grids (OSGB Tool) and atlas maps (BioRec Tool) - GitHub issue #5. Offsets are specified in the environment file (see www.fscbiodiversity.uk/qgisenvoptions).
   2.6.2
     - Fixes a problem with date filters not working and causing error.
   2.6.1
-	- Fixes a problem with using the NBN tool from behind a proxy
-	server. You can now set proxy-server settings in the QGIS
-	network options and these will be used by the tool when 
-	connecting to NBN web services. Note that for downloads,
-	you should set the timeout to be something greater than
-	the default of 60 seconds, otherwise downloading of large
-	datasets will time out.
-	- Adds a warning to the interface about a likely interruption
-	to the availability of the NBN tool when the NBN changes
-	it's architecture from NBN Gateway to NBN Atlas at the
-	end of March 2017.
+	- Fixes a problem with using the NBN tool from behind a proxy server. You can now set proxy-server settings in the QGIS network options and these will be used by the tool when connecting to NBN web services. Note that for downloads, you should set the timeout to be something greater than the default of 60 seconds, otherwise downloading of large datasets will time out.
+	- Adds a warning to the interface about a likely interruption to the availability of the NBN tool when the NBN changes it's architecture from NBN Gateway to NBN Atlas at the end of March 2017.
   2.6.0
-	- Fixes a problem with the #name# tag used in composers when
-	automatically creating output for multiple TEMP_ layers
-	created with biological records tool ('TEMP_') was left
-	in the text).
-	- Adds new functionality to the automatic composer output
-	generation in biological records tool. Additional tags
-	(other than '#name#') can now be used, e.g. #CommonName#.
-	The name of any special tag used must match a column header
-	in a CSV file opened in QGIS. The name of the taxon (as used
-	for the #name# tag) must be specified in this CSV file under a
-	column called 'Taxon'. The value used to replace the special
-	tag - e.g. #CommonName# - will be the values corresponding
-	to the column (e.g. CommonName) and row for the taxon.
+	- Fixes a problem with the #name# tag used in composers when automatically creating output for multiple TEMP_ layers created with biological records tool ('TEMP_') was left in the text).
+	- Adds new functionality to the automatic composer output generation in biological records tool. Additional tags (other than '#name#') can now be used, e.g. #CommonName#. The name of any special tag used must match a column header in a CSV file opened in QGIS. The name of the taxon (as used for the #name# tag) must be specified in this CSV file under a column called 'Taxon'. The value used to replace the special tag - e.g. #CommonName# - will be the values corresponding to the column (e.g. CommonName) and row for the taxon.
   2.5.0
 	- Adds the following new functionality.
 	  * Added new online help system with link button from tool.
-	  * Ability to use existing point layers in the Biological 
-	    Records tool.
-	  * Ability to select an image for Map Mashup from anywhere 
-	    on the file system.
-	  * Ability to use map composers for output of altas maps 
-	    generated by the Biological Records Tool.
-	  * Ability to batch save Biological Records Tool memory
-	    layers as shapefiles or GeoJSON files.
+	  * Ability to use existing point layers in the Biological Records tool.
+	  * Ability to select an image for Map Mashup from anywhere on the file system.
+	  * Ability to use map composers for output of altas maps generated by the Biological Records Tool.
+	  * Ability to batch save Biological Records Tool memorylayers as shapefiles or GeoJSON files.
 	- The following changes were also made:
-	  * CSV import now handled through QGIS core functionality 
-	    meaning numeric attributes now preserve numeric data type.
-	  * Removed 'sub-layers' option from NBN grid maps generation
-	    (only available with V2.0 of QGIS)
+	  * CSV import now handled through QGIS core functionality meaning numeric attributes now preserve numeric data type.
+	  * Removed 'sub-layers' option from NBN grid maps generation (only available with V2.0 of QGIS)
 	  * Increased minimum QGIS requirement to version 2.8.
-	  * Removed auto-generate of taxon tree in Biological
-	    Records Tool.
-	  * Explicit marking of memory layers with the 'TEMP' prefix
-	    in Biological Records Tool.
-	  * Updated Biological Records Tool to use custom QGIS widgets
-	    where appropriate.
+	  * Removed auto-generate of taxon tree in Biological Records Tool.
+	  * Explicit marking of memory layers with the 'TEMP' prefix in Biological Records Tool.
+	  * Updated Biological Records Tool to use custom QGIS widgets where appropriate.
   2.0.10
 	- Same as 2.0.9 but with minimum QGIS installation corrected
 	to 2.8 because it uses new custom QGIS QT widgets.
   2.0.9
     - Several updates to the Biological Records tool.
-	  * Temporary layer names now prefixed with 'TEMP' to make
-	  it clear that they are not saved by default.
-	  * Added options to allow the saving of layers created by
-	  the tool as Shapefiles or GeoJSON as well as the default
-	  image option.
-	  * Improved the generation of point layers so that the field
-	  types for imported CSV files are retained in layer
-	  (previously they were all converted to text).
+	  * Temporary layer names now prefixed with 'TEMP' to make it clear that they are not saved by default.
+	  * Added options to allow the saving of layers created by the tool as Shapefiles or GeoJSON as well as the default image option.
+	  * Improved the generation of point layers so that the field types for imported CSV files are retained in layer (previously they were all converted to text).
   2.0.8
-    - Accounted for minor bug in image generation with biorec 
-	that affected Linux OS. Thanks to Paul Tyers for assisting
-	with this. Also dealt with a minor NBN login bug.
+    - Accounted for minor bug in image generation with biorec that affected Linux OS. Thanks to Paul Tyers for assisting with this. Also dealt with a minor NBN login bug.
   2.0.7
 	- Dealt with an introduced bug preventing NBN login.
   2.0.6
     - Re-packaged missing info file for NBN tool.
   2.0.5
-    - Bug fixes. Stopped crash on atlas map without taxa. Cope
-	with grid references with trailing spaces.
+    - Bug fixes. Stopped crash on atlas map without taxa. Cope with grid references with trailing spaces.
   2.0.4
-	- Added ability to store environment options in a file that
-	is external to the plugin folder. The 'internal' environment
-	options folder gets deleted/replaced whenever the plugin is
-	updated, so this is to overcome that problem. Added support
-	for NBN username and password environment options. Fixed a 
-	bug with generation of values for 'taxa' column of atlas 
-	maps.
+	- Added ability to store environment options in a file that is external to the plugin folder. The 'internal' environment options folder gets deleted/replaced whenever the plugin is updated, so this is to overcome that problem. Added support for NBN username and password environment options. Fixed a bug with generation of values for 'taxa' column of atlas maps.
   2.0.3
-    - Added facility for the Biological Records tool to generate
-	two extra attributes for atlas layers - 'richness' and 'taxa'.
-	Richness is a count of the number of taxa which contribute to
-	the records and 'taxa' is a string of all taxa names separated
-	by the hash symbol. The latter allows you to use QGIS categorical
-	styling to create coincidence maps for biological records.
+    - Added facility for the Biological Records tool to generate two extra attributes for atlas layers - 'richness' and 'taxa'. Richness is a count of the number of taxa which contribute to the records and 'taxa' is a string of all taxa names separated by the hash symbol. The latter allows you to use QGIS categorical styling to create coincidence maps for biological records.
   2.0.2
-	- Accounted for a problem that caused new layers from biological
-	records tool to fail to load if a previous layer generated
-	by the tool is manually removed from the map. This can be
-	fixed clearing all layers using tool's button, so a new
-	error trap and associated message added to indicate this.
+	- Accounted for a problem that caused new layers from biological records tool to fail to load if a previous layer generated by the tool is manually removed from the map. This can be fixed clearing all layers using tool's button, so a new error trap and associated message added to indicate this.
   2.0.1
-	- Fixed bug which prevented NBN data download if a data
-	provider could not be located. Incorporated a warning to
-	user if style file applied by biological recording tool 
-	when a point layer is generated.
+	- Fixed bug which prevented NBN data download if a data provider could not be located. Incorporated a warning to user if style file applied by biological recording tool when a point layer is generated.
   2.0.0
-	- Added comprehensive NBN record download facilities which
-	include the ability to select records based on a taxon,
-	dataset, known site (e.g. LRC, VC or NNR boundary), 
-	user-defined polygon or grid reference. Also includes a
-	convenience tool for generating a polygon
-	from a point and buffer (user specifies grid reference or
-	easting/northing plus a buffer radius) which can then
-	be used to select records for download.
+	- Added comprehensive NBN record download facilities which include the ability to select records based on a taxon, dataset, known site (e.g. LRC, VC or NNR boundary), user-defined polygon or grid reference. Also includes a convenience tool for generating a polygon from a point and buffer (user specifies grid reference or easting/northing plus a buffer radius) which can then be used to select records for download.
   1.6.0
-    - Added functionality to display NBN grid maps showing
-	species density distribution by dataset and designation.
-	Also modified various elements of the NBN tool interface
-	to accommodate these changes.
+    - Added functionality to display NBN grid maps showing species density distribution by dataset and designation. Also modified various elements of the NBN tool interface to accommodate these changes.
   1.5.0
-    - Added filtering by dataset, date and presence/absence to
-	NBN mapping tool.
+    - Added filtering by dataset, date and presence/absence to NBN mapping tool.
   1.4.4
-    - Modified the environment options dialog so that users can
-	see example environment option values. The example option
-	values file is updated whenever new options are added to the 
-	plugin. So now users can always easily check if new options
-	have been added whenever the tool is updated.
+    - Modified the environment options dialog so that users can see example environment option values. The example option values file is updated whenever new options are added to the plugin. So now users can always easily check if new options have been added whenever the tool is updated.
   1.4.3
-    - Now able to provide access to NBN maps via the NBN WMS
-	as a logged in user so NBN-registered users with greater
-	than public access can see all the data they have access
-	to. Many thanks to Chris Johnson (CEH) and Matt Debont (NBN)
-	for their help in sorting this out.
+    - Now able to provide access to NBN maps via the NBN WMS as a logged in user so NBN-registered users with greater than public access can see all the data they have access to. Many thanks to Chris Johnson (CEH) and Matt Debont (NBN) for their help in sorting this out.
   1.4.2
-    - Enhancement to Map Mashup to allow image to be pasted from 
-	a file instead of the clipboard. Also to allow the application
-	of a style file to the registered raster image.
+    - Enhancement to Map Mashup to allow image to be pasted from a file instead of the clipboard. Also to allow the application of a style file to the registered raster image.
   1.4.1
     - Bug-fix to improve processing for CSV files with many taxa.
   1.4.0
 	- Updated the Biological Records tool with two main enhancements.
-	1. Allows maps to be generated from X & Y values stored in any
-	CRS. Specify grid sizes directly - must be specified in the map
-	units used by the output CRS.
-	2. Improved internal handling of Comma Separated Value records
-	files which means performance improvements and ability to handle
-	much larger files.
+	1. Allows maps to be generated from X & Y values stored in any CRS. Specify grid sizes directly - must be specified in the map units used by the output CRS.
+	2. Improved internal handling of Comma Separated Value records files which means performance improvements and ability to handle much larger files.
   1.3.4
-    - Updated the OSGR tool so that it supports non-UK based coordinate
-	reference systems and allows generation of grids at user-specified sizes,
-	whatever coordinate reference system is used (including OSGB).
+    - Updated the OSGR tool so that it supports non-UK based coordinate reference systems and allows generation of grids at user-specified sizes, whatever coordinate reference system is used (including OSGB).
   1.3.3
-    - Incorporated changes to make better use of the new multi-threaded
-	rendering (MTR) model. This should improve the performance of batch
-	atlas map layer and image generation in most circumstances.
+    - Incorporated changes to make better use of the new multi-threaded rendering (MTR) model. This should improve the performance of batch atlas map layer and image generation in most circumstances.
   1.3.2
-    - Made changes to speed up generation of layers and batch images when
-	large rasters or WMS are used for a backdrop.
+    - Made changes to speed up generation of layers and batch images when large rasters or WMS are used for a backdrop.
 	- Updated tool info files and tool metadata.
   1.3.1
     - Fixed issue with backward compatibility with version 2.
   1.3.0
-	- Incorporates major change to Biological Records tool to cope with the new 
-	rendering mechanism (MTS) introduced with version 2.4 of QGIS. This 
-	replaces the workarounds introduced in version 1.2.0. The information 
-	file (invoked from the options tab) gives a bit of information on using 
-	the new interface.
+	- Incorporates major change to Biological Records tool to cope with the new rendering mechanism (MTS) introduced with version 2.4 of QGIS. This replaces the workarounds introduced in version 1.2.0. The information file (invoked from the options tab) gives a bit of information on using the new interface.
   1.2.1
     - Incorporates a few bug fixes, better information for problems and workarounds.
   1.2.0
@@ -263,4 +150,3 @@ experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version
 deprecated=False
-
