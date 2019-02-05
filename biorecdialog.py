@@ -110,7 +110,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.butShowAll.setIcon(QIcon( self.pathPlugin % "images/layershow.png" ))
         self.butHideAll.setIcon(QIcon( self.pathPlugin % "images/layerhide.png" ))
 
-
         #Inits
         self.blockGR = False
         self.blockXY = False

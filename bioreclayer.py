@@ -533,10 +533,18 @@ class biorecLayer(QObject):
                     #Year stuff
                     year = 0
                     if self.iColDate > -1:
-                        try:
-                            year = int(str(feature.attributes()[self.iColDate]))
-                        except:
-                            year = 0
+                        dateStr = str(feature.attributes()[self.iColDate])
+                        # Replace any non numeric characters with a space
+                        dateStr = re.sub('[^0-9]+', ' ', dateStr)
+                        # Split on white space
+                        tokens = dateStr.split()
+                        # Any four digit number will be considered a year
+                        year = 0
+                        for token in tokens:
+                            if len(token) == 4:
+                                year = int(token)
+                                break
+
                         if year < 1000 or year > thisYear:
                             year = 0
 
