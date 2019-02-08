@@ -66,8 +66,8 @@ class biorecLayer(QObject):
         self.env = envmanager.envManager()
         
         self.vl = None  
-        
-        self.translationError = ""
+      
+        self.Year = date.today().year
     
     def logMessage(self, strMessage, level=Qgis.Info):
         QgsMessageLog.logMessage(strMessage, "Biological Records Tool", level)
@@ -97,6 +97,9 @@ class biorecLayer(QObject):
 
     def setColDate(self, iColDate):
         self.iColDate = iColDate
+
+    def setColDate2(self, iColDate2):
+        self.iColDate2 = iColDate2
 
     def setColAb(self, iColAb):
         self.iColAb = iColAb
@@ -250,7 +253,6 @@ class biorecLayer(QObject):
         self.vl.commitChanges()
         self.vl.updateExtents()
         self.vl.removeSelection()
-        self.translationError = ""
         
     def makeFeatures(self, iter, iLength, mapType, bFilterTaxaV2=False):
 
@@ -346,7 +348,6 @@ class biorecLayer(QObject):
 
                 if geom == None:
                     self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
-                    self.translationError = "Translation errors - see log tab"
 
         return fets
         
@@ -434,13 +435,44 @@ class biorecLayer(QObject):
         self.vl.commitChanges()
         self.vl.updateExtents()
         self.vl.removeSelection()
-        self.translationError = ""
-        
+
+    def parseYearsFromString(self, str):
+        ret = {'startYear': None, 'endYear': None, 'msg': None}
+        # Replace any non numeric characters with a space
+        strDate = re.sub('[^0-9]+', ' ', str)
+        # Split on white space
+        tokens = strDate.split()
+        # Any four digit number will be considered a year
+        year = 0
+        for token in tokens:
+            if len(token) == 4:
+                year = int(token)
+                if ret['startYear'] is None:
+                    ret['startYear'] = int(token)
+                elif int(token) < ret['startYear']:
+                    ret['startYear'] = int(token)
+
+                if ret['endYear'] is None:
+                    ret['endYear'] = int(token)
+                elif int(token) > ret['endYear']:
+                    ret['endYear'] = int(token)
+
+        if  ret['startYear'] is not None:
+            if ret['startYear'] < 1000 or ret['startYear'] > self.Year:
+                ret['startYear'] = None
+        if ret['endYear'] is not None:
+            if ret['endYear'] < 1000 or ret['endYear'] > self.Year:
+                ret['endYear'] = None
+
+        if ret['startYear'] is None:
+            ret['msg'] = "a year could be parsed from the date '" + str + "'"
+
+        return ret
+
     def makeAtlasFeatures(self, iter, iLength, gridPrecision, symbol, bFilterTaxaV2=False):
    
         fetsDict = {}
         taxaDict = {}
-        thisYear = date.today().year
         
         i=0
         progStart = self.progress.value()
@@ -531,23 +563,25 @@ class biorecLayer(QObject):
                             abundance = 1
 
                     #Year stuff
-                    year = 0
+                    year = {'startYear': None, 'endYear': None}
                     if self.iColDate > -1:
-                        dateStr = str(feature.attributes()[self.iColDate])
-                        # Replace any non numeric characters with a space
-                        dateStr = re.sub('[^0-9]+', ' ', dateStr)
-                        # Split on white space
-                        tokens = dateStr.split()
-                        # Any four digit number will be considered a year
-                        year = 0
-                        for token in tokens:
-                            if len(token) == 4:
-                                year = int(token)
-                                break
+                        date1 = self.parseYearsFromString(str(feature.attributes()[self.iColDate]))
+                        if date1['msg'] is not None:
+                            self.pteLog.appendPlainText("Problem with row " + str(i+1) + ": " + date1['msg'])
+                        year['startYear'] = date1['startYear']
+                        year['endYear'] = date1['endYear']
 
-                        if year < 1000 or year > thisYear:
-                            year = 0
-
+                    if self.iColDate2 > -1:
+                        date2 = self.parseYearsFromString(str(feature.attributes()[self.iColDate2]))
+                        if date2['msg'] is not None:
+                            self.pteLog.appendPlainText("Problem with row " + str(i+1) + ": " + date2['msg'])
+                        if date2['startYear'] is not None:
+                            if year['startYear'] is None or date2['startYear'] < year['startYear']:
+                                year['startYear'] = date2['startYear']
+                        if date2['endYear'] is not None:
+                            if year['endYear'] is None or date2['endYear'] > year['endYear']:
+                                year['endYear'] = date2['endYear']
+                        
                     if self.iColGr > -1:
                         # Get atlas geometry from grid reference
                         ret = self.osgr.convertGr(grOriginal, gridPrecision)
@@ -566,7 +600,7 @@ class biorecLayer(QObject):
                     
                     if not geom is None:
                         if fetsDict.get(gr, None) == None:
-                            fetsDict[gr] = [geom, 1, abundance, 1, year, year, ""]
+                            fetsDict[gr] = [geom, 1, abundance, 1, year['startYear'], year['endYear'], ""]
                             taxaDict[gr] = [taxon]
                         else:
                             #Records
@@ -574,11 +608,13 @@ class biorecLayer(QObject):
                             #Abundance
                             fetsDict[gr][2]+=abundance
                             #StartYear
-                            if year > 0 and (fetsDict[gr][4] == 0 or year < fetsDict[gr][4]):
-                                fetsDict[gr][4] = year
+                            if year['startYear'] is not None:
+                                if fetsDict[gr][4] is None or year['startYear'] < fetsDict[gr][4]:
+                                    fetsDict[gr][4] = year['startYear']
                             #EndYear
-                            if year > 0 and (fetsDict[gr][5] == 0 or year > fetsDict[gr][5]):
-                                fetsDict[gr][5] = year
+                            if year['endYear'] is not None:
+                                if fetsDict[gr][5] is None or year['endYear'] > fetsDict[gr][5]:
+                                    fetsDict[gr][5] = year['endYear']
                             #Richness & Taxa
                             if not taxon in taxaDict[gr]:
                                 fetsDict[gr][3]+=1 
@@ -586,7 +622,6 @@ class biorecLayer(QObject):
 
                 if geom == None:
                     self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
-                    self.translationError = "Translation errors - see log tab"
                             
         #Sort taxaDict to ensure that the taxa attribute includes taxa in 
         #same order for all grid references.

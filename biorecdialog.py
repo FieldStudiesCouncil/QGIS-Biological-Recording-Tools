@@ -567,6 +567,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.fcbGroupingCol.setLayer(self.csvLayer)
             self.fcbTaxonCol.setLayer(self.csvLayer)
             self.fcbDateCol.setLayer(self.csvLayer)
+            self.fcbDate2Col.setLayer(self.csvLayer)
 
             if self.csvLayer != None:
                 #Initialise the tree model
@@ -644,12 +645,24 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                             break
                         index += 1
 
-                # Set default value for Date column
-                for colDate in self.env.getEnvValues("biorec.datecol"):
+                # Set default value for start date column
+                for colDate in self.env.getEnvValues("biorec.datestartcol"):
+                    self.logMessage("start date col:" + colDate)
+                    index = 1
+                    for field in self.csvLayer.dataProvider().fields():
+                        self.logMessage("csv field:" + field.name())
+                        if field.name() == colDate:
+                            self.fcbDateCol.setCurrentIndex(index)
+                            break
+                        index += 1
+
+                # Set default value for end date column
+                for colDate in self.env.getEnvValues("biorec.dateendcol"):
+                    self.logMessage("end date col:" + colDate)
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
                         if field.name() == colDate:
-                            self.fcbDateCol.setCurrentIndex(index)
+                            self.fcbDate2Col.setCurrentIndex(index)
                             break
                         index += 1
 
@@ -1114,6 +1127,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         layer.setColY(self.fcbYCol.currentIndex() -1)
 
         layer.setColDate(self.fcbDateCol.currentIndex() -1)
+        layer.setColDate2(self.fcbDate2Col.currentIndex() -1)
         
         layer.setTransparency(self.hsLayerTransparency.value())
 
