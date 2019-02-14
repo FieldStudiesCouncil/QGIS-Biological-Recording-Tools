@@ -38,6 +38,13 @@ from . import filedialog
 from . import bioreclayer
 from . import envmanager
 from datetime import datetime
+from PyQt5 import QtSql
+import re, platform
+from .ui_R6 import Ui_R6
+from qgis.PyQt import QtGui
+
+if platform.system() == 'Windows':
+    import winreg
 
 class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
     def __init__(self, iface, dockwidget):
@@ -54,6 +61,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #self.tvRecords.setModel(self.model)
         
         self.butBrowse.clicked.connect(self.browseCSV)
+        self.butGetR6.clicked.connect(self.ChkR6Setup)
         self.butMap.clicked.connect(self.MapRecords)
         self.butShowAll.clicked.connect(self.showAll)
         self.butHideAll.clicked.connect(self.hideAll)
@@ -130,7 +138,68 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #self.fcbYCol.setAllowEmptyFieldName(True)
 
         self.layerSelected()
-        
+
+    def ChkR6Setup(self):
+        #fn = 'None'
+        #try and connect to r6
+        db = QtSql.QSqlDatabase.addDatabase('QODBC')
+        if platform.system() == 'Windows':
+            try:
+                aKey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\WOW6432Node\Dorset Software', 0,
+                                      (winreg.KEY_WOW64_64KEY + winreg.KEY_READ))
+            except WindowsError:
+                if WindowsError == 5: #permission issue
+                    servername = QInputDialog.getText(None, 'input', 'R6 Server Name: ')
+                    if servername[1]:
+                        username = QInputDialog.getText(None, 'input', 'Database Username: ')
+                    else:
+                        return
+                    if username[1]:
+                        password = QInputDialog.getText(None, 'input', 'Password: ',QLineEdit.Password)
+                    else:
+                        return
+                    if password[1]:
+                        servername = '{' + servername[0] + '}'
+                        con_str = 'DRIVER={SQL Server};SERVER={0};Database=NBNData;UID={1};PWD={2};'.format(servername,username[0],password[0])
+                        db.setDatabaseName(con_str)
+                    try:
+                        db.open()
+                    except:
+                        QMessageBox.about(self, "Error", "Couldn't connect with those credentials")
+                        return
+            subname = winreg.EnumKey(aKey, 0)
+            subkey = winreg.OpenKey(aKey, subname, 0, (winreg.KEY_WOW64_64KEY + winreg.KEY_READ))
+            pathname, regtype = winreg.QueryValueEx(subkey, "Server Name")
+            servername = '{' + pathname + '}'
+            con_str = "DRIVER={{SQL Server}};SERVER={0};DATABASE=NBNData;Trusted_Connection=yes;".format(servername)
+            db.setDatabaseName(con_str)
+            if not db.open():
+                username = QInputDialog.getText(None, 'input', 'Database Username: ')
+                if username[1]:
+                    password = QInputDialog.getText(None, 'input', 'Password: ',QLineEdit.Password)
+                else:
+                    return
+                if password[1]:
+                    con_str = 'DRIVER={{SQL Server}};SERVER={0};Database=NBNData;UID={1};PWD={2};'.format(servername,username[0],password[0])
+                else:
+                    return
+                db.setDatabaseName(con_str)
+                if not db.open():
+                    QMessageBox.about(self, "Error", "Couldn't connect with those credentials")
+                    return
+        else:
+            QMessageBox.about(self, "Error", "R6 only runs on Windows platform")
+            return
+        self.open_R6_dialog()
+        print(R6Dialog.fn)
+
+        if R6Dialog.fn !='None':
+            nbnFile = None
+            self.loadCsv(R6Dialog.fn, (not nbnFile is None))
+            db.close()
+            R6Dialog.fn = 'None'
+
+
     def outputFormatChanged(self):
         format = self.cboOutputFormat.currentText()
         if (format == "GeoJSON") or (format == "Shapefile"):
@@ -1296,5 +1365,164 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             
         return selectedTaxa
     
-    
-        
+    def open_R6_dialog(self):
+        my_dialog = R6Dialog()
+        my_dialog.exec_()
+
+class R6Dialog(QDialog):
+    def __init__(self):
+        super(R6Dialog, self).__init__()
+        self.ui = Ui_R6()
+        self.ui.setupUi(self)
+        scriptDir = os.path.dirname(os.path.realpath(__file__))
+        self.setWindowIcon(QtGui.QIcon(scriptDir + os.path.sep + 'images/R6.ico'))
+        self.ui.leR6SpToMatch.setFocus()
+        self.ui.butCancel.clicked.connect(self.cancel_dialog)
+        self.ui.butR6Match.clicked.connect(self.R6Match)
+        self.ui.butGetR6Data.clicked.connect(self.getR6Data)
+        R6Dialog.fn = 'None'
+
+
+    def R6Match(self):
+        self.ui.leR6SpToMatch.setFocus()
+        strSpeciesName = self.ui.leR6SpToMatch.text()
+        if strSpeciesName == '':
+            self.close()
+            return
+        self.ui.cmbSpToMap.setEnabled(True)
+        self.ui.lbR6Select.setEnabled(True)
+
+        strSpeciesName = str(re.sub(r'([^\s\w\-\']|_)+', '',
+                                    strSpeciesName))  ##strip all non alphanumeric except spaces, - and ' from input
+        strSpeciesName = strSpeciesName.replace("'", "''")## double up single quote if in species name
+        args = "'%" + strSpeciesName + "%'"
+        sql = (
+                    " SELECT distinct TAXON.ITEM_NAME, NAMESERVER.RECOMMENDED_TAXON_VERSION_KEY, NAMESERVER.RECOMMENDED_TAXON_LIST_ITEM_KEY, TAXON_LIST.ITEM_NAME AS SourceList"
+                    " FROM  NAMESERVER INNER JOIN"
+                    " TAXON_VERSION ON NAMESERVER.INPUT_TAXON_VERSION_KEY = TAXON_VERSION.TAXON_VERSION_KEY INNER JOIN"
+                    " TAXON ON TAXON_VERSION.TAXON_KEY = TAXON.TAXON_KEY INNER JOIN"
+                    " TAXON_LIST_ITEM ON NAMESERVER.RECOMMENDED_TAXON_LIST_ITEM_KEY = TAXON_LIST_ITEM.TAXON_LIST_ITEM_KEY INNER JOIN"
+                    " TAXON_LIST_VERSION ON TAXON_LIST_ITEM.TAXON_LIST_VERSION_KEY = TAXON_LIST_VERSION.TAXON_LIST_VERSION_KEY INNER JOIN"
+                    " TAXON_LIST ON TAXON_LIST_VERSION.TAXON_LIST_KEY = TAXON_LIST.TAXON_LIST_KEY"
+                    " WHERE (TAXON.ITEM_NAME LIKE %s);" % args
+                    )
+        query = QtSql.QSqlQuery(sql)
+        list1 = []
+        self.list2=[]
+        while query.next():
+            list1.append(query.value(0) + query.value(3))
+            self.list2.append(query.value(2))  # 2=TLIK,1=TVK
+
+        if len(list1) == 0:
+            list1 = ["No Match"]
+            self.list2 = ["No Match"]
+        else:
+            self.ui.cbIncSpBelow.setEnabled(True)
+            self.ui.butGetR6Data.setEnabled(True)
+
+        self.ui.cmbSpToMap.clear()
+        self.ui.cmbSpToMap.addItems(list1)
+
+    #@pyqtSlot()
+    def getR6Data(self):
+        index = self.ui.cmbSpToMap.currentIndex()
+        tlik = "'"+str(self.list2[index])+"'"
+        justtaxon = "'1'"
+
+        if self.ui.cbIncSpBelow.isChecked():
+            justtaxon = "'2'"
+        sql = ("set nocount on; DECLARE @TKey1 varchar(16)={0}; "
+               "DECLARE @TKey varchar(16); "
+                "DECLARE @choice varchar(1)={1}; "
+               "SET @TKey=(SELECT TAXON_VERSION_KEY FROM TAXON_LIST_ITEM where Taxon_List_Item_Key=@TKey1); "
+               "CREATE TABLE #TaxaList(Taxon_Version_Key CHAR(16) COLLATE Database_Default PRIMARY KEY); "
+               "CREATE TABLE #TLIK (TLIK CHAR(16) COLLATE Database_Default PRIMARY KEY); "
+               "IF @choice='2' "
+               "INSERT INTO #TLIK VALUES (@TKey1) "
+               "WHILE @choice=2 BEGIN "
+               "INSERT INTO #TLIK "
+               "SELECT T.Preferred_name "
+               "FROM TAXON_LIST_ITEM T "
+               "INNER JOIN #TLIK Tinc on T.Parent=TInc.TLIK "
+               "LEFT JOIN #TLIK Texc ON Texc.TLIK=T.Preferred_name "
+               "WHERE Texc.TLIK IS NULL "
+               "IF @@ROWCOUNT=0 "
+               "BREAK "
+               "END "
+               "IF @choice='2' "
+               "insert into #TaxaList (Taxon_Version_Key) "
+               "SELECT TAXON_LIST_ITEM.TAXON_VERSION_KEY "
+               "FROM TAXON_LIST_ITEM INNER JOIN "
+               "[#TLIK] ON TAXON_LIST_ITEM.TAXON_LIST_ITEM_KEY = [#TLIK].TLIK "
+               "ELSE "
+               "INSERT INTO #TaxaList VALUES (@TKey) "
+               "SELECT DISTINCT [#TaxaList].Taxon_Version_Key, NAMESERVER.RECOMMENDED_TAXON_VERSION_KEY "
+               "INTO [#TaxaListPN] "
+               "FROM NAMESERVER INNER JOIN "
+               "[#TaxaList] ON NAMESERVER.INPUT_TAXON_VERSION_KEY = [#TaxaList].Taxon_Version_Key "
+               "SELECT DISTINCT "
+               "INDEX_TAXON_NAME_1.COMMON_NAME AS CommonName, INDEX_TAXON_NAME_1.PREFERRED_NAME AS ScientificName, TAXON_GROUP.TAXON_GROUP_NAME AS TaxonGroup, isnull(LOCATION.FILE_CODE,'') AS FileCode, isnull(LOCATION_NAME.ITEM_NAME,'') AS SampleLocation, isnull(SAMPLE.LOCATION_NAME,'') AS LocationName, dbo.LCReturnVagueDateShort(SAMPLE.VAGUE_DATE_START, SAMPLE.VAGUE_DATE_END, SAMPLE.VAGUE_DATE_TYPE) AS RecDate, "
+               "SAMPLE.SPATIAL_REF AS GridRef, isnull(SAMPLE_TYPE.SHORT_NAME,'') AS RecMethod, isnull(RECORD_TYPE.SHORT_NAME,'') AS RecType, isnull(dbo.LCFormatAbundanceData(TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY),'') AS Abundance, TAXON_OCCURRENCE.CONFIDENTIAL AS Confid, TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY AS TaxOcc,  TAXON_LIST_ITEM_1.TAXON_VERSION_KEY AS TVK, dbo.LCReturnDate(dbo.SAMPLE.VAGUE_DATE_END, dbo.SAMPLE.VAGUE_DATE_TYPE, 'Y') AS RecYear "
+               "FROM TAXON_VERSION INNER JOIN "
+               "SAMPLE_TYPE INNER JOIN "
+               "SAMPLE LEFT OUTER JOIN "
+               "LOCATION_NAME ON SAMPLE.LOCATION_KEY = LOCATION_NAME.LOCATION_KEY ON SAMPLE_TYPE.SAMPLE_TYPE_KEY = SAMPLE.SAMPLE_TYPE_KEY INNER JOIN "
+               "TAXON_OCCURRENCE ON SAMPLE.SAMPLE_KEY = TAXON_OCCURRENCE.SAMPLE_KEY INNER JOIN "
+               "TAXON_DETERMINATION INNER JOIN "
+               "INDEX_TAXON_NAME ON TAXON_DETERMINATION.TAXON_LIST_ITEM_KEY = INDEX_TAXON_NAME.TAXON_LIST_ITEM_KEY ON TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY = TAXON_DETERMINATION.TAXON_OCCURRENCE_KEY INNER JOIN "
+               "SURVEY_EVENT ON SAMPLE.SURVEY_EVENT_KEY = SURVEY_EVENT.SURVEY_EVENT_KEY INNER JOIN "
+               "SURVEY ON SURVEY_EVENT.SURVEY_KEY = SURVEY.SURVEY_KEY INNER JOIN "
+               "RECORD_TYPE ON TAXON_OCCURRENCE.RECORD_TYPE_KEY = RECORD_TYPE.RECORD_TYPE_KEY INNER JOIN "
+               "TAXON_LIST_ITEM ON TAXON_DETERMINATION.TAXON_LIST_ITEM_KEY = TAXON_LIST_ITEM.TAXON_LIST_ITEM_KEY ON TAXON_VERSION.TAXON_VERSION_KEY = TAXON_LIST_ITEM.TAXON_VERSION_KEY INNER JOIN "
+               "INDEX_TAXON_NAME AS INDEX_TAXON_NAME_1 ON INDEX_TAXON_NAME.RECOMMENDED_TAXON_LIST_ITEM_KEY = INDEX_TAXON_NAME_1.TAXON_LIST_ITEM_KEY INNER JOIN "
+               "TAXON_LIST_ITEM AS TAXON_LIST_ITEM_1 ON INDEX_TAXON_NAME_1.RECOMMENDED_TAXON_LIST_ITEM_KEY = TAXON_LIST_ITEM_1.TAXON_LIST_ITEM_KEY INNER JOIN "
+               "[#TaxaListPN] ON TAXON_LIST_ITEM_1.TAXON_VERSION_KEY = [#TaxaListPN].Taxon_Version_Key LEFT OUTER JOIN "
+               "DETERMINATION_TYPE ON TAXON_DETERMINATION.DETERMINATION_TYPE_KEY = DETERMINATION_TYPE.DETERMINATION_TYPE_KEY LEFT OUTER JOIN "
+               "LOCATION ON SAMPLE.LOCATION_KEY = LOCATION.LOCATION_KEY LEFT OUTER JOIN "
+               "TAXON_GROUP ON TAXON_VERSION.OUTPUT_GROUP_KEY = TAXON_GROUP.TAXON_GROUP_KEY "
+               "WHERE (TAXON_OCCURRENCE.ZERO_ABUNDANCE = 0) AND (TAXON_OCCURRENCE.VERIFIED <> 1) AND (TAXON_DETERMINATION.PREFERRED = 1) AND "
+               "(LOCATION_NAME.PREFERRED = 1 OR LOCATION_NAME.PREFERRED IS NULL) AND "
+               "(DETERMINATION_TYPE.SHORT_NAME <> 'Considered Incorrect') AND (DETERMINATION_TYPE.SHORT_NAME <> 'Incorrect') "
+               "AND (DETERMINATION_TYPE.SHORT_NAME <> 'Invalid') AND "
+               "(DETERMINATION_TYPE.SHORT_NAME <> 'Requires Confirmation')".format(tlik,justtaxon)
+               )
+        query = QtSql.QSqlQuery(sql)
+        colcount = query.record().count()
+        exportQSqlQueryModel = QtSql.QSqlQueryModel()
+        exportQSqlQueryModel.setQuery(query)
+        column_names = []
+        print(exportQSqlQueryModel.rowCount(), 'here')
+        for column in range(exportQSqlQueryModel.columnCount()):
+            column_names.append(str(exportQSqlQueryModel.headerData(column, QtCore.Qt.Horizontal)))
+        print(column_names)
+        list_of_rows = []
+        while query.next():
+            list_of_cells = []
+            i = 0
+            while i <= colcount:
+                list_of_cells.append(query.value(i))
+                i += 1
+            list_of_rows.append(list_of_cells)
+        if len(list_of_rows) > 0:
+            homepath = os.path.expanduser('~')
+            fileName = QFileDialog.getSaveFileName(self, "Save file", homepath, "CSV files (*.csv)|*.csv")
+            try:
+                out_file = open(fileName[0], 'w',newline='')
+            except:
+                self.close()
+                return
+            writer = csv.writer(out_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(column_names)
+            for x in list_of_rows:
+                writer.writerow(x)
+            out_file.close()
+            self.close()
+        else:
+            fileName=['None']
+            QMessageBox.about(self, "Message", "No records in R6 for that species")
+            quit()
+        print(fileName[0])
+        R6Dialog.fn = fileName[0]
+
+    def cancel_dialog(self):
+        self.close()
