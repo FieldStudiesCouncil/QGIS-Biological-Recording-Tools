@@ -259,8 +259,14 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     
     iSquares = (((xMax - llx) // self.precision + 1) * ((yMax - lly) // self.precision + 1))
     if iSquares > 1000:
+
+        if self.rbOutCrsOther.isChecked():
+            precisionText = str(self.dsbGridSize.value())
+        else:
+            precisionText = self.cboPrecision.currentText()
+
         ret = QMessageBox.warning(self, "Warning",
-                "Large area specified relative to the precision (" + self.cboPrecision.currentText() + "). This could generate up to " + str(int(iSquares)) + " grid squares which could take some time. Do you want to continue? (You can interrupt with the Cancel button.)",
+                "Large area specified relative to the precision (" + precisionText + "). This could generate up to " + str(int(iSquares)) + " grid squares which could take some time. Do you want to continue? (You can interrupt with the Cancel button.)",
                 QMessageBox.Ok, QMessageBox.Cancel)
         if ret == QMessageBox.Cancel:
             return
