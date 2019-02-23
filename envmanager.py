@@ -80,7 +80,7 @@ class envManager():
         lines = self.textEnv.split('\n' )
         for line in lines:
             if line.startswith(search):
-                return line[len(search):]
+                return line[len(search):].strip()
         return ""
     
     def getEnvValues(self, envLabel):
@@ -90,7 +90,7 @@ class envManager():
         lines = self.textEnv.split('\n' )
         for line in lines:
             if line.startswith(search):
-                ret.append(line[len(search):])
+                ret.append(line[len(search):].strip())
         return ret
         
     def getExternalFilePath(self):

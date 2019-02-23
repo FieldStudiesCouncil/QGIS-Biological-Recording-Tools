@@ -33,7 +33,7 @@ from qgis import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from . import ui_biorec 
+from . import ui_biorec
 from . import filedialog
 from . import bioreclayer
 from . import envmanager
@@ -41,6 +41,7 @@ from datetime import datetime
 from PyQt5 import QtSql
 import re, platform
 from .ui_R6 import Ui_R6
+from .ui_R6Credentials import Ui_R6Credentials
 from qgis.PyQt import QtGui
 
 if platform.system() == 'Windows':
@@ -60,8 +61,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #self.model = QStandardItemModel(self)
         #self.tvRecords.setModel(self.model)
         
-        self.butBrowse.clicked.connect(self.browseCSV)
-        self.butGetR6.clicked.connect(self.ChkR6Setup)
+        self.butBrowse.clicked.connect(self.browseDatasource)
+        #self.butGetR6.clicked.connect(self.ChkR6Setup)
         self.butMap.clicked.connect(self.MapRecords)
         self.butShowAll.clicked.connect(self.showAll)
         self.butHideAll.clicked.connect(self.hideAll)
@@ -106,6 +107,13 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.guiFile = None
         self.infoFile = os.path.join(os.path.dirname( __file__ ), "infoBioRecTool.txt")
         self.csvLayer = None
+
+        self.leImageFolder.setText(self.env.getEnvValue("biorec.r6SQLServerUserName"))
+        self.r6Credentials = {
+                "server": self.env.getEnvValue("biorec.r6SQLServer"), 
+                "user": self.env.getEnvValue("biorec.r6SQLServerUserName"), 
+                "pword": self.env.getEnvValue("biorec.r6SQLServerPassword")
+            }
         
         # Set button graphics
         self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
@@ -123,12 +131,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.blockXY = False
         self.dsbGridSize.setEnabled(False)
         self.lastWaitMessage = None
-        #self.cbMatchCRS.setChecked(True)
-        self.rbOutCrsInput.setChecked(True)
+        self.rbOutCrsBritish.setChecked(True)
+        self.outCrsRadio()
         
         self.isNBNCSV = None
-        #self.qgsOutputCRS.setEnabled(False)
-        #self.qgsOutputCRS.setCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
         
         self.pswInputCRS.setOptionVisible(self.pswInputCRS.CrsNotSet,True)
         self.pswInputCRS.setNotSetText("CRS not set")
@@ -156,67 +162,78 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
            self.dsbGridSize.setValue(0)
            self.dsbGridSize.setEnabled(False)
 
+    def getR6Credentials(self):
+        dlg = R6CredentialsDialog(self.r6Credentials)
+        dlg.exec_()
+        okayed = dlg.okayed
+        if okayed:
+            self.r6Credentials = dlg.credentials
+        dlg.close()
+        #print(self.r6Credentials)
+        return okayed
 
     def ChkR6Setup(self):
-        #fn = 'None'
-        #try and connect to r6
+        
+        dbOpen = False
         db = QtSql.QSqlDatabase.addDatabase('QODBC')
+
         if platform.system() == 'Windows':
             try:
-                aKey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\WOW6432Node\Dorset Software', 0,
+                #r6Key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\WOW6432Node\Dropbox', 0, #For testing on non-R6 machine
+                r6Key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\WOW6432Node\Dorset Software', 0,
                                       (winreg.KEY_WOW64_64KEY + winreg.KEY_READ))
-            except WindowsError:
-                if WindowsError == 5: #permission issue
-                    servername = QInputDialog.getText(None, 'input', 'R6 Server Name: ')
-                    if servername[1]:
-                        username = QInputDialog.getText(None, 'input', 'Database Username: ')
-                    else:
-                        return
-                    if username[1]:
-                        password = QInputDialog.getText(None, 'input', 'Password: ',QLineEdit.Password)
-                    else:
-                        return
-                    if password[1]:
-                        servername = '{' + servername[0] + '}'
-                        con_str = 'DRIVER={SQL Server};SERVER={0};Database=NBNData;UID={1};PWD={2};'.format(servername,username[0],password[0])
-                        db.setDatabaseName(con_str)
-                    try:
-                        db.open()
-                    except:
-                        QMessageBox.about(self, "Error", "Couldn't connect with those credentials")
-                        return
-            subname = winreg.EnumKey(aKey, 0)
-            subkey = winreg.OpenKey(aKey, subname, 0, (winreg.KEY_WOW64_64KEY + winreg.KEY_READ))
-            pathname, regtype = winreg.QueryValueEx(subkey, "Server Name")
-            servername = '{' + pathname + '}'
-            con_str = "DRIVER={{SQL Server}};SERVER={0};DATABASE=NBNData;Trusted_Connection=yes;".format(servername)
-            db.setDatabaseName(con_str)
-            if not db.open():
-                username = QInputDialog.getText(None, 'input', 'Database Username: ')
-                if username[1]:
-                    password = QInputDialog.getText(None, 'input', 'Password: ',QLineEdit.Password)
-                else:
-                    return
-                if password[1]:
-                    con_str = 'DRIVER={{SQL Server}};SERVER={0};Database=NBNData;UID={1};PWD={2};'.format(servername,username[0],password[0])
-                else:
-                    return
+            except:
+                #There was some sort of error trying to retrieve the R6 registry key
+                r6Key = None
+   
+            if r6Key:
+                #Registry R6 keys found, retrieve servername and user it to build trusted connection string
+                subname = winreg.EnumKey(r6Key, 0)
+                subkey = winreg.OpenKey(r6Key, subname, 0, (winreg.KEY_WOW64_64KEY + winreg.KEY_READ))
+                #self.r6Credentials["server"] = winreg.QueryValueEx(subkey, "Version")[0] #For testing on non-R6 machine
+                self.r6Credentials["server"] = winreg.QueryValueEx(subkey, "Server Name")[0]
+                con_str = "DRIVER={{SQL Server}};SERVER={0};DATABASE=NBNData;Trusted_Connection=yes;".format('{' + self.r6Credentials["server"] + '}')
+                #Attempt to open DB with trusted connection string
+                self.waitMessage("Connecting to DB", "attempting to connect to R6 DB with trusted connection...")
                 db.setDatabaseName(con_str)
-                if not db.open():
-                    QMessageBox.about(self, "Error", "Couldn't connect with those credentials")
-                    return
+                self.waitMessage()
+                if db.open():
+                    dbOpen = True
+
+            if not dbOpen:
+                #Prompt user for R6 servername (already initialised if r6Key found), username and password
+                if self.getR6Credentials():
+                    con_str = 'DRIVER={{SQL Server}};SERVER={0};Database=NBNData;UID={1};PWD={2};'.format('{' + self.r6Credentials["server"] + '}',self.r6Credentials["user"],self.r6Credentials["pword"])
+                    #Attempt connection with supplied credentials
+                    self.waitMessage("Connecting to DB", "attempting to connect to R6 DB with supplied credentials...")
+                    db.setDatabaseName(con_str)
+                    self.waitMessage()
+                    if db.open():
+                        dbOpen = True
+                    else:
+                        self.errorMessage("Couldn't connect with those credentials")
         else:
-            QMessageBox.about(self, "Error", "R6 only runs on Windows platform")
-            return
-        self.open_R6_dialog()
-        print(R6Dialog.fn)
+            self.errorMessage("R6 only runs on Windows platform")
 
-        if R6Dialog.fn !='None':
-            nbnFile = None
-            self.loadCsv(R6Dialog.fn, (not nbnFile is None))
+        if dbOpen:
+            #Open dialog for user to generate CSV memory layer from SQL query
+            r6dlg = R6Dialog()
+            r6dlg.exec_()
+
+            if r6dlg.csvLayer:
+                self.mlcbSourceLayer.setLayer(r6dlg.csvLayer)
+
+            if r6dlg.message:
+                self.infoMessage(r6dlg.message)
+
+            r6dlg.close()
             db.close()
-            R6Dialog.fn = 'None'
 
+            #if R6Dialog.fn !='None':
+            #    nbnFile = False
+            #    self.loadCsv(R6Dialog.fn, nbnFile)
+            #    db.close()
+            #    R6Dialog.fn = 'None'
 
     def outputFormatChanged(self):
         format = self.cboOutputFormat.currentText()
@@ -239,6 +256,9 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
     def warningMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
+
+    def errorMessage(self, strMessage):
+        self.iface.messageBar().pushMessage("Error", strMessage, level=Qgis.Critical)
         
     def waitMessage(self, str1="", str2=""):
         
@@ -252,8 +272,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             widget = iface.messageBar().createMessage(str1, str2)
             self.lastWaitMessage = iface.messageBar().pushWidget(widget, Qgis.Info)
             qApp.processEvents()
-        #else:
-            #iface.messageBar().popWidget(self.lastWaitMessage)
          
     def helpFile(self):
 
@@ -419,10 +437,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.leStyleFile.setText(fileName)
             self.leStyleFile.setToolTip(fileName)
             
-    def browseCSV(self):
+    def browseDatasource(self):
 
-        self.setCSV(None)
-  
+        datasource = self.cboDatasource.currentText()
+        #if (datasource == "Create source from CSV file") or (format == "Shapefile"):
+        if (datasource == "Create source from CSV file"):
+            self.setCSV(None)
+        elif (datasource == "Create source from R6 database"):
+            self.ChkR6Setup()
+
     def setCSV(self, nbnFile):
         
         #Reload env
@@ -1393,9 +1416,48 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             
         return selectedTaxa
     
-    def open_R6_dialog(self):
-        my_dialog = R6Dialog()
-        my_dialog.exec_()
+class R6CredentialsDialog(QDialog):
+    def __init__(self, initCredentials):
+        super(R6CredentialsDialog, self).__init__()
+        self.ui = Ui_R6Credentials()
+        self.ui.setupUi(self)
+        scriptDir = os.path.dirname(os.path.realpath(__file__))
+        self.setWindowIcon(QtGui.QIcon(scriptDir + os.path.sep + 'images/R6.ico'))
+
+        self.ui.bbDialogButtons.accepted.connect(self.okayed)
+        self.ui.bbDialogButtons.rejected.connect(self.cancelled)
+        self.ui.leR6Server.textChanged.connect(self.textChanged)
+        self.ui.leR6User.textChanged.connect(self.textChanged)
+        self.ui.leR6Password.textChanged.connect(self.textChanged)
+        self.credentials = {"server": "", "user": "", "pword": ""}
+        self.initialiseCredentials(initCredentials)
+        self.okayed = False
+
+    def initialiseCredentials(self, initCredentials):
+        self.ui.leR6Server.setText(initCredentials["server"])
+        self.ui.leR6User.setText(initCredentials["user"])
+        self.ui.leR6Password.setText(initCredentials["pword"])
+        self.textChanged()
+
+    def textChanged(self):
+        if self.ui.leR6Server.text().strip() and self.ui.leR6User.text().strip() and self.ui.leR6Password.text().strip():
+
+            self.ui.bbDialogButtons.button(QDialogButtonBox.Ok).setEnabled(True)
+        else:
+            self.ui.bbDialogButtons.button(QDialogButtonBox.Ok).setEnabled(False)
+
+    def okayed(self):
+        self.setReturnValues(True)
+
+    def cancelled(self):
+        self.setReturnValues(False)
+
+    def setReturnValues(self, okayed):
+        self.okayed = okayed
+        if okayed:
+            self.credentials["server"] = self.ui.leR6Server.text()
+            self.credentials["user"] = self.ui.leR6User.text()
+            self.credentials["pword"] = self.ui.leR6Password.text()
 
 class R6Dialog(QDialog):
     def __init__(self):
@@ -1408,8 +1470,8 @@ class R6Dialog(QDialog):
         self.ui.butCancel.clicked.connect(self.cancel_dialog)
         self.ui.butR6Match.clicked.connect(self.R6Match)
         self.ui.butGetR6Data.clicked.connect(self.getR6Data)
-        R6Dialog.fn = 'None'
-
+        self.csvLayer = None
+        self.message = None
 
     def R6Match(self):
         self.ui.leR6SpToMatch.setFocus()
@@ -1519,10 +1581,12 @@ class R6Dialog(QDialog):
         exportQSqlQueryModel = QtSql.QSqlQueryModel()
         exportQSqlQueryModel.setQuery(query)
         column_names = []
-        print(exportQSqlQueryModel.rowCount(), 'here')
+        #print(exportQSqlQueryModel.rowCount(), 'here')
+
         for column in range(exportQSqlQueryModel.columnCount()):
             column_names.append(str(exportQSqlQueryModel.headerData(column, QtCore.Qt.Horizontal)))
-        print(column_names)
+        #print(column_names)
+        
         list_of_rows = []
         while query.next():
             list_of_cells = []
@@ -1531,26 +1595,47 @@ class R6Dialog(QDialog):
                 list_of_cells.append(query.value(i))
                 i += 1
             list_of_rows.append(list_of_cells)
+
         if len(list_of_rows) > 0:
-            homepath = os.path.expanduser('~')
-            fileName = QFileDialog.getSaveFileName(self, "Save file", homepath, "CSV files (*.csv)|*.csv")
-            try:
-                out_file = open(fileName[0], 'w',newline='')
-            except:
-                self.close()
-                return
-            writer = csv.writer(out_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(column_names)
+            #Create CSV memory layer
+            csvMemoryLayer = QgsVectorLayer('None', 'R6 ' + self.ui.cmbSpToMap.currentText(), 'memory')
+            QgsProject.instance().addMapLayer(csvMemoryLayer)
+            dataProvider = csvMemoryLayer.dataProvider()
+
+            for x in range(colcount):
+                if query.record().field(x).type() == 10:
+                    dataProvider.addAttributes([QgsField(query.record().fieldName(x), QVariant.String)])
+                else: #==3
+                    dataProvider.addAttributes([QgsField(query.record().fieldName(x), QVariant.Int)])
+           
+            ##Create CSV file.
+            #homepath = os.path.expanduser('~')
+            #fileName = QFileDialog.getSaveFileName(self, "Save file", homepath, "CSV files (*.csv)|*.csv")
+            #try:
+            #    out_file = open(fileName[0], 'w',newline='')
+            #except:
+            #    self.close()
+            #    return
+            #writer = csv.writer(out_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            #writer.writerow(column_names)
+
+            fets=[] #Array to store features added to CSV memory layer
             for x in list_of_rows:
-                writer.writerow(x)
-            out_file.close()
-            self.close()
+                #writer.writerow(x)
+                fet = QgsFeature()
+                fet.setAttributes(x[:-1]) #For some reason row x has an extra value of None at the end so trim this off (otherwise feature addition fails)
+                fets.append(fet)
+
+            #out_file.close()
+            csvMemoryLayer.startEditing()
+            csvMemoryLayer.addFeatures(fets)
+            csvMemoryLayer.commitChanges()
+
+            self.csvLayer = csvMemoryLayer
         else:
-            fileName=['None']
-            QMessageBox.about(self, "Message", "No records in R6 for that species")
-            quit()
-        print(fileName[0])
-        R6Dialog.fn = fileName[0]
+            self.message = "No records in R6 for that species"
+
+        self.accept()
 
     def cancel_dialog(self):
-        self.close()
+        self.reject()
