@@ -89,7 +89,7 @@ class MapmashupDialog(QWidget, ui_mapmashup.Ui_Mapmashup):
         QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgismashuptool"))
 
     def github(self):
-        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues"))
         
     def showEvent(self, ev):
         # Load the environment stuff

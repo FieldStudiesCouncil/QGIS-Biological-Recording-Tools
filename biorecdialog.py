@@ -283,7 +283,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisbiorecstool"))
 
     def github(self):
-        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues"))
 
     def outCrsRadio(self):
         if self.rbOutCrsBritish.isChecked():

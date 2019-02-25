@@ -107,7 +107,7 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
         QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisosgrtool"))
 
   def github(self):
-        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues"))
         
   def infoMessage(self, strMessage):
     self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)

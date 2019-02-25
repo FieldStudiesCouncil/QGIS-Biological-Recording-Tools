@@ -549,7 +549,7 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         #self.guiFile.setVisible(True)
 
     def github(self):
-        QDesktopServices().openUrl(QUrl("https://github.com/burkmarr/QGIS-Biological-Recording-Tools/issues"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues"))
    
     def taxonSearch(self):
         #NBN Atlas search
