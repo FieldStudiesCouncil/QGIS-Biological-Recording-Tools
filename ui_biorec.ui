@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>373</width>
-    <height>603</height>
+    <height>607</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -68,7 +68,7 @@
         </layout>
        </item>
        <item>
-        <layout class="QFormLayout" name="formLayout">
+        <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
           <widget class="QLabel" name="lblLayer">
            <property name="text">
@@ -83,6 +83,9 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="allowEmptyLayer">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -223,6 +226,39 @@
           </widget>
          </item>
          <item row="9" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_13">
+           <item>
+            <widget class="QCheckBox" name="cbLoadTaxa">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>Select if taxon column contains scientific binomials</string>
+             </property>
+             <property name="text">
+              <string>Load taxa on source selection</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>18</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item row="9" column="0">
           <widget class="QCheckBox" name="cbIsScientific">
            <property name="enabled">
             <bool>false</bool>
@@ -506,7 +542,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>55</width>
+              <width>200</width>
               <height>16777215</height>
              </size>
             </property>
@@ -528,7 +564,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>65</width>
+              <width>200</width>
               <height>16777215</height>
              </size>
             </property>
@@ -559,7 +595,7 @@
              <string>Create/recreate species tree</string>
             </property>
             <property name="text">
-             <string>Load taxa</string>
+             <string>Reload taxa</string>
             </property>
            </widget>
           </item>

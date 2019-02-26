@@ -25,6 +25,7 @@ class Ui_R6Credentials(object):
         self.leR6User.setObjectName("leR6User")
         self.verticalLayout.addWidget(self.leR6User)
         self.leR6Password = QtWidgets.QLineEdit(R6Credentials)
+        self.leR6Password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.leR6Password.setObjectName("leR6Password")
         self.verticalLayout.addWidget(self.leR6Password)
         spacerItem = QtWidgets.QSpacerItem(20, 15, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)

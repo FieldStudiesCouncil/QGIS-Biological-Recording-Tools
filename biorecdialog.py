@@ -144,6 +144,13 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
         self.mlcbSourceLayer.setFilters( QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.NoGeometry )
         self.mlcbTaxonMetaDataLayer.setFilters( QgsMapLayerProxyModel.NoGeometry )
+
+         # Set scientific names checkbox if set in environment
+        if self.env.getEnvValue("biorec.scientificnames") == "True":
+            self.cbIsScientific.setChecked(True)
+        else:
+            self.cbIsScientific.setChecked(False)
+
         #Programmatic selection of fields not currently working properly so can't set the filters
         #self.fcbGridRefCol.setFilters( QgsFieldProxyModel.String )
         #self.fcbXCol.setFilters( QgsFieldProxyModel.Numeric )
@@ -484,7 +491,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #Init the tree view
         self.initTreeView()
         
-        if self.fcbTaxonCol.currentIndex() == 0:
+        if self.csvLayer is None:
+            return
+
+        if self.fcbTaxonCol.currentIndex() < 1:
             if not suppressMessage:
                 self.infoMessage("No taxon column selected")
             return
@@ -759,13 +769,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                             break
                         index += 1
 
-                # Set scientific names checkbox if set in environment
-                if self.env.getEnvValue("biorec.scientificnames") == "True":
-                    self.cbIsScientific.setChecked(True)
-                else:
-                    self.cbIsScientific.setChecked(False)
-                    
-                    
                 #If the maketree environment variable is set, then
                 #automatically create tree
                 #Take this out because it can really slow things down when layers
@@ -776,6 +779,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.enableDisableTaxa()
             self.enableDisableGridRef()
             self.enableDisableXY()
+
+            if self.cbLoadTaxa.isChecked():
+                self.listTaxa(False)
+                self.checkAll()
             
     def MapRecords(self):
               
@@ -1470,10 +1477,15 @@ class R6Dialog(QDialog):
         self.ui.butCancel.clicked.connect(self.cancel_dialog)
         self.ui.butR6Match.clicked.connect(self.R6Match)
         self.ui.butGetR6Data.clicked.connect(self.getR6Data)
+        self.ui.lblBusy.setVisible(False)
+
         self.csvLayer = None
         self.message = None
 
+        self.ui.lblBusy.setVisible(False)
+        
     def R6Match(self):
+
         self.ui.leR6SpToMatch.setFocus()
         strSpeciesName = self.ui.leR6SpToMatch.text()
         if strSpeciesName == '':
@@ -1515,6 +1527,10 @@ class R6Dialog(QDialog):
 
     #@pyqtSlot()
     def getR6Data(self):
+
+        self.ui.lblBusy.setVisible(True)
+        qApp.processEvents() 
+
         index = self.ui.cmbSpToMap.currentIndex()
         tlik = "'"+str(self.list2[index])+"'"
         justtaxon = "'1'"
@@ -1552,7 +1568,8 @@ class R6Dialog(QDialog):
                "[#TaxaList] ON NAMESERVER.INPUT_TAXON_VERSION_KEY = [#TaxaList].Taxon_Version_Key "
                "SELECT DISTINCT "
                "INDEX_TAXON_NAME_1.COMMON_NAME AS CommonName, INDEX_TAXON_NAME_1.PREFERRED_NAME AS ScientificName, TAXON_GROUP.TAXON_GROUP_NAME AS TaxonGroup, isnull(LOCATION.FILE_CODE,'') AS FileCode, isnull(LOCATION_NAME.ITEM_NAME,'') AS SampleLocation, isnull(SAMPLE.LOCATION_NAME,'') AS LocationName, dbo.LCReturnVagueDateShort(SAMPLE.VAGUE_DATE_START, SAMPLE.VAGUE_DATE_END, SAMPLE.VAGUE_DATE_TYPE) AS RecDate, "
-               "SAMPLE.SPATIAL_REF AS GridRef, isnull(SAMPLE_TYPE.SHORT_NAME,'') AS RecMethod, isnull(RECORD_TYPE.SHORT_NAME,'') AS RecType, isnull(dbo.LCFormatAbundanceData(TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY),'') AS Abundance, TAXON_OCCURRENCE.CONFIDENTIAL AS Confid, TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY AS TaxOcc,  TAXON_LIST_ITEM_1.TAXON_VERSION_KEY AS TVK, dbo.LCReturnDate(dbo.SAMPLE.VAGUE_DATE_END, dbo.SAMPLE.VAGUE_DATE_TYPE, 'Y') AS RecYear "
+               "SAMPLE.SPATIAL_REF AS GridRef, isnull(SAMPLE_TYPE.SHORT_NAME,'') AS RecMethod, isnull(RECORD_TYPE.SHORT_NAME,'') AS RecType, isnull(dbo.LCFormatAbundanceData(TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY),'') AS Abundance, TAXON_OCCURRENCE.CONFIDENTIAL AS Confid, TAXON_OCCURRENCE.TAXON_OCCURRENCE_KEY AS TaxOcc,  TAXON_LIST_ITEM_1.TAXON_VERSION_KEY AS TVK, dbo.LCReturnDate(dbo.SAMPLE.VAGUE_DATE_END, dbo.SAMPLE.VAGUE_DATE_TYPE, 'Y') AS RecYear, "
+                "dbo.LCReturnDate(SAMPLE.VAGUE_DATE_START, 'D', 'F') as StartDate, dbo.LCReturnDate(SAMPLE.VAGUE_DATE_END, 'D', 'F') as EndDate, SAMPLE.VAGUE_DATE_TYPE as DateType "
                "FROM TAXON_VERSION INNER JOIN "
                "SAMPLE_TYPE INNER JOIN "
                "SAMPLE LEFT OUTER JOIN "
@@ -1601,13 +1618,15 @@ class R6Dialog(QDialog):
             csvMemoryLayer = QgsVectorLayer('None', 'R6 ' + self.ui.cmbSpToMap.currentText(), 'memory')
             QgsProject.instance().addMapLayer(csvMemoryLayer)
             dataProvider = csvMemoryLayer.dataProvider()
-
+            
+            csvMemoryLayer.startEditing()
             for x in range(colcount):
                 if query.record().field(x).type() == 10:
                     dataProvider.addAttributes([QgsField(query.record().fieldName(x), QVariant.String)])
                 else: #==3
                     dataProvider.addAttributes([QgsField(query.record().fieldName(x), QVariant.Int)])
-           
+            csvMemoryLayer.commitChanges()
+
             ##Create CSV file.
             #homepath = os.path.expanduser('~')
             #fileName = QFileDialog.getSaveFileName(self, "Save file", homepath, "CSV files (*.csv)|*.csv")
