@@ -62,14 +62,14 @@ class MapmashupDialog(QWidget, ui_mapmashup.Ui_Mapmashup):
         
         #http://stackoverflow.com/questions/20834064/how-to-create-qpixmap-with-dragimagebits-from-my-browser
         #Replace the leImageFolder line edit with the custom one that handles image drops
-        self.hlImageFolder.removeWidget(self.leImageFolder)
-        self.hlImageFolder.removeWidget(self.butBrowseImg)
-        self.leImageFolder.close()
-        self.leImageFolder = dropImageLineEdit.DragLineEdit(self)
-        self.hlImageFolder.addWidget(self.leImageFolder)
-        self.hlImageFolder.addWidget(self.butBrowseImg)
-        self.hlImageFolder.update()
-        self.leImageFolder.imageDropped.connect(self.mapImageDropped)
+        #self.hlImageFolder.removeWidget(self.leImageFolder)
+        #self.hlImageFolder.removeWidget(self.butBrowseImg)
+        #self.leImageFolder.close()
+        #self.leImageFolder = dropImageLineEdit.DragLineEdit(self)
+        #self.hlImageFolder.addWidget(self.leImageFolder)
+        #self.hlImageFolder.addWidget(self.butBrowseImg)
+        #self.hlImageFolder.update()
+        #self.leImageFolder.imageDropped.connect(self.mapImageDropped)
       
         # Load the environment stuff
         self.env = envmanager.envManager()

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>327</width>
-    <height>427</height>
+    <width>346</width>
+    <height>360</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,31 +15,31 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="hlImageFolder">
-     <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
       <widget class="QLineEdit" name="leImageFolder">
        <property name="toolTip">
         <string>Path of folder for temp image files</string>
        </property>
       </widget>
      </item>
-     <item>
+     <item row="0" column="1">
       <widget class="QPushButton" name="butBrowseImg">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>100</width>
+         <width>0</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>100</width>
+         <width>16777215</width>
          <height>16777215</height>
         </size>
        </property>
@@ -51,34 +51,30 @@
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
+     <item row="1" column="0">
       <widget class="QLineEdit" name="leRegistrationFolder">
        <property name="toolTip">
         <string>Folder where WLD files are kept</string>
        </property>
       </widget>
      </item>
-     <item>
+     <item row="1" column="1">
       <widget class="QPushButton" name="butBrowseReg">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>100</width>
+         <width>0</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>100</width>
+         <width>16777215</width>
          <height>16777215</height>
         </size>
        </property>
@@ -90,11 +86,7 @@
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_5">
-     <item>
+     <item row="2" column="0">
       <widget class="QComboBox" name="cboRegistrations">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -107,23 +99,23 @@
        </property>
       </widget>
      </item>
-     <item>
+     <item row="2" column="1">
       <widget class="QPushButton" name="butRefresh">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>100</width>
+         <width>0</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>100</width>
+         <width>16777215</width>
          <height>16777215</height>
         </size>
        </property>
@@ -141,6 +133,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QLabel" name="label_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Layer name</string>
        </property>
@@ -159,6 +157,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QLabel" name="label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="text">
         <string>Global transparency</string>
        </property>
@@ -193,74 +197,94 @@
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>61</height>
+       <height>0</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
-       <width>3000</width>
-       <height>61</height>
+       <width>16777215</width>
+       <height>16777215</height>
       </size>
      </property>
      <property name="title">
       <string>Transparent colour</string>
      </property>
-     <widget class="QCheckBox" name="cbTransparentColour">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>15</y>
-        <width>211</width>
-        <height>17</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Set transparent background colour</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_3">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>35</y>
-        <width>56</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Colour</string>
-      </property>
-     </widget>
-     <widget class="QgsColorButton" name="mcbTransparentColour">
-      <property name="geometry">
-       <rect>
-        <x>43</x>
-        <y>33</y>
-        <width>61</width>
-        <height>25</height>
-       </rect>
-      </property>
-      <property name="toolTip">
-       <string>Use this button to select transparent colour</string>
-      </property>
-      <property name="colorDialogTitle">
-       <string>Select transparent colour</string>
-      </property>
-      <property name="color">
-       <color>
-        <red>255</red>
-        <green>255</green>
-        <blue>255</blue>
-       </color>
-      </property>
-      <property name="defaultColor">
-       <color>
-        <red>255</red>
-        <green>255</green>
-        <blue>255</blue>
-       </color>
-      </property>
-     </widget>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QCheckBox" name="cbTransparentColour">
+        <property name="text">
+         <string>Set transparent background colour</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QLabel" name="label_3">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Colour</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QgsColorButton" name="mcbTransparentColour">
+          <property name="toolTip">
+           <string>Use this button to select transparent colour</string>
+          </property>
+          <property name="colorDialogTitle">
+           <string>Select transparent colour</string>
+          </property>
+          <property name="color">
+           <color>
+            <red>255</red>
+            <green>255</green>
+            <blue>255</blue>
+           </color>
+          </property>
+          <property name="defaultColor">
+           <color>
+            <red>255</red>
+            <green>255</green>
+            <blue>255</blue>
+           </color>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>0</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
@@ -582,6 +606,10 @@
   <zorder>verticalSpacer</zorder>
   <zorder>groupBox</zorder>
   <zorder>cbApplyStyle</zorder>
+  <zorder>butRefresh</zorder>
+  <zorder>butBrowseReg</zorder>
+  <zorder>butBrowseImg</zorder>
+  <zorder>leImageFolder</zorder>
  </widget>
  <customwidgets>
   <customwidget>

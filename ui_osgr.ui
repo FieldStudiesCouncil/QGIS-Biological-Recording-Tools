@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>299</width>
-    <height>358</height>
+    <height>356</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -85,7 +85,7 @@
         <item>
          <widget class="QDoubleSpinBox" name="dsbGridSize">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -202,6 +202,12 @@
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QLineEdit" name="leOSGR">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Grid reference at mouse location or grid reference to which you want to navigate.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -214,14 +220,14 @@
          <widget class="QPushButton" name="butZoom">
           <property name="minimumSize">
            <size>
-            <width>40</width>
-            <height>23</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>40</width>
-            <height>23</height>
+            <width>16777215</width>
+            <height>16777215</height>
            </size>
           </property>
           <property name="toolTip">
@@ -234,16 +240,22 @@
         </item>
         <item>
          <widget class="QPushButton" name="butPan">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
-            <width>40</width>
-            <height>22</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>40</width>
-            <height>23</height>
+            <width>16777215</width>
+            <height>16777215</height>
            </size>
           </property>
           <property name="toolTip">
@@ -260,6 +272,12 @@
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QCheckBox" name="cbGROnClick">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Update grid reference only when map is clicked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -270,6 +288,12 @@
         </item>
         <item>
          <widget class="QCheckBox" name="cbGRShowSquare">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show grid square corresponding to grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -280,6 +304,12 @@
         </item>
         <item>
          <widget class="QCheckBox" name="cbGRShowPoint">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Show centre point of grid square corresponding to grid reference.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -431,7 +461,7 @@
         <item>
          <widget class="QPushButton" name="butClear">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -471,10 +501,13 @@
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Expanding</enum>
+          </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>40</width>
-            <height>20</height>
+            <width>30</width>
+            <height>30</height>
            </size>
           </property>
          </spacer>
@@ -562,6 +595,12 @@
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
          <widget class="QProgressBar" name="pbGridSquares">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="value">
            <number>0</number>
           </property>
@@ -570,7 +609,7 @@
         <item>
          <widget class="QPushButton" name="butCancel">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -583,8 +622,8 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>50</width>
-            <height>500</height>
+            <width>16777215</width>
+            <height>16777215</height>
            </size>
           </property>
           <property name="toolTip">
