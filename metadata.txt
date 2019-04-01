@@ -13,14 +13,16 @@ name=TomBio tools
 qgisMinimumVersion=3.0
 description=FSC QGIS Plugin for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at biological recorders. It streamlines many of the tasks commonly required from GIS by biological recorders including viewing NBN maps (via the NBN WMS), displaying biological records from CSV files, working with UK OS grid references and registering raster map images from the internet. Although originally designed for use in the the UK, enhancements have been made to improved utility in any geographical context.
-version=3.2.0
+version=3.2.1
 author=Rich Burkmar and other contributors
 email=rich.burkmar@gmail.com
 
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.2.0
+changelog=3.2.1
+    - Fixed bug noted in GitHub issue #35 - Lat and Lng headings transposed for GR to Layer tool.
+  3.2.0
     - Added the ability to link to Recorder 6 from Biological Records tool to generate single-species datasources from R6 SQL Server DB.
     - Added ability to handle Irish as well is British grid references. This change has affected the Biological Records tool, the OSGR tool and the point and buffer utility on the NBN Atlas tool. The Biological Records tool can now understand Irish as well as British grid references and will correctly generate squares based on them. Note that it will deal with mixed input which includes both Irish and British grid references. It will also deal with Irish grid references which are prefixed with the letter 'I'. The grid OSGR tool can now determine position or locate to a position based on Irish as well as British GRs. It can also produce grids based on Irish GRs.
     - Added a new 'GR to Layer' tool that will add GRs (of user-defined precision) to any vector layer. (If not a point layer, then the GRs are based on the centroid of the feature). Users can also choose to add easting/northing and lat/long to the output layer. This new tool follows the QGIS 'processing framework' standards and can therefore be incorporated into processing models if required.
