@@ -229,17 +229,19 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
                         gr = ""
                     newFeature[prefix + self.dPrecisions[p]["field"]] = gr
                 elif self.dPrecisions[p]["num"] < 0: #Easting/northing (-1) or Lat/lng (-2)
+                    fieldName = self.dPrecisions[p]["field"].split(" ")
                     if self.dPrecisions[p]["num"] == -1:
                         x = int(pt.x())
                         y = int(pt.y())
+                        fieldNameX = prefix + fieldName[0]
+                        fieldNameY = prefix + fieldName[1]
                     else:
                         wgs84Point = transformWGS84.transform(pt)
                         x = wgs84Point.x()
                         y = wgs84Point.y()
+                        fieldNameX = prefix + fieldName[1]
+                        fieldNameY = prefix + fieldName[0]
 
-                    fieldName = self.dPrecisions[p]["field"].split(" ")
-                    fieldNameX = prefix + fieldName[0]
-                    fieldNameY = prefix + fieldName[1]
                     newFeature[fieldNameX] = x
                     newFeature[fieldNameY] = y
 
