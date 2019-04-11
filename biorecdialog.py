@@ -79,7 +79,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.pbCancel.clicked.connect(self.cancelBatch)
         self.butHelp.clicked.connect(self.helpFile)
         self.butGithub.clicked.connect(self.github)
-        self.fcbTaxonCol.fieldChanged.connect(self.enableDisableTaxa)
+        self.fcbTaxonCol.fieldChanged.connect(self.taxonColChanged)
         self.cboMapType.currentIndexChanged.connect(self.checkMapType)
         self.mlcbSourceLayer.layerChanged.connect(self.layerSelected)
         self.fcbGridRefCol.fieldChanged.connect(self.enableDisableGridRef)
@@ -404,7 +404,11 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.fcbGroupingCol.setEnabled(True)
             self.cbIsScientific.setEnabled(True)
             self.lblGroupingCol.setEnabled(True)
-            
+
+    def taxonColChanged(self):
+        self.enableDisableTaxa()
+        self.listTaxa(True)
+        
     def inputCrsSelected(self, crs):
     
         #if self.cbMatchCRS.isChecked():

@@ -43,7 +43,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterFeatureSink)
+                       QgsProcessingParameterFeatureSink,
+                       Qgis)
 from . import osgr
 
 class AddGridRefAlgorithm(QgsProcessingAlgorithm):
@@ -156,6 +157,8 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
+
+        feedback.pushInfo("Starting processing algo")
 
         # Retrieve the feature source.
         source = self.parameterAsSource(parameters, self.INPUT, context)

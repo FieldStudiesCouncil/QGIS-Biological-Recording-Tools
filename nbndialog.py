@@ -1652,10 +1652,10 @@ class NBNDialog(QWidget, ui_nbn.Ui_nbn):
         #Also informed by https://github.com/qgis/QGIS/pull/2299/files
         #and http://nullege.com/codes/search/PyQt4.QtNetwork.QNetworkAccessManager
 
+        self.logMessage("Endpoint: " + url)
+
         endpoint = QUrl(url)
         request = QNetworkRequest(endpoint)
-
-        QgsMessageLog.logMessage(str(endpoint), "NBN Tool")
 
         # Determine if post or get and set accordingly
         if postData is None:

@@ -31,6 +31,8 @@ __copyright__ = '(C) 2019 by Field Studies Council'
 __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
+from qgis.core import QgsMessageLog
+from qgis.core import Qgis
 from .add_grid_ref_algorithm import AddGridRefAlgorithm
 
 
@@ -40,19 +42,28 @@ class AddGridRefProvider(QgsProcessingProvider):
         QgsProcessingProvider.__init__(self)
 
         # Load algorithms
-        self.alglist = [AddGridRefAlgorithm()]
+        QgsMessageLog.logMessage("__init__ called", "Add GR Tool", Qgis.Info)
+
+        #Call to AddGridRefAlgorithm moved to loadAlgorithms to fix issue #37
+        #self.alglist = [AddGridRefAlgorithm()]
 
     def unload(self):
         """
         Unloads the provider. Any tear-down steps required by the provider
         should be implemented here.
         """
-        pass
+        QgsMessageLog.logMessage("unload called", "Add GR Tool", Qgis.Info)
 
     def loadAlgorithms(self):
         """
         Loads all algorithms belonging to this provider.
         """
+        QgsMessageLog.logMessage("loadAlgorithms called", "Add GR Tool", Qgis.Info)
+
+        #This function gets called if user changes default CRS in QGIS options (I don't know why)
+        #and it fell over at the addAlgorithm call unless we first regenerate the alglist
+        self.alglist = [AddGridRefAlgorithm()] #Fix for issue #37
+
         for alg in self.alglist:
             self.addAlgorithm( alg )
 
