@@ -13,7 +13,7 @@ name=TomBio tools
 qgisMinimumVersion=3.0
 description=FSC QGIS Plugin for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at biological recorders. It streamlines many of the tasks commonly required from GIS by biological recorders including viewing NBN maps (via the NBN WMS), displaying biological records from CSV files, working with UK OS grid references and registering raster map images from the internet. Although originally designed for use in the the UK, enhancements have been made to improved utility in any geographical context.
-version=3.2.2
+version=3.2.x
 author=Rich Burkmar and other contributors
 email=rich.burkmar@gmail.com
 
