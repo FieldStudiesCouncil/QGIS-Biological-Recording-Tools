@@ -927,7 +927,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             self.batchLayer(format)
         elif (format == "Image"):
             self.batchImageGenerate()
-        elif (format == "Composer image") or (format == "Composer PDF"):
+        elif (format == "Composer image") or (format == "Composer PDF") or (format == "Composer SVG"):
             self.batchPrintComposer()
            
     def batchPrintComposer(self):
@@ -1388,15 +1388,18 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
 
             le = QgsLayoutExporter(l)
-            #self.logMessage(str(datetime.now().time()))
             format = self.cboOutputFormat.currentText()
             if format == "Composer image": 
                 #Much slower than PDF generation for some reason
                 s = QgsLayoutExporter.ImageExportSettings()
                 le.exportToImage(imgFolder + os.path.sep + validName + ".png", s)
-            else: #format == "Composer PDF":
+            elif format == "Composer PDF": 
                 s = QgsLayoutExporter.PdfExportSettings()
                 le.exportToPdf(imgFolder + os.path.sep + validName + ".pdf", s)
+            else: #format == "Composer SVG":
+                s = QgsLayoutExporter.SvgExportSettings()
+                s.forceVectorOutput = True
+                res = le.exportToSvg(imgFolder + os.path.sep + validName + ".svg", s)
             #self.logMessage(str(datetime.now().time()))
         except:
             if not self.imageError:

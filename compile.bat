@@ -7,7 +7,7 @@ REM This batch file compares timestamp of ui and py files to see if the file
 REM needs to be required. Code extended from:
 REM https://stackoverflow.com/questions/1687014/how-do-i-compare-timestamps-of-files-in-a-batch-script
 
-set "OSGEO4W_ROOT=C:\Program Files\QGIS 3.6"
+set "OSGEO4W_ROOT=C:\Program Files\QGIS 3.10"
 call "%OSGEO4W_ROOT%\bin\o4w_env.bat"
 call "%OSGEO4W_ROOT%\bin\qt5_env.bat"
 call "%OSGEO4W_ROOT%\bin\py3_env.bat"
