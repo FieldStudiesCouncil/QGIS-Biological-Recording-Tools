@@ -966,6 +966,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 else:
                     backdropLayersAbove.append(lyr)
 
+        if not insertPointFound:
+            backdropLayersBelow = backdropLayersAbove
+            backdropLayersAbove = []
+
         settings = self.canvas.mapSettings()
         i=0
 
@@ -1155,6 +1159,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                     backdropLayersBelow.append(lyr)
                 else:
                     backdropLayersAbove.append(lyr)
+
+        if not insertPointFound:
+            backdropLayersBelow = backdropLayersAbove
+            backdropLayersAbove = []
 
         settings = self.canvas.mapSettings()
         i=0
