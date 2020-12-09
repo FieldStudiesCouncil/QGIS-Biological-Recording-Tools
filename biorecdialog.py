@@ -948,11 +948,23 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.progBatch.setMaximum(len(self.layers))
 
         tempLayers = []
+        tempLayerNames = []
         for layer in self.layers:
             tempLayers.append(layer.vl)
-            
+            tempLayerNames.append(layer.vl.name())
         displayedLayers = self.canvas.mapSettings().layers()
-        backdropLayers = [item for item in displayedLayers if item not in tempLayers]
+        backdropLayersBelow = []
+        backdropLayersAbove = []
+
+        insertPointFound = False
+        for lyr in displayedLayers:
+            if lyr.name() in tempLayerNames:
+                insertPointFound = True
+            else:
+                if insertPointFound:
+                    backdropLayersBelow.append(lyr)
+                else:
+                    backdropLayersAbove.append(lyr)
 
         settings = self.canvas.mapSettings()
         i=0
@@ -964,7 +976,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 self.waitMessage("Creating " + format + " for " + layer.getName())
                 i=i+1
                 self.progBatch.setValue(i)
-                layersRender = [layer.vl] + backdropLayers
+                #layersRender = [layer.vl] + backdropLayers
+                layersRender = backdropLayersAbove + [layer.vl] + backdropLayersBelow
                 self.saveComposerImage(layer.getName(), layersRender)
                 qApp.processEvents()
                 self.waitMessage()
@@ -1125,11 +1138,23 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.progBatch.setMaximum(len(self.layers))
 
         tempLayers = []
+        tempLayerNames = []
         for layer in self.layers:
             tempLayers.append(layer.vl)
-            
+            tempLayerNames.append(layer.vl.name())
         displayedLayers = self.canvas.mapSettings().layers()
-        backdropLayers = [item for item in displayedLayers if item not in tempLayers]
+        backdropLayersBelow = []
+        backdropLayersAbove = []
+
+        insertPointFound = False
+        for lyr in displayedLayers:
+            if lyr.name() in tempLayerNames:
+                insertPointFound = True
+            else:
+                if insertPointFound:
+                    backdropLayersBelow.append(lyr)
+                else:
+                    backdropLayersAbove.append(lyr)
 
         settings = self.canvas.mapSettings()
         i=0
@@ -1138,7 +1163,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 self.waitMessage("Creating map image for " + layer.getName())
                 i=i+1
                 self.progBatch.setValue(i)
-                layersRender = [layer.vl] + backdropLayers
+                layersRender = backdropLayersAbove + [layer.vl] + backdropLayersBelow
                 settings.setLayers(layersRender)
                 job = QgsMapRendererParallelJob(settings)
                 job.start()
