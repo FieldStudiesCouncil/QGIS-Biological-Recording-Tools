@@ -476,7 +476,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         else:
             fileName = nbnFile
             
-        self.logMessage("File: >>" + fileName + "<<")
+        #self.logMessage("File: >>" + fileName + "<<")
         
         if fileName != "":
             # Load the CSV and set controls
@@ -754,10 +754,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
                 # Set default value for start date column
                 for colDate in self.env.getEnvValues("biorec.datestartcol"):
-                    self.logMessage("start date col:" + colDate)
+                    #self.logMessage("start date col:" + colDate)
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
-                        self.logMessage("csv field:" + field.name())
+                        #self.logMessage("csv field:" + field.name())
                         if field.name() == colDate:
                             self.fcbDateCol.setCurrentIndex(index)
                             break
@@ -765,7 +765,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
                 # Set default value for end date column
                 for colDate in self.env.getEnvValues("biorec.dateendcol"):
-                    self.logMessage("end date col:" + colDate)
+                    #self.logMessage("end date col:" + colDate)
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
                         if field.name() == colDate:
@@ -976,6 +976,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         format = self.cboOutputFormat.currentText()
 
         for layer in self.layers:
+
             if not self.cancelBatchMap:
                 self.waitMessage("Creating " + format + " for " + layer.getName())
                 i=i+1
@@ -988,129 +989,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         self.progBatch.setValue(0)
         self.cancelBatchMap = False
-
-    def batchPrintComposerOld(self):
-        
-        #Generate image from print composer
-        
-        #Get the first active composer
-        #Could not find a way to list the composers currently associated with the project by name
-        try:
-            c = self.iface.activeComposers()[0].composition()
-        except:
-            self.warningMessage("Cannot connect to a print composer. Make sure that a print composer is available.")
-            return
-            
-        #Check that only one temp layer is visible
-        iVisibleLayers = 0
-        for tmplyr in self.layers:
-            lyr = tmplyr.getVectorLayer()
-            #if self.iface.legendInterface().isLayerVisible(lyr):
-            if QgsProject.instance().layerTreeRoot().findLayer(lyr.id()).isVisible():
-        
-                iVisibleLayers += 1
-        
-        if iVisibleLayers != 1:
-            self.warningMessage("You must have one, and only one, temp layer visible. You have %s visible layers." % (str(iVisibleLayers)))
-            return
-            
-        #Set the output folder
-        imgFolder = self.leImageFolder.text()
-
-        #Get the current visible layer 
-        iLyr = 0
-        for tmplyr in self.layers:
-            lyr = tmplyr.getVectorLayer()
-            iLyr+=1
-            #if self.iface.legendInterface().isLayerVisible(lyr):
-            if QgsProject.instance().layerTreeRoot().findLayer(lyr.id()).isVisible():
-                currentLayer = lyr
-                break
-
-        validName = self.makeValidFilename(currentLayer.name())
-        #Remove 'TEMP ' from start of name.
-        validName = validName[5:]
-        outputFileName = imgFolder + os.path.sep + validName
-
-               
-        #Get the taxon name from the layer
-        nameReplace = currentLayer.name()[5:]
-        suffixes = ["10 km atlas", "5 km atlas", "2 km atlas", "1 km atlas", "100 m atlas", "10 m atlas"]
-        for suffix in suffixes:
-            if nameReplace.find(suffix) > -1:
-                nameReplace = nameReplace[0:nameReplace.find(suffix)-1]
-                
-        #For each text item, replace the tokens, e.g. #name#, with corresponding text. 
-
-        #Get all text items from the layout.
-        #Item.scene() ensures that the item is being used (not deleted)
-        textItems = [item for item in c.items() if item.type() == QgsComposerItem.ComposerLabel and item.scene()]
-
-        #Save the original text item values so that they can be reset afterwards
-        originalText=[]
-        for textItem in textItems:
-            originalText.append(textItem.text())
-
-        #Now replace the #name# tokens with the 'nameReplace' text derived from
-        #the layer name - usually based on the taxon name.
-        for textItem in textItems:
-            textItem.setText(textItem.text().replace('#name#', nameReplace))
-            c.refreshItems()
-
-        #If TaxonMetaDataLayer has been set and checkbox set to use it, then set a filter to select
-        #only the rows (should be only one) that match the current taxon (derived from layer name).
-        #Then for each field in the TaxonMetaDataLayer, check to see if each of the fields in the
-        #TaxaonMetaDataLayer has been used as a token in any checkboxes and, if so, replace the token
-        #for the value of that field for the species at hand.
-        if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None:
-            metaLayer = self.mlcbTaxonMetaDataLayer.currentLayer()
-            #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
-            strFilter = '"%s" ~ \' *%s *\'' % ("Taxon", nameReplace)
-            #self.infoMessage(strFilter)
-            request = QgsFeatureRequest().setFilterExpression(strFilter)
-            iField = 0
-            for field in metaLayer.dataProvider().fields():
-                strVal = ''
-                iter = metaLayer.getFeatures(request)
-                for feature in iter: #Should only be one (or zero) features
-                    try:
-                        strVal = feature.attributes()[iField].strip()
-                    except:
-                        strVal = ''
-                for textItem in textItems:
-                    if '#' + field.name() + '#' in textItem.text():
-                        textItem.setText(textItem.text().replace('#' + field.name() + '#', strVal))
-                    c.refreshItems()
-                iField += 1
-
-        #Save image from print composer
-        self.waitMessage("Generating output", "Creating output for " + nameReplace)
-        if self.cboOutputFormat.currentText() == "Composer image":
-            image = c.printPageAsRaster(0)
-            image.save(outputFileName + ".png")
-        else:
-            c.exportAsPDF(outputFileName + ".pdf")
-        self.waitMessage()
-        
-        #Reset the print composer's label items text to the original values
-        iTextItem = 0
-        for textItem in textItems:
-            textItem.setText(originalText[iTextItem])
-            c.refreshItems()
-            iTextItem += 1
-        
-        #Uncheck this layer and check the next one
-        #iface.legendInterface().setLayerVisible(currentLayer, False)
-        QgsProject.instance().layerTreeRoot().findLayer(currentLayer.id()).setItemVisibilityChecked(False)
-
-        if iLyr < len(self.layers):
-            nextLyr = self.layers[iLyr].getVectorLayer()
-        else:
-            nextLyr = self.layers[0].getVectorLayer()
-            
-        #iface.legendInterface().setLayerVisible(nextLyr, True)
-        QgsProject.instance().layerTreeRoot().findLayer(nextLyr.id()).setItemVisibilityChecked(True)
-        
+ 
     def batchLayer(self, format):
     
         #Check that an output CRS has been set
@@ -1341,8 +1220,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         validName = validName[5:]
             
         try:
-            #Uncomment the following line to restore saveMapImage
-            image.save(imgFolder + os.path.sep + validName + ".png")
+            fileExt = self.env.getEnvValue("biorec.imageformat")
+            if fileExt == '':
+                fileExt = 'png'
+            image.save(imgFolder + os.path.sep + validName + "." + fileExt)
         except:
             if not self.imageError:
                 e = sys.exc_info()[0]
@@ -1392,11 +1273,12 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None:
             metaLayer = self.mlcbTaxonMetaDataLayer.currentLayer()
             #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
-            strFilter = '"%s" ~ \' *%s *\'' % ("Taxon", nameReplace)
+            strFilter = '"%s" ~ \'^ *%s *$\'' % ("Taxon", nameReplace)
             #self.logMessage("Taxon " + nameReplace)
             #self.logMessage("Filter " + strFilter)
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iField = 0
+            metaOutFileName = ''
             for field in metaLayer.dataProvider().fields():
                 #self.logMessage("Field " + field.name())
                 strVal = ''
@@ -1416,23 +1298,34 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                         textItem.setText(textItem.text().replace('#' + field.name() + '#', strVal))
                 l.refresh()
                 iField += 1
-
+                # Check to see if the field name matches the value of
+                optNameColumn = self.env.getEnvValue("biorec.namecolumn")
+                if metaOutFileName == '' and optNameColumn == field.name():
+                    metaOutFileName = strVal
         try:
             [item for item in l.items() if type(item).__name__ == "QgsLayoutItemMap"][0].setLayers(layers)
-
+            
             le = QgsLayoutExporter(l)
             format = self.cboOutputFormat.currentText()
+            if metaOutFileName == '':
+                outName = validName
+            else:
+                outName = metaOutFileName
+            #self.logMessage("print - " + outName)
             if format == "Composer image": 
                 #Much slower than PDF generation for some reason
                 s = QgsLayoutExporter.ImageExportSettings()
-                le.exportToImage(imgFolder + os.path.sep + validName + ".png", s)
+                fileExt = self.env.getEnvValue("biorec.imageformat")
+                if fileExt == '':
+                    fileExt = 'png'
+                le.exportToImage(imgFolder + os.path.sep + outName + "." + fileExt, s)
             elif format == "Composer PDF": 
                 s = QgsLayoutExporter.PdfExportSettings()
-                le.exportToPdf(imgFolder + os.path.sep + validName + ".pdf", s)
+                le.exportToPdf(imgFolder + os.path.sep + outName + ".pdf", s)
             else: #format == "Composer SVG":
                 s = QgsLayoutExporter.SvgExportSettings()
                 s.forceVectorOutput = True
-                res = le.exportToSvg(imgFolder + os.path.sep + validName + ".svg", s)
+                res = le.exportToSvg(imgFolder + os.path.sep + outName + ".svg", s)
             #self.logMessage(str(datetime.now().time()))
         except:
             if not self.imageError:

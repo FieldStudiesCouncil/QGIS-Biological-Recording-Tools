@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 import math
+import string
 import re
 from qgis.core import *
 from . import envmanager
@@ -179,11 +180,14 @@ class osgr:
                 return(t[0])
         
     def enFromGR(self, grLocate):
+
+        grLocate = self.cleanGR(grLocate)
+
         retCheck = self.checkGR(grLocate)
         precision = retCheck[0]
         message = retCheck[1]
         gridType = retCheck[2]
-        
+
         if precision == 0:
             return (0,0,0,message, gridType)
 
@@ -246,10 +250,13 @@ class osgr:
         
         easting = east100 * 100000 + precision * factEasting
         northing = north100 * 100000 + precision * factNorthing
-            
+
         return (easting, northing, precision, message, gridType)
 
     def geomFromGR(self, gr, type, crsOutput):
+
+        gr = self.cleanGR(gr)
+
         loc = self.enFromGR(gr)
         precision = loc[2]
         gridType = loc[4]
@@ -257,7 +264,7 @@ class osgr:
         x = loc[0] - (precision / 2)
         y = loc[1] - (precision / 2)
 
-        if x == 0:
+        if precision == 0:
             return None
         
         if type == "point":
@@ -334,12 +341,20 @@ class osgr:
                  
         return QgsGeometry.fromPolygonXY([points])
     
+    def cleanGR(self, grLocate):
+        #remove whitespace and non-printable characters from GR
+        grclean = re.sub(r'\s+', '', grLocate) 
+        printable = set(string.printable)
+        grclean = ''.join(filter(lambda x: x in printable, grclean))
+
+        return grclean
+   
     def checkGR(self, grLocate):
 
         #Returns a tuple [precision, errorMessage, gridType]
 
-        grLocate = re.sub(r'\W+', '', grLocate)
-    
+        grLocate = self.cleanGR(grLocate)
+
         re100kmGR = re.compile('^[a-zA-Z][a-zA-Z]?$')
         reHectadGR = re.compile('^[a-zA-Z][a-zA-Z]?[0-9][0-9]$')
         reQuadrantGR = re.compile('^[a-zA-Z][a-zA-Z]?[0-9][0-9][a-zA-Z][a-zA-Z]$') #re.compile('^[a-zA-Z][a-zA-Z]?[0-9][0-9](((NW|NE)|SW)|SE)$')
@@ -349,45 +364,10 @@ class osgr:
         reEightFigGR = re.compile('^[a-zA-Z][a-zA-Z]?[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
         reTenFigGR = re.compile('^[a-zA-Z][a-zA-Z]?[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
 
-        #reIrish100kmGR = re.compile('^[a-zA-Z]$')
-        #reOS100kmGR = re.compile('^[a-zA-Z][a-zA-Z]$')
-        #reIrishHectadGR = re.compile('^[a-zA-Z][0-9][0-9]$')
-        #reOSHectadGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9]$')
-        #reIrishQuadrantGR = re.compile('^[a-zA-Z][0-9][0-9][a-zA-Z][a-zA-Z]$') 
-        #reOSQuadrantGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][a-zA-Z][a-zA-Z]$') #re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9](((NW|NE)|SW)|SE)$')
-        #reIrishTetradGR= re.compile('^[a-zA-Z][0-9][0-9][a-zA-Z]$')
-        #reOSTetradGR= re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][a-zA-Z]$') #re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][a-np-zA-NP-Z]$')
-        #reIrishMonadGR = re.compile('^[a-zA-Z][0-9][0-9][0-9][0-9]$')
-        #reOSMonadGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9]$')
-        #reIrishSixFigGR = re.compile('^[a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9]$')
-        #reOSSixFigGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9]$')
-        #reIrishEightFigGR = re.compile('^[a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
-        #reOSEightFigGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
-        #reIrishTenFigGR = re.compile('^[a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
-        #reOSTenFigGR = re.compile('^[a-zA-Z][a-zA-Z][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$')
-
         #Zero characters - invalid GR
         if grLocate.__len__() == 0:
             return (0, "Invalid grid reference - must be at least one character", "invalid")
             
-        ##One character - could be Irish 100 km GR
-        #if grLocate.__len__() == 1:
-        #    for t in self.irish100kPrefixes:
-        #        if (t[0] == grLocate.upper()):
-        #            #Irish 100 km GR
-        #            return (100000, "100 km gr", "irish")
-        #    #Ivlaid one character GR
-        #    return (0, "Invalid 100 km prefix", "invalid")
-
-        ##Two characters - could be OS 100 km GR
-        #if grLocate.__len__() == 2:
-        #    for t in self.os100kPrefixes:
-        #        if (t[0] == grLocate.upper()):
-        #            #OS 100 km GR
-        #            return (100000, "100 km gr", "os")
-        #    #Invalid two character GR
-        #    return (0, "Invalid 100 km prefix", "invalid")
-
         #Is this a valid Irish or OS GR prefix
         prefix = re.sub('[0-9]', ';', grLocate).split(";")[0].upper()
         grType = ""
@@ -444,7 +424,7 @@ class osgr:
             
         if reTenFigGR.match(grLocate):
             return (1, "10 fig", grType)
-            
+
         return (0, "Invalid grid reference", "invalid")
        
     def grFromEN(self, easting, northing, precision, grType):
@@ -510,6 +490,8 @@ class osgr:
         
     def convertGr(self, grIn, toPrecision):
         
+        grIn = self.cleanGR(grIn)
+
         ret = self.checkGR(grIn)
         grType = ret[2]
 

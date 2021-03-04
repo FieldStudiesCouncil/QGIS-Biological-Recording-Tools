@@ -136,7 +136,7 @@ class biorecLayer(QObject):
         
         # Create layer
         epsg = self.crsOutput
-        if mapType == "Records as points":
+        if mapType == "Records as points" or symbolType == "Atlas points":
             self.vl = QgsVectorLayer("Point?crs=" + epsg, self.name, "memory")
         else:
             self.vl = QgsVectorLayer("Polygon?crs=" + epsg, self.name, "memory")
@@ -232,7 +232,7 @@ class biorecLayer(QObject):
             # No indexing in set class so can't use self.taxa[0]
             for taxon in self.taxa: 
                 #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
-                strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
+                strFilter = '"%s" ~ \'^ *%s *$\'' % (taxonFieldName, taxon.replace("'", r"\'"))
 
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iter = self.csvLayer.getFeatures(request)
@@ -282,7 +282,7 @@ class biorecLayer(QObject):
             
             if bTaxonOkay:
                 geom = None
-                if self.iColGr > -1:
+                if self.iColGr > -1:     
                     try:
                         #Remove spaces from GRs
                         gr = feature.attributes()[self.iColGr].replace(" ", "")
@@ -345,7 +345,6 @@ class biorecLayer(QObject):
                     fet.setAttributes(feature.attributes())
                     fets.append(fet)
 
-
                 if geom == None:
                     self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
 
@@ -387,8 +386,10 @@ class biorecLayer(QObject):
             
         if symbolType == "Atlas squares":
             symbol = "square"
-        else:
+        elif symbolType == "Atlas circles":
             symbol = "circle"
+        else:
+            symbol = "point"
             
         fetsDict = {}
 
@@ -399,7 +400,7 @@ class biorecLayer(QObject):
             for taxon in self.taxa:  #self.taxa is a set, so can't user self.taxa[0]
                 #strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
                 #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
-                strFilter = '"%s" ~ \' *%s *\'' % (taxonFieldName, taxon.replace("'", r"\'"))
+                strFilter = '"%s" ~ \'^ *%s *$\'' % (taxonFieldName, taxon.replace("'", r"\'"))
                 #QgsMessageLog.logMessage(strFilter, 'biorec')
 
             request = QgsFeatureRequest().setFilterExpression(strFilter)
@@ -545,19 +546,21 @@ class biorecLayer(QObject):
                     pnt = feature.geometry().asPoint()
                     xOriginal = pnt.x()
                     yOriginal = pnt.y()
-                       
+
                 if not (self.iColGr > -1 and grOriginal == None) and not (self.iColGr == -1 and xOriginal == None):
 
                     # Get a value for abundance
                     if self.iColAb == -1:
                         abundance = 1
                     else:
+                        # Zero values must be retained. Anything else that can't be treated
+                        # as a positive number will be converted to 1.
                         try:
                             try:
                                 abundance = int(str(feature.attributes()[self.iColAb]))
                             except:
-                                abundance = 0
-                            if abundance < 1:
+                                abundance = -1
+                            if abundance < 0:
                                 abundance = 1
                         except:
                             abundance = 1
@@ -601,7 +604,9 @@ class biorecLayer(QObject):
                     if not geom is None:
                         if fetsDict.get(gr, None) == None:
                             fetsDict[gr] = [geom, 1, abundance, 1, year['startYear'], year['endYear'], ""]
-                            taxaDict[gr] = [taxon]
+                            taxaDict[gr] = []
+                            if abundance > 0:
+                                taxaDict[gr].append(taxon)
                         else:
                             #Records
                             fetsDict[gr][1]+=1
@@ -617,8 +622,9 @@ class biorecLayer(QObject):
                                     fetsDict[gr][5] = year['endYear']
                             #Richness & Taxa
                             if not taxon in taxaDict[gr]:
-                                fetsDict[gr][3]+=1 
-                                taxaDict[gr].append(taxon)
+                                if abundance > 0:
+                                    fetsDict[gr][3]+=1 
+                                    taxaDict[gr].append(taxon)
 
                 if geom == None:
                     self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)

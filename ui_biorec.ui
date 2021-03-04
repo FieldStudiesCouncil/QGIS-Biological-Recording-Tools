@@ -940,7 +940,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>Squares or circles?</string>
+        <string>Squares, circles or points?</string>
        </property>
        <item>
         <property name="text">
@@ -950,6 +950,11 @@
        <item>
         <property name="text">
          <string>Atlas circles</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Atlas points</string>
         </property>
        </item>
       </widget>
