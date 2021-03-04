@@ -13,14 +13,23 @@ name=TomBio tools
 qgisMinimumVersion=3.0
 description=FSC QGIS Plugin for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at biological recorders. It streamlines many of the tasks commonly required from GIS by biological recorders including viewing NBN maps (via the NBN WMS), displaying biological records from CSV files, working with UK OS grid references and registering raster map images from the internet. Although originally designed for use in the the UK, enhancements have been made to improved utility in any geographical context.
-version=3.3.2
+version=3.4.0
 author=Rich Burkmar and other contributors
 email=rich.burkmar@gmail.com
 
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.3.2
+changelog=3.4.0
+    - Added feature to output atlas maps as points (see GitHub issue #44).
+    - Added feature (via environment options) to specify output raster format for exported images and composer images (see GitHub issue #52).
+    - Added feature (via environment options) to specify output raster name for images produced from print composer by reference to metadata file (see GitHub issue #53).
+    - Addressed bug with non-printable whitespace characters around GR (see GitHub issue #48).
+    - Addressed bug with handling some invalid GRs (see GitHub issue #49).
+    - Addressed bug with fitering on common names (see GitHub issue #50).
+    - Addressed bug with handling zero abundances (see GitHub issue #51).
+    - Addressed bug with grid references squares with lower bounding easting of zero (see GitHub issue #55).
+  3.3.2
     - Fixed layer order problem of batch image generation when no temp layers initially displayed.
   3.3.1
     - Batch generation of images and PDFs inserts temp layers at point in layer stack where first displayed temp image found.
