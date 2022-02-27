@@ -54,15 +54,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.setupUi(self)
         self.canvas = iface.mapCanvas()
         self.iface = iface
-
-        #self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
-        #self.pathPlugin = os.path.dirname( __file__ ) 
-        
-        #self.model = QStandardItemModel(self)
-        #self.tvRecords.setModel(self.model)
-        
         self.butBrowse.clicked.connect(self.browseDatasource)
-        #self.butGetR6.clicked.connect(self.ChkR6Setup)
         self.butMap.clicked.connect(self.MapRecords)
         self.butShowAll.clicked.connect(self.showAll)
         self.butHideAll.clicked.connect(self.hideAll)
@@ -85,7 +77,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         self.fcbGridRefCol.fieldChanged.connect(self.enableDisableGridRef)
         self.fcbXCol.fieldChanged.connect(self.enableDisableXY)
         self.fcbYCol.fieldChanged.connect(self.enableDisableXY)
-        #self.cbMatchCRS.stateChanged.connect(self.matchCRSClick)
         self.pswInputCRS.crsChanged.connect(self.inputCrsSelected)
         self.cboOutputFormat.currentIndexChanged.connect(self.outputFormatChanged)
         self.rbOutCrsBritish.toggled.connect(self.outCrsRadio)
@@ -176,7 +167,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if okayed:
             self.r6Credentials = dlg.credentials
         dlg.close()
-        #print(self.r6Credentials)
         return okayed
 
     def ChkR6Setup(self):
@@ -236,12 +226,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             r6dlg.close()
             db.close()
 
-            #if R6Dialog.fn !='None':
-            #    nbnFile = False
-            #    self.loadCsv(R6Dialog.fn, nbnFile)
-            #    db.close()
-            #    R6Dialog.fn = 'None'
-
     def outputFormatChanged(self):
         format = self.cboOutputFormat.currentText()
         if (format == "GeoJSON") or (format == "Shapefile"):
@@ -282,11 +266,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
          
     def helpFile(self):
 
-        #if self.guiFile is None:
-        #    self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
-        
-        #self.guiFile.setVisible(True)    
-
         QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisbiorecstool"))
 
     def github(self):
@@ -319,8 +298,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if self.csvLayer != None:
 
             if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:                
-                #QGis.GeometryType.NoGeometry = 4
-                #QGis.GeometryType.UnknownGeometry = 3
 
                 self.fcbGridRefCol.setEnabled(True)
                 self.lblGridRefCol.setEnabled(True)
@@ -341,17 +318,12 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                     #When grid references are used for input, Input CRS is not set
                     self.pswInputCRS.setCrs(QgsCoordinateReferenceSystem(None))
                     self.pswInputCRS.setEnabled(False)
-
-                    #self.pswInputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
-                    #self.pswOutputCRS.setEnabled(False)
-                    #self.pswOutputCRS.setCrs(QgsCoordinateReferenceSystem("EPSG:27700"))
             
                     if self.cboMapType.currentText().startswith("User-defined"):
                         self.cboMapType.setCurrentIndex(0)      
 
                 else:
                     self.pswInputCRS.setEnabled(True)
-                    #self.pswOutputCRS.setEnabled(not self.cbMatchCRS.isChecked())
                     self.pswOutputCRS.setEnabled(not self.rbOutCrsInput.isChecked())
                     
                 bClear = False
@@ -411,7 +383,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
     def inputCrsSelected(self, crs):
     
-        #if self.cbMatchCRS.isChecked():
         if self.rbOutCrsInput.isChecked():
             self.pswOutputCRS.setCrs(self.pswInputCRS.crs())
         
@@ -451,7 +422,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
     def browseDatasource(self):
 
         datasource = self.cboDatasource.currentText()
-        #if (datasource == "Create source from CSV file") or (format == "Shapefile"):
         if (datasource == "Create source from CSV file"):
             self.setCSV(None)
         elif (datasource == "Create source from R6 database"):
@@ -475,8 +445,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             #or, if cancelled, ('', '').
         else:
             fileName = nbnFile
-            
-        #self.logMessage("File: >>" + fileName + "<<")
         
         if fileName != "":
             # Load the CSV and set controls
@@ -524,7 +492,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 except:
                     group = "invalid"
                     
-                #self.pteLog.appendPlainText("add candidate " + group)
                 if group not in tree.keys():
                     tree[group] = {}
                 
@@ -595,7 +562,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         if not self.propogateDown:
             return 
         for i in range (item.rowCount()):
-            #self.pteLog.appendPlainText("Will click " + item.child(i,0).text())
             item.child(i,0).setCheckState(checked)
             self.setChildrenItems(item.child(i,0), checked)
             
@@ -754,10 +720,8 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
                 # Set default value for start date column
                 for colDate in self.env.getEnvValues("biorec.datestartcol"):
-                    #self.logMessage("start date col:" + colDate)
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
-                        #self.logMessage("csv field:" + field.name())
                         if field.name() == colDate:
                             self.fcbDateCol.setCurrentIndex(index)
                             break
@@ -765,7 +729,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
                 # Set default value for end date column
                 for colDate in self.env.getEnvValues("biorec.dateendcol"):
-                    #self.logMessage("end date col:" + colDate)
                     index = 1
                     for field in self.csvLayer.dataProvider().fields():
                         if field.name() == colDate:
@@ -825,9 +788,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         
         # Return if no grid reference or X & Y fields selected - but only for layers without geometry
         if self.csvLayer.geometryType() == 3 or self.csvLayer.geometryType() == 4:
-            #QGis.GeometryType.NoGeometry = 4
-            #QGis.GeometryType.UnknownGeometry = 3
-            
+
             self.fcbGridRefCol.currentField() == ""
             
             if self.fcbGridRefCol.currentField() == "" and (self.fcbXCol.currentField() == "" or self.fcbYCol.currentField() == ""):
@@ -901,11 +862,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
 
         QgsProject.instance().addMapLayers(layerIDs)
         
-        #try:
-        #    QgsProject.instance().addMapLayers(layerIDs)
-        #except:
-        #    self.iface.messageBar().pushMessage("Error", "Problem adding layers. Clear bio.rec layers with 'remove all map layers' button and try again.", level=Qgis.Critical)
-            
         # Make sure none of the layers expanded
         for layer in self.layers:
             ##????????????????? Is this working?????
@@ -981,7 +937,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 self.waitMessage("Creating " + format + " for " + layer.getName())
                 i=i+1
                 self.progBatch.setValue(i)
-                #layersRender = [layer.vl] + backdropLayers
                 layersRender = backdropLayersAbove + [layer.vl] + backdropLayersBelow
                 self.saveComposerImage(layer.getName(), layersRender)
                 qApp.processEvents()
@@ -1122,10 +1077,7 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         QgsProject.instance().removeMapLayers(layerIDs)
         self.progBatch.setValue(0)
         self.canvas.refresh()
-        
-    #def removeAllLayers(self):
-    #    QgsProject.instance().removeAllMapLayers()
-        
+ 
     def cancelBatch(self):
         self.cancelBatchMap = True
    
@@ -1198,10 +1150,12 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         elif format == "Shapefile":
             formatArg =  "ESRI Shapefile"
                 
-        error = QgsVectorFileWriter.writeAsVectorFormat(layer.getVectorLayer(), filePath, "utf-8", outCRS, formatArg)
-
-        #self.logMessage("error - " + str(error))
-        #self.logMessage("NoError - " + str(QgsVectorFileWriter.NoError))
+        tc = QgsProject.instance().transformContext()
+        vOptions = QgsVectorFileWriter.SaveVectorOptions()
+        vOptions.driverName = formatArg
+        vOptions.fileEncoding = "utf-8"
+        vOptions.destCRS = outCRS
+        error = QgsVectorFileWriter.writeAsVectorFormatV3(layer.getVectorLayer(), filePath, tc, vOptions)
 
         if error[0] != QgsVectorFileWriter.NoError:
             self.iface.messageBar().pushMessage("Error", "Layer generation error: %s" % (error), level=Qgis.Warning)
@@ -1224,10 +1178,10 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
             if fileExt == '':
                 fileExt = 'png'
             image.save(imgFolder + os.path.sep + validName + "." + fileExt)
-        except:
+        except BaseException as err:
             if not self.imageError:
                 e = sys.exc_info()[0]
-                self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (e), level=Qgis.Warning)
+                self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (err), level=Qgis.Warning)
                 self.imageError = True
 
     def saveComposerImage(self, name, layers):
@@ -1270,29 +1224,23 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
         #Then for each field in the TaxonMetaDataLayer, check to see if each of the fields in the
         #TaxaonMetaDataLayer has been used as a token in any checkboxes and, if so, replace the token
         #for the value of that field for the species at hand.
+        metaOutFileName = ''
         if self.cbTaxonMetaData.isChecked() and self.mlcbTaxonMetaDataLayer.currentLayer() is not None:
             metaLayer = self.mlcbTaxonMetaDataLayer.currentLayer()
             #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
             strFilter = '"%s" ~ \'^ *%s *$\'' % ("Taxon", nameReplace)
-            #self.logMessage("Taxon " + nameReplace)
-            #self.logMessage("Filter " + strFilter)
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iField = 0
-            metaOutFileName = ''
             for field in metaLayer.dataProvider().fields():
-                #self.logMessage("Field " + field.name())
                 strVal = ''
                 iter = metaLayer.getFeatures(request)
                 for feature in iter: #Should only be one (or zero) features
-                    #self.logMessage("Feature found")
                     try:
                         strVal = str(feature.attributes()[iField]).strip()
                         if strVal == 'NULL':
                             strVal = ''
                     except:
                         strVal = ''
-                        #e = sys.exc_info()[0]
-                        #self.logMessage("Error: %s" % (e))
                 for textItem in textItems:
                     if '#' + field.name() + '#' in textItem.text():
                         textItem.setText(textItem.text().replace('#' + field.name() + '#', strVal))
@@ -1311,7 +1259,6 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 outName = validName
             else:
                 outName = metaOutFileName
-            #self.logMessage("print - " + outName)
             if format == "Composer image": 
                 #Much slower than PDF generation for some reason
                 s = QgsLayoutExporter.ImageExportSettings()
@@ -1326,17 +1273,15 @@ class BiorecDialog(QWidget, ui_biorec.Ui_Biorec):
                 s = QgsLayoutExporter.SvgExportSettings()
                 s.forceVectorOutput = True
                 res = le.exportToSvg(imgFolder + os.path.sep + outName + ".svg", s)
-            #self.logMessage(str(datetime.now().time()))
-        except:
+        except BaseException as err:
             if not self.imageError:
                 e = sys.exc_info()[0]
-                self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (e), level=Qgis.Warning)
+                self.iface.messageBar().pushMessage("Error", "Image generation error: %s" % (err), level=Qgis.Warning)
                 self.imageError = True    
                 
         #Reset the print composer's label items text to the original values
         iTextItem = 0
         for textItem in textItems:
-            #self.logMessage("resetting labels " + originalText[iTextItem])
             textItem.setText(originalText[iTextItem])
             iTextItem += 1
         l.refresh()
@@ -1531,11 +1476,9 @@ class R6Dialog(QDialog):
         exportQSqlQueryModel = QtSql.QSqlQueryModel()
         exportQSqlQueryModel.setQuery(query)
         column_names = []
-        #print(exportQSqlQueryModel.rowCount(), 'here')
 
         for column in range(exportQSqlQueryModel.columnCount()):
-            column_names.append(str(exportQSqlQueryModel.headerData(column, QtCore.Qt.Horizontal)))
-        #print(column_names)
+            column_names.append(str(exportQSqlQueryModel.headerData(column, Qt.Horizontal)))
         
         list_of_rows = []
         while query.next():
@@ -1561,16 +1504,6 @@ class R6Dialog(QDialog):
             csvMemoryLayer.commitChanges()
 
             ##Create CSV file.
-            #homepath = os.path.expanduser('~')
-            #fileName = QFileDialog.getSaveFileName(self, "Save file", homepath, "CSV files (*.csv)|*.csv")
-            #try:
-            #    out_file = open(fileName[0], 'w',newline='')
-            #except:
-            #    self.close()
-            #    return
-            #writer = csv.writer(out_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            #writer.writerow(column_names)
-
             fets=[] #Array to store features added to CSV memory layer
             for x in list_of_rows:
                 #writer.writerow(x)
@@ -1578,7 +1511,6 @@ class R6Dialog(QDialog):
                 fet.setAttributes(x[:-1]) #For some reason row x has an extra value of None at the end so trim this off (otherwise feature addition fails)
                 fets.append(fet)
 
-            #out_file.close()
             csvMemoryLayer.startEditing()
             csvMemoryLayer.addFeatures(fets)
             csvMemoryLayer.commitChanges()
