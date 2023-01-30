@@ -1,7 +1,7 @@
 The FSC QGIS Plugin
 ======================
 
-**We now have a forum: https://forum.fscbiodiversity.uk/c/qgis-plugin. Join us there to ask for help, discuss features, bugs, or anything else related to the QGIS Plugin**
+**We now have a forum: <https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/discussions>. Join us there to ask for help, discuss features, bugs, or anything else related to the QGIS Plugin**
 
 This is a QGIS plugin designed specifically for UK biological recorders. The plugin streamlines many of the GIS tasks commonly undertaken by biological recordes including displaying biological records derived from CSV file, working with OS grid references, viewing NBN maps (via the NBN WMS) within QGIS and registering raster map images from the internet.
 
