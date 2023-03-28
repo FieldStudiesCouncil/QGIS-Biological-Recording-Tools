@@ -20,7 +20,9 @@ email=rich.burkmar@gmail.com
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.4.1
+changelog=3.4.2
+    - Fixed bug in grid ref tool that prevented it working with version 3.30 of QGIS (issue #65).
+  3.4.1
     - Fixed bug with batch generation of layout composer images (see GitHub issue #57).
     - Replaced deprecated writeAsVectorFormat (mentioned in GitHub issue #57).
     - Fixed bug with field sizes in grid square layer (see GitHub issue #56)

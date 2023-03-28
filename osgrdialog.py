@@ -42,7 +42,6 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
     self.setupUi(self)
     self.canvas = iface.mapCanvas()
     self.iface = iface
-    #self.rbGridSquare = QgsRubberBand(self.canvas, False)
 
     # Get a reference to an osgr object and an osgrLayer object
     self.osgr = osgr.osgr()
@@ -493,13 +492,13 @@ class OsgrDialog(QWidget, ui_osgr.Ui_osgr):
             centrePoint.transform(transCanvas)
 
         if self.cbGRShowPoint.isChecked():
-            rPoint = QgsRubberBand(self.canvas, False)
+            rPoint = QgsRubberBand(self.canvas)
             rPoint.setToGeometry(centrePoint, None)
             rPoint.setColor(self.grColour)
             self.rbGridPoint = rPoint
 
         if self.cbGRShowSquare.isChecked() and self.grPrecision > 0:
-            rSquare = QgsRubberBand(self.canvas, False)
+            rSquare = QgsRubberBand(self.canvas)
             rSquare.setToGeometry(square, None)
             rSquare.setColor(self.grColour)
             rSquare.setWidth(2)

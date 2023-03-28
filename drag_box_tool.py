@@ -32,7 +32,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
       self.canvas = canvas
       self.iface = iface
       QgsMapToolEmitPoint.__init__(self, self.canvas)
-      self.rubberBand = QgsRubberBand(self.canvas, False)
+      self.rubberBand = QgsRubberBand(self.canvas)
       self.rubberBand.setColor(Qt.black)
       self.rubberBand.setWidth(1)
       self.reset()
@@ -40,7 +40,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
   def reset(self):
       self.startPoint = self.endPoint = None
       self.isEmittingPoint = False
-      self.rubberBand.reset(False)
+      self.rubberBand.reset()
 
   def canvasPressEvent(self, e):
       self.startPoint = self.toMapCoordinates(e.pos())
@@ -58,7 +58,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
         self.xMaximum = r.xMaximum()
         self.yMinimum = r.yMinimum()
         self.yMaximum = r.yMaximum()
-        self.rubberBand.reset(False)
+        self.rubberBand.reset()
         self.boxDragged.emit()
         
   def canvasMoveEvent(self, e):
@@ -69,7 +69,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
       self.showRect(self.startPoint, self.endPoint)
 
   def showRect(self, startPoint, endPoint):
-      self.rubberBand.reset(False)
+      self.rubberBand.reset()
       if startPoint.x() == endPoint.x() or startPoint.y() == endPoint.y():
         return
 
@@ -77,12 +77,6 @@ class RectangleMapTool(QgsMapToolEmitPoint):
       point2 = QgsPoint(startPoint.x(), endPoint.y())
       point3 = QgsPoint(endPoint.x(), endPoint.y())
       point4 = QgsPoint(endPoint.x(), startPoint.y())
-
-      #self.rubberBand.addPoint( point1, False )
-      #self.rubberBand.addPoint( point2, False )
-      #self.rubberBand.addPoint( point3, False )
-      #self.rubberBand.addPoint( point4, True )    # true to update canvas#
-      #self.rubberBand.show()
       
       points = [point1, point2, point3, point4, point1]
       self.rubberBand.setToGeometry(QgsGeometry.fromPolyline(points), None)
