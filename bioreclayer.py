@@ -263,7 +263,7 @@ class biorecLayer(QObject):
             i=i+1
             err=""
             geom = None
-            self.progress.setValue(progStart + 100 * i / iLength)
+            self.progress.setValue(int(progStart + 100 * i / iLength))
             QApplication.processEvents() 
 
             if bFilterTaxaV2:
@@ -482,7 +482,7 @@ class biorecLayer(QObject):
             err = ""
             geom = None
             i=i+1
-            self.progress.setValue(progStart + 100 * i / iLength)
+            self.progress.setValue(int(progStart + 100 * i / iLength))
 
             taxon = ""
             

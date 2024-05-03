@@ -206,6 +206,9 @@ class TomBio:
         self.guiEnv.setVisible(True)
             
     def unload(self):
+        # Remove the Grid Ref to points Processing tool
+        QgsApplication.processingRegistry().removeProvider(self.provider)
+
         # Remove the plugin menu item
         self.iface.removePluginMenu(u"&FSC Tools", self.actionOsgr)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionBiorec)
@@ -215,8 +218,5 @@ class TomBio:
         self.iface.removePluginMenu(u"&FSC Tools", self.actionEnv)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionHelp)
         
-        # Remove the Grid Ref to points Processing tool
-        QgsApplication.processingRegistry().removeProvider(self.provider)
-
         #Remove the toolbar
         del self.toolbar
