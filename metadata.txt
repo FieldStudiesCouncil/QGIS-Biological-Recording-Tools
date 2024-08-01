@@ -13,14 +13,17 @@ name=TomBio tools
 qgisMinimumVersion=3.0
 description=FSC QGIS Plugin for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at biological recorders. It streamlines many of the tasks commonly required from GIS by biological recorders including viewing NBN maps (via the NBN WMS), displaying biological records from CSV files, working with UK OS grid references and registering raster map images from the internet. Although originally designed for use in the the UK, enhancements have been made to improved utility in any geographical context.
-version=3.4.3
+version=3.4.4
 author=Rich Burkmar and other contributors
 email=rich.burkmar@gmail.com
 
 # end of mandatory metadata
 
 # Optional items:
-changelog=3.4.3
+
+changelog=3.4.4
+    - Fixed bug in OSGR tool that caused error on area drag tool with version 3.36.3 (issue 73).
+  3.4.3
     - Fixed bug in atlas tool that prevented it working with version 3.34 of QGIS (issue #72).
     - Fixed a bug found at same time which prevented clean unloading/reloading of tool.
   3.4.2
