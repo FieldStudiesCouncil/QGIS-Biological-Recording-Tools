@@ -16,7 +16,6 @@ about=This is a plugin for QGIS desktop GIS which is aimed primarily at biologic
 version=3.4.4
 author=Rich Burkmar and other contributors
 email=rich.burkmar@gmail.com
-repository=https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools
 
 # end of mandatory metadata
 
