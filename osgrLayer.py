@@ -84,7 +84,7 @@ class osgrLayer(QObject):
     # Labeling
     palyr = QgsPalLayerSettings()
     palyr.fieldName = 'GridRef' 
-    palyr.placement = QgsPalLayerSettings.OverPoint
+    palyr.placement =  Qgis.LabelPlacement.OverPoint 
 
     l = QgsVectorLayerSimpleLabeling(palyr)
     self.vl.setLabeling(l)
