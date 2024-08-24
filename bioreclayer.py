@@ -262,8 +262,8 @@ class biorecLayer(QObject):
         for feature in iter:
             i=i+1
             err=""
-            geom = None
-            self.progress.setValue(int(progStart + 100 * i / iLength))
+            geom = None·
+            self.progress.setValue((int((progStart + 100 * i) / iLength)))
             QApplication.processEvents() 
 
             if bFilterTaxaV2:
