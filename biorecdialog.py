@@ -53,6 +53,13 @@ R6_CREDENTIALS_FORM_CLASS, _ = uic.loadUiType(
 if platform.system() == 'Windows':
     import winreg
 
+try:
+    QT_CHECKED = Qt.CheckState.Checked
+    QT_UNCHECKED = Qt.CheckState.Unchecked
+except AttributeError:
+    QT_CHECKED = Qt.Checked
+    QT_UNCHECKED = Qt.Unchecked
+
 
 class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
     def __init__(self, iface, dockwidget):
@@ -309,7 +316,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         if str1 != "":
             widget = iface.messageBar().createMessage(str1, str2)
             self.lastWaitMessage = iface.messageBar().pushWidget(widget, Qgis.Info)
-            qApp.processEvents()
+            QApplication.processEvents()
 
     def helpFile(self):
 
@@ -609,7 +616,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         self.propogateUp = False
         self.setChildrenItems(item, item.checkState())
         self.propogateUp = True
-        if item.checkState() == False:
+        if item.checkState() == QT_UNCHECKED:
             self.propogateDown = False
             self.uncheckParents(item)
             self.propogateDown = True
@@ -619,7 +626,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
             return
         if item.parent() is None:
             return
-        item.parent().setCheckState(False)
+        item.parent().setCheckState(QT_UNCHECKED)
         self.uncheckParents(item.parent())
 
     def setChildrenItems(self, item, checked):
@@ -639,15 +646,15 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         if self.tvTaxa.model() is None:
             return
         for i in range(self.tvTaxa.model().rowCount()):
-            self.tvTaxa.model().item(i, 0).setCheckState(Qt.Checked)
-            self.setChildrenItems(self.tvTaxa.model().item(i, 0), Qt.Checked)
+            self.tvTaxa.model().item(i, 0).setCheckState(QT_CHECKED)
+            self.setChildrenItems(self.tvTaxa.model().item(i, 0), QT_CHECKED)
 
     def uncheckAll(self):
         if self.tvTaxa.model() is None:
             return
         for i in range(self.tvTaxa.model().rowCount()):
-            self.tvTaxa.model().item(i, 0).setCheckState(Qt.Unchecked)
-            self.setChildrenItems(self.tvTaxa.model().item(i, 0), Qt.Unchecked)
+            self.tvTaxa.model().item(i, 0).setCheckState(QT_UNCHECKED)
+            self.setChildrenItems(self.tvTaxa.model().item(i, 0), QT_UNCHECKED)
 
     def loadCsv(self, fileName, isNBNCSV):
 
@@ -953,7 +960,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
                     # This is needed to allow interruptions. Now safe to use
                     # because layers not actually added to map until after all
                     # created.
-                    qApp.processEvents()
+                    QApplication.processEvents()
 
             self.progBatch.setValue(0)
             self.cancelBatchMap = False
@@ -1052,7 +1059,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
                 layersRender = backdropLayersAbove + \
                     [layer.vl] + backdropLayersBelow
                 self.saveComposerImage(layer.getName(), layersRender)
-                qApp.processEvents()
+                QApplication.processEvents()
                 self.waitMessage()
 
         self.progBatch.setValue(0)
@@ -1130,7 +1137,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
                 job.waitForFinished()
                 image = job.renderedImage()
                 self.saveMapImage(image, layer.getName())
-                qApp.processEvents()
+                QApplication.processEvents()
                 self.waitMessage()
 
         self.progBatch.setValue(0)
@@ -1158,7 +1165,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
                 i = i + 1
                 self.progBatch.setValue(i)
                 layer.setVisibility(bShow)
-                qApp.processEvents()
+                QApplication.processEvents()
 
         self.progBatch.setValue(0)
         retValue = (not self.cancelBatchMap)
@@ -1449,7 +1456,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
     def getCheckedTaxa(self, item):
         selectedTaxa = []
 
-        if item.checkState() == Qt.Checked and not item.hasChildren():
+        if item.checkState() == QT_CHECKED and not item.hasChildren():
             selectedTaxa.append(item.text())
 
         for i in range(item.rowCount()):
@@ -1577,7 +1584,7 @@ class R6Dialog(QDialog):
     def getR6Data(self):
 
         self.ui.lblBusy.setVisible(True)
-        qApp.processEvents()
+        QApplication.processEvents()
 
         index = self.ui.cmbSpToMap.currentIndex()
         tlik = "'" + str(self.list2[index]) + "'"
