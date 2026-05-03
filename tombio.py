@@ -120,9 +120,9 @@ class TomBio:
             QIcon(icon_path),
             u"NBN Atlas Tool",
             self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&FSC Tools", self.actionNbn)
-        self.actionNbn.triggered.connect(self.showNbnDialog)
-        self.toolbar.addAction(self.actionNbn)
+        # self.iface.addPluginToMenu(u"&FSC Tools", self.actionNbn)
+        # self.actionNbn.triggered.connect(self.showNbnDialog)
+        # self.toolbar.addAction(self.actionNbn)
         self.dwNbn = None
 
         # Map Mashup Tool
@@ -133,9 +133,9 @@ class TomBio:
             QIcon(icon_path),
             u"Map Mashup Tool",
             self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&FSC Tools", self.actionMapMash)
-        self.actionMapMash.triggered.connect(self.showMapmashupDialog)
-        self.toolbar.addAction(self.actionMapMash)
+        # self.iface.addPluginToMenu(u"&FSC Tools", self.actionMapMash)
+        # self.actionMapMash.triggered.connect(self.showMapmashupDialog)
+        # self.toolbar.addAction(self.actionMapMash)
         self.dwMapmashup = None
 
         # GRs to points Processing tool
@@ -146,10 +146,10 @@ class TomBio:
             QIcon(icon_path),
             u"Add GRs to layers",
             self.iface.mainWindow())
-        self.iface.addPluginToMenu(u"&FSC Tools", self.actionGRs2Points)
-        self.actionGRs2Points.triggered.connect(
-            self.showGRs2PointsProcessingTools)
-        self.toolbar.addAction(self.actionGRs2Points)
+        # self.iface.addPluginToMenu(u"&FSC Tools", self.actionGRs2Points)
+        # self.actionGRs2Points.triggered.connect(
+        #     self.showGRs2PointsProcessingTools)
+        # self.toolbar.addAction(self.actionGRs2Points)
 
         # Help dialog
         icon_path = os.path.join(os.path.dirname(__file__), 'images/info.png')
@@ -267,9 +267,9 @@ class TomBio:
         # Remove the plugin menu item
         self.iface.removePluginMenu(u"&FSC Tools", self.actionOsgr)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionBiorec)
-        self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
-        self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
-        self.iface.removePluginMenu(u"&FSC Tools", self.actionGRs2Points)
+        # self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
+        # self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
+        # self.iface.removePluginMenu(u"&FSC Tools", self.actionGRs2Points)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionEnv)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionHelp)
 
