@@ -1,6 +1,8 @@
 ﻿# QGIS plugin environment options
 
-![Environment Options dialog](./env_files/environment-v3.jpg)You can set a number of environment options to increase the ease of use and, in some cases, change the behaviour of the FSC QGIS plugin.
+![Environment Options dialog](./env_files/environment-v3.jpg)
+
+You can set a number of environment options to increase the ease of use and, in some cases, change the behaviour of the FSC QGIS plugin.
 
 To set or change environment options, start the environment options dialog by selecting plugins>FSC tools>environment options. In the your environment tab you can specify one or more options as illustrated below. Examples of many of these can be seen on the example environment tab.
 
@@ -8,7 +10,7 @@ Options are specified by indicating their name, e.g. biorec.gridrefcol, followed
 
 Tip: By default the file which records your environment options is stored in the software folder which means it gets overwritten every time the Tom.bio plugin is updated. To avoid this, you can use the save to new button at the foot of the your environment tab to save the options to a file somewhere else on your file system. Then, when you update the software, you can use the browse button to set the environment options from this file.
 
-Biological Records Tool
+## Biological Records Tool
 
 The biorec.csvfolder variable can be used to specify a path to a folder which is the default used when you use the Browse button to locate a CSV file.
 
@@ -42,7 +44,7 @@ The biorec.r6SQLServerPassword variable allows you to set a value for a Recorder
 
 The biorec.xGridOffset and biorec.yGridOffset variables allow you to set an offset for the origin of altas maps. Offsets are specified in the map units of the current map view CRS. Note that these variables are also used by the OSGR Tool to offset user-generated grids. An example of the kind of situation where this can be useful is in Luxembourg where biological records atlas maps are commonly made on a 5 km grid offset from the standard EPSG:2169 CRS by 3000 (easting) and 4000 (northing).
 
-OSGR Tool
+## OSGR Tool
 
 The biorec.xGridOffset and biorec.yGridOffset - allow grids to be offset from the origin of the current map view CRS (see Biological Records tool for more).
 
@@ -52,11 +54,11 @@ The mapmashup.imgfolder variable can be used to specify a default value for the 
 
 The mapmashup.regfolder variable can be used to specify a default value for the path to a folder where you keep your world files. The files in this folder are used to populate the world file drop-down list.
 
-NBN Tool
+## NBN Tool
 
 The nbn.downloadfolder variable can be used to specify a default location for the folder where data downloaded from the NBN Atlas are saved. Setting this saves you from having to re-specify it each time you open the tool to download data from the NBN.
 
-Getting help and support
+## Getting help and support
 
 Our GitHub repository is a good place for you to raise issues about problems, bugs, feature requests etc: [https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues](https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues)
 

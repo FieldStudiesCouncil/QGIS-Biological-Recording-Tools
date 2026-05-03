@@ -22,12 +22,12 @@ There are five main tools and a sixth dialog for managing environment options. T
 
 - The [OSGR Tool ![Tom.bio OSGR Tool toolbutton](./intro_files/osgr-toolbutton.png)](./osgr.md)
 
-- The [Biological Records Tool![Tom.bio Biological Records Tool toolbutton](./intro_files/biorecs-toolbutton.png)](./biorec.md)
+- The [Biological Records Tool ![Tom.bio Biological Records Tool toolbutton](./intro_files/biorecs-toolbutton.png)](./biorec.md)
 
-- The [NBN Atlas Tool![Tom.bio NBN Tool toolbutton](./intro_files/nbn-toolbutton.png)](./nbn.md)
+- The [NBN Atlas Tool ![Tom.bio NBN Tool toolbutton](./intro_files/nbn-toolbutton.png)](./nbn.md)
 
-- The [Map Mashup Tool![Tom.bio Map Mashup Tool toolbutton](./intro_files/mashup-toolbutton.png)](./mashup.md)
+- The [Map Mashup Tool ![Tom.bio Map Mashup Tool toolbutton](./intro_files/mashup-toolbutton.png)](./mashup.md)
 
-- The [GR to Layers Tool![Tom.bio Add GRs to Layer Tool toolbutton](./intro_files/gr2layer-toolbutton.png)](./grlayers.md)
+- The [GR to Layers Tool ![Tom.bio Add GRs to Layer Tool toolbutton](./intro_files/gr2layer-toolbutton.png)](./grlayers.md)
 
 - [Environment Options](./env.md)
