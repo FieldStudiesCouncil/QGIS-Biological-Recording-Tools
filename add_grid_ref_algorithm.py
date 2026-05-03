@@ -30,7 +30,7 @@ __copyright__ = '(C) 2019 by Field Studies Council'
 
 __revision__ = '$Format:%H$'
 
-from PyQt5.QtCore import (QCoreApplication, QVariant)
+from qgis.PyQt.QtCore import (QCoreApplication, QVariant)
 from qgis.core import (QgsProcessing,
                        QgsMessageLog,
                        QgsFeatureSink,
@@ -46,6 +46,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFeatureSink,
                        Qgis)
 from . import osgr
+
 
 class AddGridRefAlgorithm(QgsProcessingAlgorithm):
     """
@@ -70,23 +71,25 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
     GRTYPE = 'GRYPE'
     PRECISIONS = 'PRECISIONS'
     PREFIX = 'PREFIX'
-    dGrType = [
-            {"name": "British National Grid", "code": "os", "crs": QgsCoordinateReferenceSystem("EPSG:27700")},
-            {"name": "Irish National Grid", "code": "irish", "crs": QgsCoordinateReferenceSystem("EPSG:29903")}
-        ]
+    dGrType = [{"name": "British National Grid",
+                "code": "os",
+                "crs": QgsCoordinateReferenceSystem("EPSG:27700")},
+               {"name": "Irish National Grid",
+                "code": "irish",
+                "crs": QgsCoordinateReferenceSystem("EPSG:29903")}]
     aGrTypeName = list(map((lambda x: x["name"]), dGrType))
     dPrecisions = [
-            {"text": "10 figure GR (1 m)", "num": 1, "field": "10figGR"},
-            {"text": "8 figure GR (10 m)", "num": 10, "field": "8figGR"},
-            {"text": "6 figure GR (100 m)", "num": 100, "field": "6figGR"},
-            {"text": "Monad (1 km)", "num": 1000, "field": "monad"},
-            {"text": "Tetrad (2 km)", "num": 2000, "field": "tetrad"},
-            {"text": "Quadrant (5 km)", "num": 5000, "field": "quadrant"},
-            {"text": "Hectad (10 km)", "num": 10000, "field": "hectad"},
-            {"text": "100 km", "num": 100000, "field": "100km"},
-            {"text": "Easting/northings", "num": -1, "field": "Easting Northing"},
-            {"text": "Lat/lng (WGS84)", "num": -2, "field": "Lat Lng"}
-        ]
+        {"text": "10 figure GR (1 m)", "num": 1, "field": "10figGR"},
+        {"text": "8 figure GR (10 m)", "num": 10, "field": "8figGR"},
+        {"text": "6 figure GR (100 m)", "num": 100, "field": "6figGR"},
+        {"text": "Monad (1 km)", "num": 1000, "field": "monad"},
+        {"text": "Tetrad (2 km)", "num": 2000, "field": "tetrad"},
+        {"text": "Quadrant (5 km)", "num": 5000, "field": "quadrant"},
+        {"text": "Hectad (10 km)", "num": 10000, "field": "hectad"},
+        {"text": "100 km", "num": 100000, "field": "100km"},
+        {"text": "Easting/northings", "num": -1, "field": "Easting Northing"},
+        {"text": "Lat/lng (WGS84)", "num": -2, "field": "Lat Lng"}
+    ]
     aPrecisionText = list(map((lambda x: x["text"]), dPrecisions))
 
     # Get a reference to an osgr object
@@ -117,18 +120,19 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
                 self.GRTYPE,
                 self.tr('Select British or Irish National Grid'),
                 self.aGrTypeName,
-                False # Single select
+                False  # Single select
             )
         )
 
         # Parameter for selecting grid reference precisions
-        # Note that the multi-select does not work in the Modeller - https://issues.qgis.org/issues/20406
+        # Note that the multi-select does not work in the Modeller -
+        # https://issues.qgis.org/issues/20406
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.PRECISIONS,
                 self.tr('Select the type of Grid References to add'),
                 self.aPrecisionText,
-                True # Multi select
+                True  # Multi select
             )
         )
 
@@ -136,10 +140,11 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.PREFIX,
-                self.tr('Optionally, indicate a short prefix for output column names'),
-                None, # No default value
-                False, # Not multi-line
-                True # Optional
+                self.tr(
+                    'Optionally, indicate a short prefix for output column names'),
+                None,  # No default value
+                False,  # Not multi-line
+                True  # Optional
             )
         )
 
@@ -165,23 +170,25 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
         fields = source.fields()
 
         # Get the field prefix
-        prefix = self.parameterAsString (parameters, self.PREFIX, context)
+        prefix = self.parameterAsString(parameters, self.PREFIX, context)
         prefix = prefix.replace(" ", "")
 
         # Get the precision choices and make the appropriate output fields
-        precisions = self.parameterAsEnums (parameters, self.PRECISIONS, context)
+        precisions = self.parameterAsEnums(
+            parameters, self.PRECISIONS, context)
         for p in precisions:
             if self.dPrecisions[p]["num"] > 0:
                 fieldName = prefix + self.dPrecisions[p]["field"]
                 fields.append(QgsField(fieldName, QVariant.String))
-            elif self.dPrecisions[p]["num"] < 0: #Easting/northing (-1) or Lat/lng (-2)
+            # Easting/northing (-1) or Lat/lng (-2)
+            elif self.dPrecisions[p]["num"] < 0:
                 if self.dPrecisions[p]["num"] == -1:
-                    dataType =  QVariant.Int
+                    dataType = QVariant.Int
                 else:
-                    dataType =  QVariant.Double
+                    dataType = QVariant.Double
                 fieldName = self.dPrecisions[p]["field"].split(" ")
                 fieldNameX = prefix + fieldName[0]
-                fields.append( QgsField(fieldNameX, dataType))
+                fields.append(QgsField(fieldNameX, dataType))
                 fieldNameY = prefix + fieldName[1]
                 fields.append(QgsField(fieldNameY, dataType))
 
@@ -189,16 +196,22 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT,
-                context, fields, source.wkbType(), source.sourceCrs())
-    
+                                               context, fields, source.wkbType(), source.sourceCrs())
+
         # Get the other parameters
-        grtype = self.parameterAsEnum (parameters, self.GRTYPE, context)       
+        grtype = self.parameterAsEnum(parameters, self.GRTYPE, context)
 
         transform = None
         if self.dGrType[grtype]["crs"] != source.sourceCrs():
-            transform = QgsCoordinateTransform(source.sourceCrs(), self.dGrType[grtype]["crs"], QgsProject.instance())
-        transformWGS84 = QgsCoordinateTransform(self.dGrType[grtype]["crs"], QgsCoordinateReferenceSystem("EPSG:4326"), QgsProject.instance())
-        
+            transform = QgsCoordinateTransform(
+                source.sourceCrs(),
+                self.dGrType[grtype]["crs"],
+                QgsProject.instance())
+        transformWGS84 = QgsCoordinateTransform(
+            self.dGrType[grtype]["crs"],
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance())
+
         # Compute the number of steps to display within the progress bar and
         # get features from source
         total = 100.0 / source.featureCount() if source.featureCount() else 0
@@ -223,15 +236,20 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
             # Copy current field values
             for field in source.fields():
                 newFeature[field.name()] = feature.attribute(field.name())
-            
+
             # Generate new field values
             for p in precisions:
                 if self.dPrecisions[p]["num"] > 0:
-                    gr =  self.osgr.grFromEN(pt.x(), pt.y(), self.dPrecisions[p]["num"], self.dGrType[grtype]["code"])
+                    gr = self.osgr.grFromEN(
+                        pt.x(),
+                        pt.y(),
+                        self.dPrecisions[p]["num"],
+                        self.dGrType[grtype]["code"])
                     if gr == "na":
                         gr = ""
                     newFeature[prefix + self.dPrecisions[p]["field"]] = gr
-                elif self.dPrecisions[p]["num"] < 0: #Easting/northing (-1) or Lat/lng (-2)
+                # Easting/northing (-1) or Lat/lng (-2)
+                elif self.dPrecisions[p]["num"] < 0:
                     fieldName = self.dPrecisions[p]["field"].split(" ")
                     if self.dPrecisions[p]["num"] == -1:
                         x = int(pt.x())
@@ -293,9 +311,9 @@ class AddGridRefAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        #return 'Grid references'
+        # return 'Grid references'
         return None
-    
+
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 

@@ -1,0 +1,91 @@
+@import "https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic";
+
+/* Base */
+body {
+  font-size: 14px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  background: #fff;
+  word-wrap: break-word;
+  margin: 0;
+  padding: 0;
+  color: #444;
+  font-family: "PT Sans", Helvetica, Arial, sans-serif;
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -1px;
+  margin: 0;
+  color: #007576;
+}
+
+h1 {
+  font-size: 35px;
+  font-weight: 400;
+  line-height: 140%;
+  margin-bottom: 14px;
+}
+
+/* Paragraphs */
+p {
+  margin: 0 0 20px;
+}
+
+/* Links */
+a:link,
+a:visited {
+  color: #007476;
+  text-decoration: none;
+}
+
+a:hover,
+a:active,
+a:focus {
+  color: #000;
+  text-decoration: none;
+}
+
+#content a {
+  text-decoration: underline;
+}
+
+#content a:hover {
+  text-decoration: none;
+}
+
+/* Images */
+img {
+  border: 0;
+  outline: 0;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Video tutorial table layout */
+div.table {
+  display: table;
+}
+
+div.row {
+  display: table-row;
+}
+
+div.cell {
+  display: table-cell;
+  vertical-align: middle;
+  padding: 4px;
+}
+
+/* Page layout */
+#content {
+  max-width: 900px;
+  margin: 2em auto;
+  padding: 0 2em;
+}

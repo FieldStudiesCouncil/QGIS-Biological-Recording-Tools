@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add Grid References to Layers Tool for QGIS</title>
+<link type="text/css" rel="stylesheet" href="./styles.css" media="all">
+</head>
+<body>
+<div id="content">
+<h1>Add Grid References to Layers Tool for QGIS</h1>
+<p><img src="./grlayers_files/point2gr-main.png" alt="Add Grid References to Points tool main interface" title="Add Grid References to Points tool main interface" width="350" style="float: right; margin: 10px;">This tool was added to the FSC QGIS plugin with version 3.2. It allows you to add British or Irish grid references, of any precision, to a point layer in QGIS. In fact it will also work with any vector layer, using the centroids of features that aren't points, to caclulate the grid references. You can also use the tool to add eastings/northings (British or Irish) or QGS84 lat/lons to layers. This can be useful in a number of situations, e.g. when you've imported waypoints from a GPS unit and you wish to add grid references to them.</p>
+<p>Unlike the other tools in the FSC QGIS plugin suite, this one is written using QGIS processing framework, so if you've ever used any tools from QGIS's processing toolbox, this will have a very familiar look and feel about it. Like many processing tools, you first need to select the layer on which you are going to operate (i.e. the one that you want to add the information to). Do this either by selecting an open vector layer from the <em><strong>Input layer</strong></em> drop-down list, or by using the browse button to the right of this ([...]) to work on an unopened vector layer.&nbsp;If you only wish to operate on selected features from an open layer, check the <em><strong>Selected features only</strong></em> box.</p>
+<p>If you are adding grid references or easting/northings, you need to specify whether you want to work to the British or Irish national grid system. Select the appopriate value from the<em><strong> Select British or Irish Nation Grid</strong></em> drop-down. It defaults to British.</p>
+<p><img src="./grlayers_files/point2gr-elements.png" alt="Selection of GR elements to add" title="Selection of GR elements to add" style="margin: 10px; float: right;">Under the heading <em><strong>Select the type of Grid References to add</strong></em>, you must click the browse button ([...]) and, in the dialog that appears, select the elements (attributes) that you wish to enrich the vector data with. You can select any number of these, from one to all of them.</p>
+<p>Most processing tools, including this one, do not modify the original data, instead they create new layers based on your input layers and selected options. So under <em><strong>Output layer</strong></em> you must either use the browse button ([...]) to specify where in your file system to create the new vector data, e.g. a Shapefile, or you can leave this blank to let the tool generate a temporary layer. Doing the later is quicker and usually more convenient and you can always save the temporary layer to a permanent vector layer afterwards using the standard QGIS features. Usually you will want to leave the Open output file after running algorithm box checked; this will add your results layer to the QIGS layers panel and display it. If you are creating&nbsp; temporary results layer, it makes no sense to uncheck this.</p>
+<p>The attributes of your new layer will include all those in the input layer plus new ones based on the selection you made. Optionally you can <em><strong>indicate a short prefix for output column names</strong></em>. This prefix, e.g. an underscore (_) will only be added to the new attributes you are creating. It can be helpful to avoid name clashes with existing attributes.</p>
+<p><strong>Getting help and support</strong></p>
+<p>Our GitHub repository is a good place for you to raise issues about problems, bugs, feature requests etc:&nbsp;&nbsp;<strong><a style="text-decoration-line: underline;" href="https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues">https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues</a></strong></p>
+<p><a href="./intro.html">(Back to help homepage)</a></p>
+</div>
+</body>
+</html>

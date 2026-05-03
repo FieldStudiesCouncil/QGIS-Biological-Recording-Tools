@@ -22,28 +22,29 @@ bioreclayer
 
 from qgis.core import *
 from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 from . import osgr
 from . import envmanager
 from . import projection
 import re
 from datetime import date
 
+
 class biorecLayer(QObject):
 
     def __init__(self, iface, csvLayer, pteLog, progress):
-  
-        super(biorecLayer,self).__init__()
+
+        super(biorecLayer, self).__init__()
         self.canvas = iface.mapCanvas()
         self.iface = iface
-        
+
         # Store passed parameters
         self.csvLayer = csvLayer
         self.pteLog = pteLog
         self.progress = progress
-        
+
         # Other defaults
         self.name = "Biological records"
         self.transparency = 0
@@ -54,44 +55,44 @@ class biorecLayer(QObject):
         self.iColY = -1
         self.gridSize = -1
         self.taxa = []
-        
+
         # Get a reference to an osgr object
         self.osgr = osgr.osgr()
         # Get a reference to a projection object
         self.projection = None
         self.crsInput = None
         self.crsOutput = None
-        
+
         # Load the environment stuff
         self.env = envmanager.envManager()
-        
-        self.vl = None  
-      
+
+        self.vl = None
+
         self.Year = date.today().year
-    
+
     def logMessage(self, strMessage, level=Qgis.Info):
         QgsMessageLog.logMessage(strMessage, "Biological Records Tool", level)
 
     def infoMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Info", strMessage, level=Qgis.Info)
-        
+
     def warningMessage(self, strMessage):
         self.iface.messageBar().pushMessage("Warning", strMessage, level=Qgis.Warning)
-    
+
     def getVectorLayer(self):
         return self.vl
-        
+
     def setName(self, name):
         self.name = name
-        
+
     def getName(self):
         return self.name
-        
+
     def setTaxa(self, taxa):
         # Using a set class massively improves performance
         # later when searching for specific taxa in large lists
         self.taxa = set(taxa)
-        
+
     def setColTaxa(self, iColTaxa):
         self.iColTaxa = iColTaxa
 
@@ -103,108 +104,115 @@ class biorecLayer(QObject):
 
     def setColAb(self, iColAb):
         self.iColAb = iColAb
-        
+
     def setColGr(self, iColGr):
         self.iColGr = iColGr
-        
+
     def setColX(self, iColX):
         self.iColX = iColX
-        
+
     def setColY(self, iColY):
         self.iColY = iColY
-        
-    def setCrs(self, crsInput, crsOutput):
-        #self.projection = projection.projection(QgsCoordinateReferenceSystem(crsInput), self.canvas.mapSettings().destinationCrs())
 
-        self.projection = projection.projection(QgsCoordinateReferenceSystem(crsInput), QgsCoordinateReferenceSystem(crsOutput))
+    def setCrs(self, crsInput, crsOutput):
+        # self.projection = projection.projection(QgsCoordinateReferenceSystem(crsInput), self.canvas.mapSettings().destinationCrs())
+
+        self.projection = projection.projection(
+            QgsCoordinateReferenceSystem(crsInput),
+            QgsCoordinateReferenceSystem(crsOutput))
         self.crsInput = crsInput
         self.crsOutput = crsOutput
-        
+
     def setGridSize(self, gridSize):
         self.gridSize = gridSize
-        
+
     def setTransparency(self, transparency):
         self.transparency = transparency
-        if not self.vl is None:
-            # If the layer has already been removed via native QGIS, this will fail
+        if self.vl is not None:
+            # If the layer has already been removed via native QGIS, this will
+            # fail
             try:
-                self.vl.setOpacity(1 - self.transparency/100)
-            except:
+                self.vl.setOpacity(1 - self.transparency / 100)
+            except BaseException:
                 pass
-            
+
     def createMapLayer(self, mapType, symbolType, styleFile=None):
-        
+
         # Create layer
         epsg = self.crsOutput
         if mapType == "Records as points" or symbolType == "Atlas points":
             self.vl = QgsVectorLayer("Point?crs=" + epsg, self.name, "memory")
         else:
-            self.vl = QgsVectorLayer("Polygon?crs=" + epsg, self.name, "memory")
-        
+            self.vl = QgsVectorLayer(
+                "Polygon?crs=" + epsg, self.name, "memory")
+
         self.pr = self.vl.dataProvider()
-        
+
         # Style stuff
-        if not styleFile is None:
+        if styleFile is not None:
             self.vl.loadNamedStyle(styleFile)
-        self.vl.setOpacity(1 - self.transparency/100)
-    
+        self.vl.setOpacity(1 - self.transparency / 100)
+
         # Create the geometry and attributes
         if mapType.startswith("Records"):
             self.addFieldsToTable(mapType)
         else:
             self.addFieldsToAtlas(mapType, symbolType)
-            
+
     def startEditing(self):
         # If the layer has already been removed via native QGIS, this will fail
         try:
             self.vl.startEditing()
-        except:
+        except BaseException:
             pass
-        
+
     def rollBack(self):
         # If the layer has already been removed via native QGIS, this will fail
         try:
             self.vl.rollBack()
-        except:
+        except BaseException:
             pass
-             
+
     def setVisibility(self, bVisibility):
         # If the layer has already been removed via native QGIS, this will fail
         try:
-            #self.iface.legendInterface().setLayerVisible(self.vl, bVisibility)
-            QgsProject.instance().layerTreeRoot().findLayer(self.vl.id()).setItemVisibilityChecked(bVisibility)
-        except:
+            # self.iface.legendInterface().setLayerVisible(self.vl, bVisibility)
+            QgsProject.instance().layerTreeRoot().findLayer(
+                self.vl.id()).setItemVisibilityChecked(bVisibility)
+        except BaseException:
             pass
-            
+
     def setExpanded(self, bExpanded):
         # If the layer has already been removed via native QGIS, this will fail
         try:
-            #self.iface.legendInterface().setLayerExpanded(self.vl, bExpanded)
-            QgsProject.instance().layerTreeRoot().findLayer(self.vl.id()).setExpanded(bExpanded)
-        except:
+            # self.iface.legendInterface().setLayerExpanded(self.vl, bExpanded)
+            QgsProject.instance().layerTreeRoot().findLayer(
+                self.vl.id()).setExpanded(bExpanded)
+        except BaseException:
             pass
-  
+
     def removeFromMap(self):
         # Remove from layer
         # If the layer has already been removed via native QGIS, this will fail
         try:
             QgsProject.instance().removeMapLayer(self.vl.id())
-        except:
+        except BaseException:
             pass
-        
+
     def getID(self):
         if self.vl is None:
             return None
         else:
             try:
                 id = self.vl.id()
-            except:
+            except BaseException:
                 id = None
             return id
-          
+
     def addFieldsToTable(self, mapType):
-    
-        # This procedure makes a map of either points or squares - one for each record.
+
+        # This procedure makes a map of either points or squares - one for each
+        # record.
         for field in self.csvLayer.dataProvider().fields():
             attr = field.name()
             fieldType = field.typeName()
@@ -218,111 +226,117 @@ class biorecLayer(QObject):
                     self.pr.addAttributes([QgsField(attr, QVariant.Double)])
                     bIsNumeric = True
 
-                if not bIsNumeric: 
+                if not bIsNumeric:
                     self.pr.addAttributes([QgsField(attr, QVariant.String)])
 
-        self.vl.startEditing()   
-        
+        self.vl.startEditing()
+
         fets = []
-        
+
         if len(self.taxa) == 1:
-            # Taxa selected, so get 
-            taxonFieldName = self.csvLayer.dataProvider().fields()[self.iColTaxa].name()
+            # Taxa selected, so get
+            taxonFieldName = self.csvLayer.dataProvider().fields()[
+                self.iColTaxa].name()
 
             # No indexing in set class so can't use self.taxa[0]
-            for taxon in self.taxa: 
-                #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
-                strFilter = '"%s" ~ \'^ *%s *$\'' % (taxonFieldName, taxon.replace("'", r"\'"))
+            for taxon in self.taxa:
+                # The regular expression (~ comparison) allows for leading and
+                # trailing white space on the taxa
+                strFilter = '"%s" ~ \'^ *%s *$\'' % (
+                    taxonFieldName, taxon.replace("'", r"\'"))
 
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iter = self.csvLayer.getFeatures(request)
             iLength = len(list(self.csvLayer.getFeatures(request)))
-            
+
             fets = fets + self.makeFeatures(iter, iLength, mapType)
         else:
             # No taxa selected, so get all features from CSV
             iter = self.csvLayer.getFeatures()
             iLength = len(list(self.csvLayer.getFeatures()))
-            if len(self.taxa) == 0: 
+            if len(self.taxa) == 0:
                 fets = self.makeFeatures(iter, iLength, mapType)
             else:
                 # More than one taxa selected
                 fets = self.makeFeatures(iter, iLength, mapType, True)
-               
+
         self.vl.addFeatures(fets)
         self.vl.commitChanges()
         self.vl.updateExtents()
         self.vl.removeSelection()
-        
+
     def makeFeatures(self, iter, iLength, mapType, bFilterTaxaV2=False):
 
         fets = []
         progStart = self.progress.value()
         i = 0
         for feature in iter:
-            i=i+1
-            err=""
+            i = i + 1
+            err = ""
             geom = None
             self.progress.setValue(int(progStart + 100 * i / iLength))
-            QApplication.processEvents() 
+            QApplication.processEvents()
 
             if bFilterTaxaV2:
 
                 try:
                     taxon = feature.attributes()[self.iColTaxa].strip()
-                except:
+                except BaseException:
                     taxon = "invalid"
-                
+
             if not bFilterTaxaV2:
                 bTaxonOkay = True
             elif bFilterTaxaV2 and taxon in self.taxa:
                 bTaxonOkay = True
             else:
                 bTaxonOkay = False
-            
+
             if bTaxonOkay:
                 geom = None
-                if self.iColGr > -1:     
+                if self.iColGr > -1:
                     try:
-                        #Remove spaces from GRs
+                        # Remove spaces from GRs
                         gr = feature.attributes()[self.iColGr].replace(" ", "")
-                        #Remove leading I from GRs (used by BTO to indicate Irish GR)
+                        # Remove leading I from GRs (used by BTO to indicate
+                        # Irish GR)
                         if gr[0].upper() == "I":
                             gr = gr[1:]
-                    except:
+                    except BaseException:
                         gr = "NULL"
                         err = "Invalid Grid Ref"
-                        
-                    if gr != "NULL":
-                        #Get geometry from OSGR
-                        if mapType == "Records as points":
-                            geom = self.osgr.geomFromGR(gr, "point", self.crsOutput)
-                        else:
-                            geom = self.osgr.geomFromGR(gr, "square", self.crsOutput)
 
-                        if geom == None:
+                    if gr != "NULL":
+                        # Get geometry from OSGR
+                        if mapType == "Records as points":
+                            geom = self.osgr.geomFromGR(
+                                gr, "point", self.crsOutput)
+                        else:
+                            geom = self.osgr.geomFromGR(
+                                gr, "square", self.crsOutput)
+
+                        if geom is None:
                             err = self.osgr.checkGR(gr)[1]
 
                 elif self.iColX > -1:
                     try:
                         strX = str(feature.attributes()[self.iColX]).strip()
-                    except:
+                    except BaseException:
                         strX = "NULL"
                     try:
                         strY = str(feature.attributes()[self.iColY]).strip()
-                    except:
+                    except BaseException:
                         strY = "NULL"
-                        
+
                     if strX != "NULL" and strY != "NULL":
-                        #Get point geometry from X, Y etc
+                        # Get point geometry from X, Y etc
                         try:
                             x = float(strX)
                             y = float(strY)
-                        except:
+                        except BaseException:
                             x = None
                             y = None
-                            
-                        if x != None and y != None:
+
+                        if x is not None and y is not None:
                             ret = self.projection.xyToPoint(x, y)
                             geom = ret[0]
                             err = ret[1]
@@ -331,27 +345,28 @@ class biorecLayer(QObject):
                     else:
                         err = "Invalid x and or y values"
                 else:
-                    #Get the geometry from the map layer
+                    # Get the geometry from the map layer
                     pnt = feature.geometry().asPoint()
                     x = pnt.x()
                     y = pnt.y()
-                    
+
                     ret = self.projection.xyToPoint(x, y)
                     geom = ret[0]
-                    
-                if geom != None:
+
+                if geom is not None:
                     fet = QgsFeature()
                     fet.setGeometry(geom)
                     fet.setAttributes(feature.attributes())
                     fets.append(fet)
 
-                if geom == None:
-                    self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
+                if geom is None:
+                    self.pteLog.appendPlainText(
+                        "Problem with row " + str(i + 1) + " " + err)
 
         return fets
-        
+
     def addFieldsToAtlas(self, mapType, symbolType):
-    
+
         # This procedure makes an atlas map
         self.pr.addAttributes([QgsField("GridRef", QVariant.String)])
         self.pr.addAttributes([QgsField("Records", QVariant.Int)])
@@ -364,9 +379,9 @@ class biorecLayer(QObject):
             self.pr.addAttributes([QgsField("LastYear", QVariant.Int)])
         if self.env.getEnvValue("biorec.outtrim") != "true":
             self.pr.addAttributes([QgsField("Taxa", QVariant.String)])
-            
+
         self.vl.startEditing()
-        
+
         if mapType.startswith("1 m"):
             gridPrecision = 1
         elif mapType.startswith("10 m"):
@@ -383,55 +398,69 @@ class biorecLayer(QObject):
             gridPrecision = 10000
         else:
             gridPrecision = self.gridSize
-            
+
         if symbolType == "Atlas squares":
             symbol = "square"
         elif symbolType == "Atlas circles":
             symbol = "circle"
         else:
             symbol = "point"
-            
+
         fetsDict = {}
 
         if len(self.taxa) == 1:
-        
-            taxonFieldName = self.csvLayer.dataProvider().fields()[self.iColTaxa].name()
+
+            taxonFieldName = self.csvLayer.dataProvider().fields()[
+                self.iColTaxa].name()
             strFilter = ""
-            for taxon in self.taxa:  #self.taxa is a set, so can't user self.taxa[0]
-                #strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
-                #The regular expression (~ comparison) allows for leading and trailing white space on the taxa
-                strFilter = '"%s" ~ \'^ *%s *$\'' % (taxonFieldName, taxon.replace("'", r"\'"))
-                #QgsMessageLog.logMessage(strFilter, 'biorec')
+            # self.taxa is a set, so can't user self.taxa[0]
+            for taxon in self.taxa:
+                # strFilter = '"%s" = \'%s\'' % (taxonFieldName, taxon)
+                # The regular expression (~ comparison) allows for leading and
+                # trailing white space on the taxa
+                strFilter = '"%s" ~ \'^ *%s *$\'' % (
+                    taxonFieldName, taxon.replace("'", r"\'"))
+                # QgsMessageLog.logMessage(strFilter, 'biorec')
 
             request = QgsFeatureRequest().setFilterExpression(strFilter)
             iter = self.csvLayer.getFeatures(request)
             iLength = len(list(self.csvLayer.getFeatures(request)))
 
-            fetsDict = self.makeAtlasFeatures(iter, iLength, gridPrecision, symbol)
+            fetsDict = self.makeAtlasFeatures(
+                iter, iLength, gridPrecision, symbol)
         else:
             iter = self.csvLayer.getFeatures()
             iLength = len(list(self.csvLayer.getFeatures()))
             if len(self.taxa) == 0:
                 # No taxa selected, so get all features from CSV
-                fetsDict = self.makeAtlasFeatures(iter, iLength, gridPrecision, symbol)
+                fetsDict = self.makeAtlasFeatures(
+                    iter, iLength, gridPrecision, symbol)
             else:
                 # More than one taxon selected - so filter based on taxa
-                fetsDict = self.makeAtlasFeatures(iter, iLength, gridPrecision, symbol, True)
+                fetsDict = self.makeAtlasFeatures(
+                    iter, iLength, gridPrecision, symbol, True)
 
         # Now loop through the dictionary and create a feature for each one
-        fets=[]
+        fets = []
         for gr in fetsDict:
-        
+
             fetDict = fetsDict[gr]
             fet = QgsFeature()
             fet.setGeometry(fetDict[0])
             if self.env.getEnvValue("biorec.outtrim") != "true":
-                attrs = [gr, fetDict[1], fetDict[2], fetDict[3], fetDict[4], fetDict[5], fetDict[6]]
+                attrs = [
+                    gr,
+                    fetDict[1],
+                    fetDict[2],
+                    fetDict[3],
+                    fetDict[4],
+                    fetDict[5],
+                    fetDict[6]]
             else:
                 attrs = [gr, fetDict[1], fetDict[3]]
             fet.setAttributes(attrs)
             fets.append(fet)
-                
+
         self.vl.addFeatures(fets)
         self.vl.commitChanges()
         self.vl.updateExtents()
@@ -458,7 +487,7 @@ class biorecLayer(QObject):
                 elif int(token) > ret['endYear']:
                     ret['endYear'] = int(token)
 
-        if  ret['startYear'] is not None:
+        if ret['startYear'] is not None:
             if ret['startYear'] < 1000 or ret['startYear'] > self.Year:
                 ret['startYear'] = None
         if ret['endYear'] is not None:
@@ -470,50 +499,60 @@ class biorecLayer(QObject):
 
         return ret
 
-    def makeAtlasFeatures(self, iter, iLength, gridPrecision, symbol, bFilterTaxaV2=False):
-   
+    def makeAtlasFeatures(
+            self,
+            iter,
+            iLength,
+            gridPrecision,
+            symbol,
+            bFilterTaxaV2=False):
+
         fetsDict = {}
         taxaDict = {}
-        
-        i=0
+
+        i = 0
         progStart = self.progress.value()
 
         for feature in iter:
             err = ""
             geom = None
-            i=i+1
+            i = i + 1
             self.progress.setValue(int(progStart + 100 * i / iLength))
 
             taxon = ""
-            
+
             if bFilterTaxaV2:
                 try:
                     taxon = feature.attributes()[self.iColTaxa]
-                except:
+                except BaseException:
                     taxon = "invalid"
-                    
+
             if not bFilterTaxaV2:
                 bTaxonOkay = True
             elif bFilterTaxaV2 and taxon in self.taxa:
                 bTaxonOkay = True
             else:
                 bTaxonOkay = False
-            
+
             if bTaxonOkay:
                 if self.iColGr > -1:
                     xOriginal = None
                     yOriginal = None
                     # Geocoding from grid ref
                     try:
-                        #Remove spaces from GRs
-                        grOriginal = str(feature.attributes()[self.iColGr]).replace(" ", "")   
-                        #Remove leading I from GRs (used by BTO to indicate Irish GR)
+                        # Remove spaces from GRs
+                        grOriginal = str(
+                            feature.attributes()[
+                                self.iColGr]).replace(
+                            " ", "")
+                        # Remove leading I from GRs (used by BTO to indicate
+                        # Irish GR)
                         if grOriginal[0].upper() == "I":
                             grOriginal = grOriginal[1:]
-                    except:
+                    except BaseException:
                         grOriginal = "NULL"
                         err = "Invalid grid reference"
-                        
+
                     if grOriginal == "NULL":
                         grOriginal = None
                 elif self.iColX > -1:
@@ -521,13 +560,13 @@ class biorecLayer(QObject):
                     # Geocoding from x and y
                     try:
                         strX = str(feature.attributes()[self.iColX])
-                    except:
+                    except BaseException:
                         strX = "NULL"
                     try:
                         strY = str(feature.attributes()[self.iColY])
-                    except:
+                    except BaseException:
                         strY = "NULL"
-                        
+
                     if strX == "NULL" or strY == "NULL":
                         xOriginal = None
                         yOriginal = None
@@ -537,17 +576,21 @@ class biorecLayer(QObject):
                         try:
                             xOriginal = float(strX)
                             yOriginal = float(strY)
-                        except:
+                        except BaseException:
                             xOriginal = None
                             yOriginal = None
                             err = "Invalid x and or y values"
                 else:
-                    #Get the geometry from the map layer
+                    # Get the geometry from the map layer
                     pnt = feature.geometry().asPoint()
                     xOriginal = pnt.x()
                     yOriginal = pnt.y()
 
-                if not (self.iColGr > -1 and grOriginal == None) and not (self.iColGr == -1 and xOriginal == None):
+                if not (
+                        self.iColGr > -
+                        1 and grOriginal is None) and not (
+                        self.iColGr == -
+                        1 and xOriginal is None):
 
                     # Get a value for abundance
                     if self.iColAb == -1:
@@ -557,34 +600,39 @@ class biorecLayer(QObject):
                         # as a positive number will be converted to 1.
                         try:
                             try:
-                                abundance = int(str(feature.attributes()[self.iColAb]))
-                            except:
+                                abundance = int(
+                                    str(feature.attributes()[self.iColAb]))
+                            except BaseException:
                                 abundance = -1
                             if abundance < 0:
                                 abundance = 1
-                        except:
+                        except BaseException:
                             abundance = 1
 
-                    #Year stuff
+                    # Year stuff
                     year = {'startYear': None, 'endYear': None}
                     if self.iColDate > -1:
-                        date1 = self.parseYearsFromString(str(feature.attributes()[self.iColDate]))
+                        date1 = self.parseYearsFromString(
+                            str(feature.attributes()[self.iColDate]))
                         if date1['msg'] is not None:
-                            self.pteLog.appendPlainText("Problem with row " + str(i+1) + ": " + date1['msg'])
+                            self.pteLog.appendPlainText(
+                                "Problem with row " + str(i + 1) + ": " + date1['msg'])
                         year['startYear'] = date1['startYear']
                         year['endYear'] = date1['endYear']
 
                     if self.iColDate2 > -1:
-                        date2 = self.parseYearsFromString(str(feature.attributes()[self.iColDate2]))
+                        date2 = self.parseYearsFromString(
+                            str(feature.attributes()[self.iColDate2]))
                         if date2['msg'] is not None:
-                            self.pteLog.appendPlainText("Problem with row " + str(i+1) + ": " + date2['msg'])
+                            self.pteLog.appendPlainText(
+                                "Problem with row " + str(i + 1) + ": " + date2['msg'])
                         if date2['startYear'] is not None:
                             if year['startYear'] is None or date2['startYear'] < year['startYear']:
                                 year['startYear'] = date2['startYear']
                         if date2['endYear'] is not None:
                             if year['endYear'] is None or date2['endYear'] > year['endYear']:
                                 year['endYear'] = date2['endYear']
-                        
+
                     if self.iColGr > -1:
                         # Get atlas geometry from grid reference
                         ret = self.osgr.convertGr(grOriginal, gridPrecision)
@@ -595,59 +643,61 @@ class biorecLayer(QObject):
 
                     else:
                         # Get atlas geometry from x & y
-                        ret = self.projection.xyToGridGeom(xOriginal, yOriginal, gridPrecision, symbol)
+                        ret = self.projection.xyToGridGeom(
+                            xOriginal, yOriginal, gridPrecision, symbol)
                         if ret[2] != "":
                             err = "Invalid x and or y values (" + ret[2] + ")"
                         gr = ret[0]
                         geom = ret[1]
-                    
-                    if not geom is None:
-                        if fetsDict.get(gr, None) == None:
-                            fetsDict[gr] = [geom, 1, abundance, 1, year['startYear'], year['endYear'], ""]
+
+                    if geom is not None:
+                        if fetsDict.get(gr, None) is None:
+                            fetsDict[gr] = [
+                                geom, 1, abundance, 1, year['startYear'], year['endYear'], ""]
                             taxaDict[gr] = []
                             if abundance > 0:
                                 taxaDict[gr].append(taxon)
                         else:
-                            #Records
-                            fetsDict[gr][1]+=1
-                            #Abundance
-                            fetsDict[gr][2]+=abundance
-                            #StartYear
+                            # Records
+                            fetsDict[gr][1] += 1
+                            # Abundance
+                            fetsDict[gr][2] += abundance
+                            # StartYear
                             if year['startYear'] is not None:
                                 if fetsDict[gr][4] is None or year['startYear'] < fetsDict[gr][4]:
                                     fetsDict[gr][4] = year['startYear']
-                            #EndYear
+                            # EndYear
                             if year['endYear'] is not None:
                                 if fetsDict[gr][5] is None or year['endYear'] > fetsDict[gr][5]:
                                     fetsDict[gr][5] = year['endYear']
-                            #Richness & Taxa
-                            if not taxon in taxaDict[gr]:
+                            # Richness & Taxa
+                            if taxon not in taxaDict[gr]:
                                 if abundance > 0:
-                                    fetsDict[gr][3]+=1 
+                                    fetsDict[gr][3] += 1
                                     taxaDict[gr].append(taxon)
 
-                if geom == None:
-                    self.pteLog.appendPlainText("Problem with row " + str(i+1) + " " + err)
-                            
-        #Sort taxaDict to ensure that the taxa attribute includes taxa in 
-        #same order for all grid references.
+                if geom is None:
+                    self.pteLog.appendPlainText(
+                        "Problem with row " + str(i + 1) + " " + err)
+
+        # Sort taxaDict to ensure that the taxa attribute includes taxa in
+        # same order for all grid references.
         for gr in fetsDict.keys():
             taxaDict[gr].sort()
             for taxon in taxaDict[gr]:
-                fetsDict[gr][6]+="#"+taxon
-            #Trim off first hash
-            fetsDict[gr][6]=fetsDict[gr][6][1:]
-            
+                fetsDict[gr][6] += "#" + taxon
+            # Trim off first hash
+            fetsDict[gr][6] = fetsDict[gr][6][1:]
+
         return fetsDict
-        
+
     def includeTaxon(self, taxon):
         # Check if taxa is in list
-       
+
         if len(self.taxa) == 0:
-            return(True)
+            return (True)
 
         if taxon in self.taxa:
-            return(True)
+            return (True)
         else:
-            return(False)
-        
+            return (False)

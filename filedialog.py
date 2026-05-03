@@ -20,37 +20,37 @@ FileDialog
  ***************************************************************************/
 """
 
-from . import ui_file
 import os.path
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtNetwork import *
-from PyQt5.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtNetwork import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt import uic
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
 
-class FileDialog(QWidget, ui_file.Ui_File):
+FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), "ui_file.ui"))
+
+
+class FileDialog(QWidget, FORM_CLASS):
     def __init__(self, iface, strFilePath):
         QWidget.__init__(self)
-        ui_file.Ui_File.__init__(self)
         self.setupUi(self)
         self.__iface = iface
 
-        #self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
-        self.pathPlugin = os.path.dirname( __file__ ) 
-        
+        # self.pathPlugin = "%s%s%%s" % ( os.path.dirname( __file__ ), os.path.sep )
+        self.pathPlugin = os.path.dirname(__file__)
+
         self.pbClose.clicked.connect(self.closeWindow)
-        
-        #Load file
+
+        # Load file
         if os.path.isfile(strFilePath):
             self.pteEnvironment.setPlainText(open(strFilePath).read())
         else:
-            self.pteEnvironment.setPlainText("Didn't find file '" + strFilePath + "'")
-            
+            self.pteEnvironment.setPlainText(
+                "Didn't find file '" + strFilePath + "'")
+
     def closeWindow(self):
         self.close()
-        
-
-            
-    
