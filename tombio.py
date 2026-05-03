@@ -174,7 +174,7 @@ class TomBio:
 
     def showHelp(self):
         # showPluginHelp()
-        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisplugin"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/blob/qgis-v4/help-md/intro.md"))
 
     def showOsgrDialog(self):
         if self.dwOsgr is None:

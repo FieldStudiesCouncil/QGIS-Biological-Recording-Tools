@@ -8,7 +8,7 @@
 
 [general]
 name=TomBio tools
-qgisMinimumVersion=3.0
+qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=FSC QGIS Plugin for biological recorders.
 about=This is a plugin for QGIS desktop GIS which is aimed primarily at biological recorders. It streamlines many of the tasks commonly required from GIS by biological recorders including viewing NBN maps (via the NBN WMS), displaying biological records from CSV files, working with UK OS grid references and registering raster map images from the internet. Although originally designed for use in the the UK, enhancements have been made to improved utility in any geographical context.
@@ -176,7 +176,7 @@ changelog=4.0.0
 # tags are comma separated with spaces allowed
 tags=biological records, NBN, OSGB, Ordnance Survey, UK Species Inventory
 
-homepage=http://www.fscbiodiversity.uk/qgisplugin
+homepage=https://www.fscbiodiversity.uk/fsc-plugin-qgis-v3
 tracker=https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/issues
 repository=https://github.com/burkmarr/QGIS-Biological-Recording-Tools
 icon=icon.png

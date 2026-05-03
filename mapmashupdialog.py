@@ -101,7 +101,7 @@ class MapmashupDialog(QWidget, FORM_CLASS):
         self.butGithub.setIcon(QIcon(self.pathPlugin % "images/github.png"))
 
     def helpFile(self):
-        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgismashuptool"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/blob/qgis-v4/help-md/intro.md"))
 
     def github(self):
         QDesktopServices().openUrl(QUrl(

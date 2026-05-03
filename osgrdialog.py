@@ -111,7 +111,7 @@ class OsgrDialog(QWidget, FORM_CLASS):
         self.cboPrecisionChanged(0)
 
     def helpFile(self):
-        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisosgrtool"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/blob/qgis-v4/help-md/intro.md"))
 
     def github(self):
         QDesktopServices().openUrl(QUrl(

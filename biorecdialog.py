@@ -320,7 +320,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
 
     def helpFile(self):
 
-        QDesktopServices().openUrl(QUrl("http://www.fscbiodiversity.uk/qgisbiorecstool"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/blob/qgis-v4/help-md/intro.md"))
 
     def github(self):
         QDesktopServices().openUrl(QUrl(
