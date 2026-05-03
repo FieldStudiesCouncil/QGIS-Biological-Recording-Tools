@@ -1550,9 +1550,7 @@ class R6Dialog(QDialog):
 
         # strip all non alphanumeric except spaces, - and ' from input
         strSpeciesName = str(re.sub(r'([^\s\w\-\']|_)+', '', strSpeciesName))
-        # double up single quote if in species name
-        strSpeciesName = strSpeciesName.replace("'", "''")
-        args = "'%" + strSpeciesName + "%'"
+        like_pattern = "%" + strSpeciesName + "%"
         sql = (
             " SELECT distinct TAXON.ITEM_NAME, NAMESERVER.RECOMMENDED_TAXON_VERSION_KEY, NAMESERVER.RECOMMENDED_TAXON_LIST_ITEM_KEY, TAXON_LIST.ITEM_NAME AS SourceList"
             " FROM  NAMESERVER INNER JOIN"
@@ -1561,9 +1559,14 @@ class R6Dialog(QDialog):
             " TAXON_LIST_ITEM ON NAMESERVER.RECOMMENDED_TAXON_LIST_ITEM_KEY = TAXON_LIST_ITEM.TAXON_LIST_ITEM_KEY INNER JOIN"
             " TAXON_LIST_VERSION ON TAXON_LIST_ITEM.TAXON_LIST_VERSION_KEY = TAXON_LIST_VERSION.TAXON_LIST_VERSION_KEY INNER JOIN"
             " TAXON_LIST ON TAXON_LIST_VERSION.TAXON_LIST_KEY = TAXON_LIST.TAXON_LIST_KEY"
-            " WHERE (TAXON.ITEM_NAME LIKE %s);" %
-            args)
-        query = QtSql.QSqlQuery(sql)
+            " WHERE (TAXON.ITEM_NAME LIKE ?);")
+        query = QtSql.QSqlQuery()
+        query.prepare(sql)
+        query.addBindValue(like_pattern)
+        if hasattr(query, 'exec'):
+            query.exec()
+        else:
+            query.exec_()
         list1 = []
         self.list2 = []
         while query.next():
@@ -1587,15 +1590,15 @@ class R6Dialog(QDialog):
         QApplication.processEvents()
 
         index = self.ui.cmbSpToMap.currentIndex()
-        tlik = "'" + str(self.list2[index]) + "'"
-        justtaxon = "'1'"
+        tlik = str(self.list2[index])
+        justtaxon = '1'
 
         if self.ui.cbIncSpBelow.isChecked():
-            justtaxon = "'2'"
+            justtaxon = '2'
         sql = (
-            "set nocount on; DECLARE @TKey1 varchar(16)={0}; "
+            "set nocount on; DECLARE @TKey1 varchar(16)=?; "
             "DECLARE @TKey varchar(16); "
-            "DECLARE @choice varchar(1)={1}; "
+            "DECLARE @choice varchar(1)=?; "
             "SET @TKey=(SELECT TAXON_VERSION_KEY FROM TAXON_LIST_ITEM where Taxon_List_Item_Key=@TKey1); "
             "CREATE TABLE #TaxaList(Taxon_Version_Key CHAR(16) COLLATE Database_Default PRIMARY KEY); "
             "CREATE TABLE #TLIK (TLIK CHAR(16) COLLATE Database_Default PRIMARY KEY); "
@@ -1647,9 +1650,15 @@ class R6Dialog(QDialog):
             "(LOCATION_NAME.PREFERRED = 1 OR LOCATION_NAME.PREFERRED IS NULL) AND "
             "(DETERMINATION_TYPE.SHORT_NAME <> 'Considered Incorrect') AND (DETERMINATION_TYPE.SHORT_NAME <> 'Incorrect') "
             "AND (DETERMINATION_TYPE.SHORT_NAME <> 'Invalid') AND "
-            "(DETERMINATION_TYPE.SHORT_NAME <> 'Requires Confirmation')".format(
-                tlik, justtaxon))
-        query = QtSql.QSqlQuery(sql)
+            "(DETERMINATION_TYPE.SHORT_NAME <> 'Requires Confirmation')")
+        query = QtSql.QSqlQuery()
+        query.prepare(sql)
+        query.addBindValue(tlik)
+        query.addBindValue(justtaxon)
+        if hasattr(query, 'exec'):
+            query.exec()
+        else:
+            query.exec_()
         colcount = query.record().count()
         exportQSqlQueryModel = QtSql.QSqlQueryModel()
         exportQSqlQueryModel.setQuery(query)
