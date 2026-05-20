@@ -147,10 +147,10 @@ class TomBio:
             QIcon(icon_path),
             u"Add GRs to layers",
             self.iface.mainWindow())
-        # self.iface.addPluginToMenu(u"&FSC Tools", self.actionGRs2Points)
-        # self.actionGRs2Points.triggered.connect(
-        #     self.showGRs2PointsProcessingTools)
-        # self.toolbar.addAction(self.actionGRs2Points)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionGRs2Points)
+        self.actionGRs2Points.triggered.connect(
+            self.showGRs2PointsProcessingTools)
+        self.toolbar.addAction(self.actionGRs2Points)
 
         # Help dialog
         icon_path = os.path.join(os.path.dirname(__file__), 'images/info.png')
@@ -289,7 +289,7 @@ class TomBio:
         self.iface.removePluginMenu(u"&FSC Tools", self.actionBiorec)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
-        # self.iface.removePluginMenu(u"&FSC Tools", self.actionGRs2Points)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionGRs2Points)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionEnv)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionHelp)
 

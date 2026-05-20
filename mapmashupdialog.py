@@ -22,16 +22,13 @@ MapmashupDialog
 
 import os.path
 import glob
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtNetwork import *
-from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
-from qgis.core import *
-from qgis.gui import *
-from qgis.utils import *
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtWidgets import QApplication, QFileDialog, QWidget
+from qgis.core import Qgis, QgsProject, QgsRasterLayer
 from . import envmanager
-from shutil import *
+from shutil import copyfile
 from . import dropImageLineEdit
 import tempfile
 
@@ -279,11 +276,11 @@ class MapmashupDialog(QWidget, FORM_CLASS):
 
     def BrowseImageFolder(self):
         dlg = QFileDialog(self)
-        dlg.setFileMode(QFileDialog.Directory)
-        dlg.setOption(QFileDialog.ShowDirsOnly, True)
+        dlg.setFileMode(QFileDialog.FileMode.Directory)
+        dlg.setOption(QFileDialog.Option.ShowDirsOnly, True)
         if os.path.exists(self.env.getEnvValue("mapmashup.imgfolder")):
             dlg.setDirectory(self.env.getEnvValue("mapmashup.imgfolder"))
-        folderName = dlg.exec_()
+        folderName = dlg.exec()
         if folderName:
             for folderImage in dlg.selectedFiles():
                 self.leImageFolder.setText(folderImage)
@@ -291,12 +288,12 @@ class MapmashupDialog(QWidget, FORM_CLASS):
 
     def BrowseRegistrationFolder(self):
         dlg = QFileDialog(self)
-        dlg.setFileMode(QFileDialog.Directory)
-        dlg.setOption(QFileDialog.ShowDirsOnly, True)
+        dlg.setFileMode(QFileDialog.FileMode.Directory)
+        dlg.setOption(QFileDialog.Option.ShowDirsOnly, True)
         if os.path.exists(self.env.getEnvValue("mapmashup.regfolder")):
             dlg.setDirectory(self.env.getEnvValue("mapmashup.regfolder"))
 
-        folderName = dlg.exec_()
+        folderName = dlg.exec()
         if folderName:
             for folderImage in dlg.selectedFiles():
                 self.leRegistrationFolder.setText(folderImage)

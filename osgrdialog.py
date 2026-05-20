@@ -21,14 +21,15 @@
   ***************************************************************************/
 """
 import os.path
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtNetwork import *
-from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
-from qgis.core import *
-from qgis.gui import *
-from qgis.utils import *
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QColor, QDesktopServices, QIcon
+from qgis.PyQt.QtWidgets import QApplication, QMessageBox, QWidget
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform, QgsGeometry, QgsMapLayer,
+                       QgsMessageLog, QgsPoint, QgsPointXY, QgsProject,
+                       QgsRectangle)
+from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
 from . import osgr
 from . import osgrLayer
 from . import drag_box_tool
@@ -336,9 +337,9 @@ class OsgrDialog(QWidget, FORM_CLASS):
                 str(
                     int(iSquares)) +
                 " grid squares which could take some time. Do you want to continue? (You can interrupt with the Cancel button.)",
-                QMessageBox.Ok,
-                QMessageBox.Cancel)
-            if ret == QMessageBox.Cancel:
+                QMessageBox.StandardButton.Ok,
+                QMessageBox.StandardButton.Cancel)
+            if ret == QMessageBox.StandardButton.Cancel:
                 return
         self.gridControlsEnableDisable(False)
 

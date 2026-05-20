@@ -25,15 +25,17 @@ import os
 import ntpath
 import csv
 import sys
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtNetwork import *
-from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
-from qgis import *
-from qgis.core import *
-from qgis.gui import *
-from qgis.utils import *
+from qgis.PyQt.QtCore import Qt, QVariant
+from qgis.PyQt.QtGui import QIcon, QStandardItem, QStandardItemModel
+from qgis.PyQt.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
+                                 QFileDialog, QWidget)
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsFeature,
+                       QgsFeatureRequest, QgsField, QgsFieldProxyModel,
+                       QgsLayoutExporter, QgsMapLayerProxyModel,
+                       QgsMapRendererParallelJob,
+                       QgsMessageLog, QgsProject, QgsVectorFileWriter,
+                       QgsVectorLayer)
 from . import filedialog
 from . import bioreclayer
 from . import envmanager
@@ -52,14 +54,6 @@ R6_CREDENTIALS_FORM_CLASS, _ = uic.loadUiType(
 
 if platform.system() == 'Windows':
     import winreg
-
-try:
-    QT_CHECKED = Qt.CheckState.Checked
-    QT_UNCHECKED = Qt.CheckState.Unchecked
-except AttributeError:
-    QT_CHECKED = Qt.Checked
-    QT_UNCHECKED = Qt.Unchecked
-
 
 class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
     def __init__(self, iface, dockwidget):
@@ -196,7 +190,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
 
     def getR6Credentials(self):
         dlg = R6CredentialsDialog(self.r6Credentials)
-        dlg.exec_()
+        dlg.exec()
         okayed = dlg.okayed
         if okayed:
             self.r6Credentials = dlg.credentials
@@ -267,7 +261,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         if dbOpen:
             # Open dialog for user to generate CSV memory layer from SQL query
             r6dlg = R6Dialog()
-            r6dlg.exec_()
+            r6dlg.exec()
 
             if r6dlg.csvLayer:
                 self.mlcbSourceLayer.setLayer(r6dlg.csvLayer)
@@ -309,13 +303,13 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         try:
             # This fails if self.lastWaitMessage already deleted so needs to be
             # caught
-            iface.messageBar().popWidget(self.lastWaitMessage)
+            self.iface.messageBar().popWidget(self.lastWaitMessage)
         except BaseException:
             pass
 
         if str1 != "":
-            widget = iface.messageBar().createMessage(str1, str2)
-            self.lastWaitMessage = iface.messageBar().pushWidget(widget, Qgis.Info)
+            widget = self.iface.messageBar().createMessage(str1, str2)
+            self.lastWaitMessage = self.iface.messageBar().pushWidget(widget, Qgis.Info)
             QApplication.processEvents()
 
     def helpFile(self):
@@ -616,7 +610,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         self.propogateUp = False
         self.setChildrenItems(item, item.checkState())
         self.propogateUp = True
-        if item.checkState() == QT_UNCHECKED:
+        if item.checkState() == Qt.CheckState.Unchecked:
             self.propogateDown = False
             self.uncheckParents(item)
             self.propogateDown = True
@@ -626,7 +620,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
             return
         if item.parent() is None:
             return
-        item.parent().setCheckState(QT_UNCHECKED)
+        item.parent().setCheckState(Qt.CheckState.Unchecked)
         self.uncheckParents(item.parent())
 
     def setChildrenItems(self, item, checked):
@@ -646,15 +640,15 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
         if self.tvTaxa.model() is None:
             return
         for i in range(self.tvTaxa.model().rowCount()):
-            self.tvTaxa.model().item(i, 0).setCheckState(QT_CHECKED)
-            self.setChildrenItems(self.tvTaxa.model().item(i, 0), QT_CHECKED)
+            self.tvTaxa.model().item(i, 0).setCheckState(Qt.CheckState.Checked)
+            self.setChildrenItems(self.tvTaxa.model().item(i, 0), Qt.CheckState.Checked)
 
     def uncheckAll(self):
         if self.tvTaxa.model() is None:
             return
         for i in range(self.tvTaxa.model().rowCount()):
-            self.tvTaxa.model().item(i, 0).setCheckState(QT_UNCHECKED)
-            self.setChildrenItems(self.tvTaxa.model().item(i, 0), QT_UNCHECKED)
+            self.tvTaxa.model().item(i, 0).setCheckState(Qt.CheckState.Unchecked)
+            self.setChildrenItems(self.tvTaxa.model().item(i, 0), Qt.CheckState.Unchecked)
 
     def loadCsv(self, fileName, isNBNCSV):
 
@@ -1002,7 +996,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
     def batchPrintComposer(self):
 
         # Ensure that a layout desinger (and only one) is open
-        iLayouDesigners = len(iface.openLayoutDesigners())
+        iLayouDesigners = len(self.iface.openLayoutDesigners())
         if iLayouDesigners == 0:
             self.warningMessage(
                 "Cannot connect to a layout. Make sure that the print layout (composer) you want to use is open.")
@@ -1325,7 +1319,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
 
     def saveComposerImage(self, name, layers):
 
-        l = iface.openLayoutDesigners()[0].layout()
+        l = self.iface.openLayoutDesigners()[0].layout()
 
         imgFolder = self.leImageFolder.text()
         validName = self.makeValidFilename(name)
@@ -1456,7 +1450,7 @@ class BiorecDialog(QWidget, BIOREC_FORM_CLASS):
     def getCheckedTaxa(self, item):
         selectedTaxa = []
 
-        if item.checkState() == QT_CHECKED and not item.hasChildren():
+        if item.checkState() == Qt.CheckState.Checked and not item.hasChildren():
             selectedTaxa.append(item.text())
 
         for i in range(item.rowCount()):
@@ -1563,10 +1557,7 @@ class R6Dialog(QDialog):
         query = QtSql.QSqlQuery()
         query.prepare(sql)
         query.addBindValue(like_pattern)
-        if hasattr(query, 'exec'):
-            query.exec()
-        else:
-            query.exec_()
+        query.exec()
         list1 = []
         self.list2 = []
         while query.next():
@@ -1655,10 +1646,7 @@ class R6Dialog(QDialog):
         query.prepare(sql)
         query.addBindValue(tlik)
         query.addBindValue(justtaxon)
-        if hasattr(query, 'exec'):
-            query.exec()
-        else:
-            query.exec_()
+        query.exec()
         colcount = query.record().count()
         exportQSqlQueryModel = QtSql.QSqlQueryModel()
         exportQSqlQueryModel.setQuery(query)

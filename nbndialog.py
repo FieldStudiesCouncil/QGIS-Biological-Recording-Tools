@@ -22,14 +22,17 @@
 
 import os.path
 import os
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtNetwork import *
-from qgis.PyQt.QtWidgets import *
+import sys
 from qgis.PyQt import uic
-from qgis.core import *
-from qgis.gui import *
-from qgis.utils import *
+from qgis.PyQt.QtCore import QEventLoop, Qt, QUrl, QVariant, pyqtSignal
+from qgis.PyQt.QtGui import QBrush, QColor, QDesktopServices, QIcon
+from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+from qgis.PyQt.QtWidgets import QFileDialog, QListWidgetItem, QTableWidgetItem, QTreeWidgetItem, QWidget
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform, QgsFeature, QgsFillSymbol,
+                       QgsMapLayer, QgsMessageLog, QgsNetworkAccessManager,
+                       QgsProject, QgsRasterLayer, QgsSingleSymbolRenderer,
+                       QgsVectorLayer, QgsWkbTypes)
 import urllib
 import json
 import hashlib
@@ -53,69 +56,38 @@ except ImportError:
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), "ui_nbn.ui"))
 
-# Qt6 scopes many enum values under nested enum classes; keep compatibility
-# with the legacy Qt5-style access used throughout this dialog.
-QT_ITEM_FLAG_ENABLED = getattr(Qt, 'ItemIsEnabled', Qt.ItemFlag.ItemIsEnabled)
-QT_ITEM_FLAG_USER_CHECKABLE = getattr(Qt, 'ItemIsUserCheckable', Qt.ItemFlag.ItemIsUserCheckable)
-QT_ITEM_FLAG_ENABLED_CHECKABLE = QT_ITEM_FLAG_ENABLED | QT_ITEM_FLAG_USER_CHECKABLE
-QT_CHECKSTATE_UNCHECKED = getattr(Qt, 'Unchecked', Qt.CheckState.Unchecked)
-QT_CHECKSTATE_CHECKED = getattr(Qt, 'Checked', Qt.CheckState.Checked)
-QT_SORT_ASCENDING = getattr(Qt, 'AscendingOrder', Qt.SortOrder.AscendingOrder)
-QT_MATCH_EXACTLY = getattr(Qt, 'MatchExactly', Qt.MatchFlag.MatchExactly)
-QT_ITEM_ROLE_TOOLTIP = getattr(Qt, 'ToolTipRole', Qt.ItemDataRole.ToolTipRole)
-QT_ALIGN_LEFT = getattr(Qt, 'AlignLeft', Qt.AlignmentFlag.AlignLeft)
+QN_NO_ERROR = QNetworkReply.NetworkError.NoError
+QN_CONNECTION_REFUSED_ERROR = QNetworkReply.NetworkError.ConnectionRefusedError
+QN_REMOTE_HOST_CLOSED_ERROR = QNetworkReply.NetworkError.RemoteHostClosedError
+QN_HOST_NOT_FOUND_ERROR = QNetworkReply.NetworkError.HostNotFoundError
+QN_TIMEOUT_ERROR = QNetworkReply.NetworkError.TimeoutError
+QN_OPERATION_CANCELED_ERROR = QNetworkReply.NetworkError.OperationCanceledError
+QN_SSL_HANDSHAKE_FAILED_ERROR = QNetworkReply.NetworkError.SslHandshakeFailedError
+QN_TEMPORARY_NETWORK_FAILURE_ERROR = QNetworkReply.NetworkError.TemporaryNetworkFailureError
+QN_PROXY_CONNECTION_REFUSED_ERROR = QNetworkReply.NetworkError.ProxyConnectionRefusedError
+QN_PROXY_CONNECTION_CLOSED_ERROR = QNetworkReply.NetworkError.ProxyConnectionClosedError
+QN_PROXY_NOT_FOUND_ERROR = QNetworkReply.NetworkError.ProxyNotFoundError
+QN_PROXY_TIMEOUT_ERROR = QNetworkReply.NetworkError.ProxyTimeoutError
+QN_PROXY_AUTHENTICATION_REQUIRED_ERROR = QNetworkReply.NetworkError.ProxyAuthenticationRequiredError
+QN_CONTENT_ACCESS_DENIED = QNetworkReply.NetworkError.ContentAccessDenied
+QN_CONTENT_OPERATION_NOT_PERMITTED_ERROR = QNetworkReply.NetworkError.ContentOperationNotPermittedError
+QN_CONTENT_NOT_FOUND_ERROR = QNetworkReply.NetworkError.ContentNotFoundError
+QN_AUTHENTICATION_REQUIRED_ERROR = QNetworkReply.NetworkError.AuthenticationRequiredError
+QN_CONTENT_RESEND_ERROR = QNetworkReply.NetworkError.ContentReSendError
+QN_PROTOCOL_UNKNOWN_ERROR = QNetworkReply.NetworkError.ProtocolUnknownError
+QN_PROTOCOL_INVALID_OPERATION_ERROR = QNetworkReply.NetworkError.ProtocolInvalidOperationError
+QN_UNKNOWN_NETWORK_ERROR = QNetworkReply.NetworkError.UnknownNetworkError
+QN_UNKNOWN_PROXY_ERROR = QNetworkReply.NetworkError.UnknownProxyError
+QN_UNKNOWN_CONTENT_ERROR = QNetworkReply.NetworkError.UnknownContentError
+QN_PROTOCOL_FAILURE = QNetworkReply.NetworkError.ProtocolFailure
 
-
-def _network_error_enum(name):
-    if hasattr(QNetworkReply, name):
-        return getattr(QNetworkReply, name)
-    enum_type = getattr(QNetworkReply, 'NetworkError', None)
-    if enum_type is not None and hasattr(enum_type, name):
-        return getattr(enum_type, name)
-    raise AttributeError('QNetworkReply enum not found: %s' % name)
-
-
-def _network_request_attribute(name):
-    if hasattr(QNetworkRequest, name):
-        return getattr(QNetworkRequest, name)
-    attr_type = getattr(QNetworkRequest, 'Attribute', None)
-    if attr_type is not None and hasattr(attr_type, name):
-        return getattr(attr_type, name)
-    raise AttributeError('QNetworkRequest attribute not found: %s' % name)
-
-
-QN_NO_ERROR = _network_error_enum('NoError')
-QN_CONNECTION_REFUSED_ERROR = _network_error_enum('ConnectionRefusedError')
-QN_REMOTE_HOST_CLOSED_ERROR = _network_error_enum('RemoteHostClosedError')
-QN_HOST_NOT_FOUND_ERROR = _network_error_enum('HostNotFoundError')
-QN_TIMEOUT_ERROR = _network_error_enum('TimeoutError')
-QN_OPERATION_CANCELED_ERROR = _network_error_enum('OperationCanceledError')
-QN_SSL_HANDSHAKE_FAILED_ERROR = _network_error_enum('SslHandshakeFailedError')
-QN_TEMPORARY_NETWORK_FAILURE_ERROR = _network_error_enum('TemporaryNetworkFailureError')
-QN_PROXY_CONNECTION_REFUSED_ERROR = _network_error_enum('ProxyConnectionRefusedError')
-QN_PROXY_CONNECTION_CLOSED_ERROR = _network_error_enum('ProxyConnectionClosedError')
-QN_PROXY_NOT_FOUND_ERROR = _network_error_enum('ProxyNotFoundError')
-QN_PROXY_TIMEOUT_ERROR = _network_error_enum('ProxyTimeoutError')
-QN_PROXY_AUTHENTICATION_REQUIRED_ERROR = _network_error_enum('ProxyAuthenticationRequiredError')
-QN_CONTENT_ACCESS_DENIED = _network_error_enum('ContentAccessDenied')
-QN_CONTENT_OPERATION_NOT_PERMITTED_ERROR = _network_error_enum('ContentOperationNotPermittedError')
-QN_CONTENT_NOT_FOUND_ERROR = _network_error_enum('ContentNotFoundError')
-QN_AUTHENTICATION_REQUIRED_ERROR = _network_error_enum('AuthenticationRequiredError')
-QN_CONTENT_RESEND_ERROR = _network_error_enum('ContentReSendError')
-QN_PROTOCOL_UNKNOWN_ERROR = _network_error_enum('ProtocolUnknownError')
-QN_PROTOCOL_INVALID_OPERATION_ERROR = _network_error_enum('ProtocolInvalidOperationError')
-QN_UNKNOWN_NETWORK_ERROR = _network_error_enum('UnknownNetworkError')
-QN_UNKNOWN_PROXY_ERROR = _network_error_enum('UnknownProxyError')
-QN_UNKNOWN_CONTENT_ERROR = _network_error_enum('UnknownContentError')
-QN_PROTOCOL_FAILURE = _network_error_enum('ProtocolFailure')
-
-QNR_HTTP_STATUS_CODE_ATTRIBUTE = _network_request_attribute('HttpStatusCodeAttribute')
-QNR_REDIRECTION_TARGET_ATTRIBUTE = _network_request_attribute('RedirectionTargetAttribute')
+QNR_HTTP_STATUS_CODE_ATTRIBUTE = QNetworkRequest.Attribute.HttpStatusCodeAttribute
+QNR_REDIRECTION_TARGET_ATTRIBUTE = QNetworkRequest.Attribute.RedirectionTargetAttribute
 
 
 class NBNDialog(QWidget, FORM_CLASS):
 
-    displayNBNCSVFile = pyqtSignal(basestring)
+    displayNBNCSVFile = pyqtSignal(str)
 
     def __init__(self, iface, dockwidget):
         QWidget.__init__(self)
@@ -306,10 +278,10 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            twiProvider.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+            twiProvider.setCheckState(0, Qt.CheckState.Unchecked)
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
-                twiDataset.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                twiDataset.setCheckState(0, Qt.CheckState.Unchecked)
 
         self.datasetSelectionChanged()
 
@@ -319,7 +291,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiListType = self.twSpeciesLists.topLevelItem(iListType)
             for iSpeciesList in range(twiListType.childCount()):
                 twiSpeciesList = twiListType.child(iSpeciesList)
-                twiSpeciesList.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                twiSpeciesList.setCheckState(0, Qt.CheckState.Unchecked)
 
         self.speciesListSelectionChanged()
 
@@ -414,12 +386,12 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         for twiKey in self.treeNodesExact:
             if not self.treeNodesExact[twiKey] == twItem and self.treeNodesExact[twiKey].checkState(
-                    0) == QT_CHECKSTATE_CHECKED:
-                self.treeNodesExact[twiKey].setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                    0) == Qt.CheckState.Checked:
+                self.treeNodesExact[twiKey].setCheckState(0, Qt.CheckState.Unchecked)
         for twiKey in self.treeNodesFuzzy:
             if not self.treeNodesFuzzy[twiKey] == twItem and self.treeNodesFuzzy[twiKey].checkState(
-                    0) == QT_CHECKSTATE_CHECKED:
-                self.treeNodesFuzzy[twiKey].setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                    0) == Qt.CheckState.Checked:
+                self.treeNodesFuzzy[twiKey].setCheckState(0, Qt.CheckState.Unchecked)
 
         self.checkFilters()
 
@@ -430,7 +402,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiProvider = self.twProviders.topLevelItem(iProvider)
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
-                if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
+                if twiDataset.checkState(0) == Qt.CheckState.Checked:
                     iChecked += 1
 
         if iChecked == 0:
@@ -448,7 +420,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiType = self.twSpeciesLists.topLevelItem(iType)
             for iList in range(twiType.childCount()):
                 twiList = twiType.child(iList)
-                if twiList.checkState(0) == QT_CHECKSTATE_CHECKED:
+                if twiList.checkState(0) == Qt.CheckState.Checked:
                     iChecked += 1
 
         if iChecked == 0:
@@ -528,7 +500,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiDataset.setText(1, dataResource["uid"])
                 twiDataset.setText(2, "dataset")
                 twiDataset.setExpanded(False)
-                twiDataset.setFlags(QT_ITEM_FLAG_ENABLED_CHECKABLE)
+                twiDataset.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
                 twiDataset.setCheckState(0, twi.checkState(0))
 
         elif twi.text(2) == "provider":
@@ -536,26 +508,25 @@ class NBNDialog(QWidget, FORM_CLASS):
             # If provider is checked, then check all children
             # If provider is unchecked, then uncheck all children
 
-            # if twi.checkState(0) == Qt.Checked:
             for i in range(0, twi.childCount()):
                 twi.child(i).setCheckState(0, twi.checkState(0))
 
         else:  # dataset
 
-            if twi.checkState(0) == QT_CHECKSTATE_UNCHECKED:
+            if twi.checkState(0) == Qt.CheckState.Unchecked:
                 # If a dataset is unchecked, then uncheck provider
-                twi.parent().setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                twi.parent().setCheckState(0, Qt.CheckState.Unchecked)
             else:
                 # If all datasets are checked, then check provider
                 allChecked = True
                 for i in range(0, twi.parent().childCount()):
-                    if twi.parent().child(i).checkState(0) == QT_CHECKSTATE_UNCHECKED:
+                    if twi.parent().child(i).checkState(0) == Qt.CheckState.Unchecked:
                         allChecked = False
                         break
                 if allChecked:
-                    twi.parent().setCheckState(0, QT_CHECKSTATE_CHECKED)
+                    twi.parent().setCheckState(0, Qt.CheckState.Checked)
                 else:
-                    twi.parent().setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                    twi.parent().setCheckState(0, Qt.CheckState.Unchecked)
 
         self.datasetSelectionChanged()
 
@@ -588,11 +559,11 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiProvider.setText(1, jDataset["uid"])
             twiProvider.setText(2, "provider")
             twiProvider.setExpanded(False)
-            twiProvider.setFlags(QT_ITEM_FLAG_ENABLED_CHECKABLE)
+            twiProvider.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             twiProvider.setCheckState(
-                0, QT_CHECKSTATE_UNCHECKED)  # 0 is the column number
+                0, Qt.CheckState.Unchecked)  # 0 is the column number
 
-        self.twProviders.sortItems(0, QT_SORT_ASCENDING)
+        self.twProviders.sortItems(0, Qt.SortOrder.AscendingOrder)
 
     def readSpeciesListFile(self):
 
@@ -639,13 +610,13 @@ class NBNDialog(QWidget, FORM_CLASS):
         for speciesList in jsonData["lists"]:
             listType = speciesList["listType"].replace("_", " ").capitalize()
             matchItems = self.twSpeciesLists.findItems(
-                listType, QT_MATCH_EXACTLY, 0)
+                listType, Qt.MatchFlag.MatchExactly, 0)
             if len(matchItems) == 1:
                 twiList = QTreeWidgetItem(matchItems[0])
                 twiList.setText(0, speciesList["listName"])
                 twiList.setText(1, speciesList["dataResourceUid"])
-                twiList.setFlags(QT_ITEM_FLAG_ENABLED_CHECKABLE)
-                twiList.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
+                twiList.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+                twiList.setCheckState(0, Qt.CheckState.Unchecked)
 
     def helpFile(self):
 
@@ -706,13 +677,13 @@ class NBNDialog(QWidget, FORM_CLASS):
         twiExact.setText(0, "Exact match")
         twiExact.setExpanded(False)
         # By resetting the flags, we take off default isSelectable
-        twiExact.setFlags(QT_ITEM_FLAG_ENABLED)
+        twiExact.setFlags(Qt.ItemFlag.ItemIsEnabled)
 
         twiFuzzy = QTreeWidgetItem(self.twTaxa)
         twiFuzzy.setText(0, "Fuzzy match")
         twiFuzzy.setExpanded(False)
         # By resetting the flags, we take off default isSelectable
-        twiFuzzy.setFlags(QT_ITEM_FLAG_ENABLED)
+        twiFuzzy.setFlags(Qt.ItemFlag.ItemIsEnabled)
 
         for jTaxon in jResponseList:
 
@@ -782,7 +753,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiKingdom.setExpanded(True)
                 twiKingdom.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiKingdom.setFlags(QT_ITEM_FLAG_ENABLED)
+                twiKingdom.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 twiKingdom.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -805,7 +776,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiPhylum.setExpanded(True)
                 twiPhylum.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiPhylum.setFlags(QT_ITEM_FLAG_ENABLED)
+                twiPhylum.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 twiPhylum.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -829,7 +800,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiClass.setExpanded(True)
                 twiClass.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiClass.setFlags(QT_ITEM_FLAG_ENABLED)
+                twiClass.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 twiClass.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -853,7 +824,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiOrder.setExpanded(True)
                 twiOrder.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiOrder.setFlags(QT_ITEM_FLAG_ENABLED)
+                twiOrder.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 twiOrder.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -877,7 +848,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiFamily.setExpanded(True)
                 twiFamily.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiFamily.setFlags(QT_ITEM_FLAG_ENABLED)
+                twiFamily.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 twiFamily.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -901,7 +872,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiGenus.setExpanded(True)
                 twiGenus.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiGenus.setFlags(QT_ITEM_FLAG_ENABLED)
+                twiGenus.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 twiGenus.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -919,15 +890,12 @@ class NBNDialog(QWidget, FORM_CLASS):
 
             # Create a child tree item for the preferred TVK group
             twiPTVK = QTreeWidgetItem(twiParent)
-            twiPTVK.setData(0, QT_ITEM_ROLE_TOOLTIP, jTaxon["guid"])
+            twiPTVK.setData(0, Qt.ItemDataRole.ToolTipRole, jTaxon["guid"])
             twiPTVK.setText(0, tName)
             twiPTVK.setIcon(
                 0, QIcon(
                     self.pathPlugin %
                     "images/Taxon20x16.png"))
-            # twiPTVK.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-            # twiPTVK.setFlags(Qt.ItemIsEnabled)
-            # twiPTVK.setCheckState(0, Qt.Unchecked) # 0 is the column number
             twiPTVK.setExpanded(True)
             # self.twTaxa.addTopLevelItem(twiPTVK)
             # Add to dictionary
@@ -942,11 +910,11 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            if twiProvider.checkState(0) == QT_CHECKSTATE_CHECKED:
+            if twiProvider.checkState(0) == Qt.CheckState.Checked:
                 return True
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
-                if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
+                if twiDataset.checkState(0) == Qt.CheckState.Checked:
                     return True
         return False
 
@@ -956,7 +924,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiListType = self.twSpeciesLists.topLevelItem(iListType)
             for iSpeciesList in range(twiListType.childCount()):
                 twiSpeciesList = twiListType.child(iSpeciesList)
-                if twiSpeciesList.checkState(0) == QT_CHECKSTATE_CHECKED:
+                if twiSpeciesList.checkState(0) == Qt.CheckState.Checked:
                     speciesLists.append(twiSpeciesList.text(1))
 
         if len(speciesLists) > 0:
@@ -1006,9 +974,9 @@ class NBNDialog(QWidget, FORM_CLASS):
         # Year filter
         startYear = None
         endYear = None
-        if self.cbStartYear.checkState() == QT_CHECKSTATE_CHECKED:
+        if self.cbStartYear.checkState() == Qt.CheckState.Checked:
             startYear = self.sbStartYear.value()
-        if self.cbEndYear.checkState() == QT_CHECKSTATE_CHECKED:
+        if self.cbEndYear.checkState() == Qt.CheckState.Checked:
             endYear = self.sbEndYear.value()
         # Year validity check
         if startYear is not None and endYear is not None:
@@ -1051,12 +1019,12 @@ class NBNDialog(QWidget, FORM_CLASS):
         datasets = []
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            if twiProvider.checkState(0) == QT_CHECKSTATE_CHECKED:
+            if twiProvider.checkState(0) == Qt.CheckState.Checked:
                 providers.append(twiProvider.text(1))
             else:
                 for iDataset in range(twiProvider.childCount()):
                     twiDataset = twiProvider.child(iDataset)
-                    if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
+                    if twiDataset.checkState(0) == Qt.CheckState.Checked:
                         datasets.append(twiDataset.text(1))
 
         fqd = ''
@@ -1120,9 +1088,9 @@ class NBNDialog(QWidget, FORM_CLASS):
         # Year filters
         startYear = None
         endYear = None
-        if self.cbStartYear.checkState() == QT_CHECKSTATE_CHECKED:
+        if self.cbStartYear.checkState() == Qt.CheckState.Checked:
             startYear = self.sbStartYear.value()
-        if self.cbEndYear.checkState() == QT_CHECKSTATE_CHECKED:
+        if self.cbEndYear.checkState() == Qt.CheckState.Checked:
             endYear = self.sbEndYear.value()
         if startYear is not None and endYear is not None:
             if startYear == endYear:
@@ -1139,12 +1107,12 @@ class NBNDialog(QWidget, FORM_CLASS):
         datasets = []
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            if twiProvider.checkState(0) == QT_CHECKSTATE_CHECKED:
+            if twiProvider.checkState(0) == Qt.CheckState.Checked:
                 providers.append(twiProvider.text(1))
             else:
                 for iDataset in range(twiProvider.childCount()):
                     twiDataset = twiProvider.child(iDataset)
-                    if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
+                    if twiDataset.checkState(0) == Qt.CheckState.Checked:
                         datasets.append(twiDataset.text(1))
 
         if len(providers) == 1:
@@ -1598,11 +1566,6 @@ class NBNDialog(QWidget, FORM_CLASS):
         self.cbEndYear.setChecked(False)
 
         # Taxon filter
-        # for twiKey in self.treeNodesExact:
-        #    self.treeNodesExact[twiKey].setCheckState(0, Qt.Unchecked)
-        # for twiKey in self.treeNodesFuzzy:
-        #    self.treeNodesFuzzy[twiKey].setCheckState(0, Qt.Unchecked)
-
         self.leTaxonSearch.setText("")
         self.lwTaxa.clear()
         self.treeNodesExact = {}
@@ -1886,7 +1849,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 colCount = 0
                 for cellText in row:
                     headerItem = QTableWidgetItem(cellText)
-                    headerItem.setTextAlignment(QT_ALIGN_LEFT)
+                    headerItem.setTextAlignment(Qt.AlignmentFlag.AlignLeft)
                     self.twMetadata.setHorizontalHeaderItem(
                         colCount, headerItem)
                     colCount += 1
@@ -1909,7 +1872,7 @@ class NBNDialog(QWidget, FORM_CLASS):
 
     def showHideMetadataColumns(self):
         if len(self.defaultColumns) == 0:
-            self.cbShowAllMetadata.setCheckState(QT_CHECKSTATE_UNCHECKED)
+            self.cbShowAllMetadata.setCheckState(Qt.CheckState.Unchecked)
             self.cbShowAllMetadata.setEnabled(False)
         else:
             self.cbShowAllMetadata.setEnabled(True)
@@ -1919,7 +1882,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 headerItem = self.twMetadata.horizontalHeaderItem(i)
                 self.logMessage(str(i) + " " + headerItem.text())
                 if (not headerItem.text(
-                ) in self.defaultColumns) and self.cbShowAllMetadata.checkState() == QT_CHECKSTATE_UNCHECKED:
+                ) in self.defaultColumns) and self.cbShowAllMetadata.checkState() == Qt.CheckState.Unchecked:
                     self.twMetadata.hideColumn(i)
                 else:
                     self.twMetadata.showColumn(i)
@@ -1974,10 +1937,7 @@ class NBNDialog(QWidget, FORM_CLASS):
         loop = QEventLoop()
         reply.finished.connect(loop.quit)
         QgsMessageLog.logMessage("exec loop", "NBN Tool")
-        if hasattr(loop, 'exec'):
-            loop.exec()
-        else:
-            loop.exec_()
+        loop.exec()
         QgsMessageLog.logMessage("loop ended", "NBN Tool")
         reply.finished.disconnect(loop.quit)
         loop = None
