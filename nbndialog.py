@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  NBNDialog
@@ -45,8 +45,72 @@ from . import osgr
 from . import envmanager
 from . import filedialog
 
+try:
+    from urllib.parse import quote as _url_quote
+except ImportError:
+    from urllib import quote as _url_quote
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), "ui_nbn.ui"))
+
+# Qt6 scopes many enum values under nested enum classes; keep compatibility
+# with the legacy Qt5-style access used throughout this dialog.
+QT_ITEM_FLAG_ENABLED = getattr(Qt, 'ItemIsEnabled', Qt.ItemFlag.ItemIsEnabled)
+QT_ITEM_FLAG_USER_CHECKABLE = getattr(Qt, 'ItemIsUserCheckable', Qt.ItemFlag.ItemIsUserCheckable)
+QT_ITEM_FLAG_ENABLED_CHECKABLE = QT_ITEM_FLAG_ENABLED | QT_ITEM_FLAG_USER_CHECKABLE
+QT_CHECKSTATE_UNCHECKED = getattr(Qt, 'Unchecked', Qt.CheckState.Unchecked)
+QT_CHECKSTATE_CHECKED = getattr(Qt, 'Checked', Qt.CheckState.Checked)
+QT_SORT_ASCENDING = getattr(Qt, 'AscendingOrder', Qt.SortOrder.AscendingOrder)
+QT_MATCH_EXACTLY = getattr(Qt, 'MatchExactly', Qt.MatchFlag.MatchExactly)
+QT_ITEM_ROLE_TOOLTIP = getattr(Qt, 'ToolTipRole', Qt.ItemDataRole.ToolTipRole)
+QT_ALIGN_LEFT = getattr(Qt, 'AlignLeft', Qt.AlignmentFlag.AlignLeft)
+
+
+def _network_error_enum(name):
+    if hasattr(QNetworkReply, name):
+        return getattr(QNetworkReply, name)
+    enum_type = getattr(QNetworkReply, 'NetworkError', None)
+    if enum_type is not None and hasattr(enum_type, name):
+        return getattr(enum_type, name)
+    raise AttributeError('QNetworkReply enum not found: %s' % name)
+
+
+def _network_request_attribute(name):
+    if hasattr(QNetworkRequest, name):
+        return getattr(QNetworkRequest, name)
+    attr_type = getattr(QNetworkRequest, 'Attribute', None)
+    if attr_type is not None and hasattr(attr_type, name):
+        return getattr(attr_type, name)
+    raise AttributeError('QNetworkRequest attribute not found: %s' % name)
+
+
+QN_NO_ERROR = _network_error_enum('NoError')
+QN_CONNECTION_REFUSED_ERROR = _network_error_enum('ConnectionRefusedError')
+QN_REMOTE_HOST_CLOSED_ERROR = _network_error_enum('RemoteHostClosedError')
+QN_HOST_NOT_FOUND_ERROR = _network_error_enum('HostNotFoundError')
+QN_TIMEOUT_ERROR = _network_error_enum('TimeoutError')
+QN_OPERATION_CANCELED_ERROR = _network_error_enum('OperationCanceledError')
+QN_SSL_HANDSHAKE_FAILED_ERROR = _network_error_enum('SslHandshakeFailedError')
+QN_TEMPORARY_NETWORK_FAILURE_ERROR = _network_error_enum('TemporaryNetworkFailureError')
+QN_PROXY_CONNECTION_REFUSED_ERROR = _network_error_enum('ProxyConnectionRefusedError')
+QN_PROXY_CONNECTION_CLOSED_ERROR = _network_error_enum('ProxyConnectionClosedError')
+QN_PROXY_NOT_FOUND_ERROR = _network_error_enum('ProxyNotFoundError')
+QN_PROXY_TIMEOUT_ERROR = _network_error_enum('ProxyTimeoutError')
+QN_PROXY_AUTHENTICATION_REQUIRED_ERROR = _network_error_enum('ProxyAuthenticationRequiredError')
+QN_CONTENT_ACCESS_DENIED = _network_error_enum('ContentAccessDenied')
+QN_CONTENT_OPERATION_NOT_PERMITTED_ERROR = _network_error_enum('ContentOperationNotPermittedError')
+QN_CONTENT_NOT_FOUND_ERROR = _network_error_enum('ContentNotFoundError')
+QN_AUTHENTICATION_REQUIRED_ERROR = _network_error_enum('AuthenticationRequiredError')
+QN_CONTENT_RESEND_ERROR = _network_error_enum('ContentReSendError')
+QN_PROTOCOL_UNKNOWN_ERROR = _network_error_enum('ProtocolUnknownError')
+QN_PROTOCOL_INVALID_OPERATION_ERROR = _network_error_enum('ProtocolInvalidOperationError')
+QN_UNKNOWN_NETWORK_ERROR = _network_error_enum('UnknownNetworkError')
+QN_UNKNOWN_PROXY_ERROR = _network_error_enum('UnknownProxyError')
+QN_UNKNOWN_CONTENT_ERROR = _network_error_enum('UnknownContentError')
+QN_PROTOCOL_FAILURE = _network_error_enum('ProtocolFailure')
+
+QNR_HTTP_STATUS_CODE_ATTRIBUTE = _network_request_attribute('HttpStatusCodeAttribute')
+QNR_REDIRECTION_TARGET_ATTRIBUTE = _network_request_attribute('RedirectionTargetAttribute')
 
 
 class NBNDialog(QWidget, FORM_CLASS):
@@ -242,10 +306,10 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            twiProvider.setCheckState(0, Qt.Unchecked)
+            twiProvider.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
-                twiDataset.setCheckState(0, Qt.Unchecked)
+                twiDataset.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
 
         self.datasetSelectionChanged()
 
@@ -255,7 +319,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiListType = self.twSpeciesLists.topLevelItem(iListType)
             for iSpeciesList in range(twiListType.childCount()):
                 twiSpeciesList = twiListType.child(iSpeciesList)
-                twiSpeciesList.setCheckState(0, Qt.Unchecked)
+                twiSpeciesList.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
 
         self.speciesListSelectionChanged()
 
@@ -350,12 +414,12 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         for twiKey in self.treeNodesExact:
             if not self.treeNodesExact[twiKey] == twItem and self.treeNodesExact[twiKey].checkState(
-                    0) == Qt.Checked:
-                self.treeNodesExact[twiKey].setCheckState(0, Qt.Unchecked)
+                    0) == QT_CHECKSTATE_CHECKED:
+                self.treeNodesExact[twiKey].setCheckState(0, QT_CHECKSTATE_UNCHECKED)
         for twiKey in self.treeNodesFuzzy:
             if not self.treeNodesFuzzy[twiKey] == twItem and self.treeNodesFuzzy[twiKey].checkState(
-                    0) == Qt.Checked:
-                self.treeNodesFuzzy[twiKey].setCheckState(0, Qt.Unchecked)
+                    0) == QT_CHECKSTATE_CHECKED:
+                self.treeNodesFuzzy[twiKey].setCheckState(0, QT_CHECKSTATE_UNCHECKED)
 
         self.checkFilters()
 
@@ -366,7 +430,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiProvider = self.twProviders.topLevelItem(iProvider)
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
-                if twiDataset.checkState(0) == Qt.Checked:
+                if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
                     iChecked += 1
 
         if iChecked == 0:
@@ -384,7 +448,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiType = self.twSpeciesLists.topLevelItem(iType)
             for iList in range(twiType.childCount()):
                 twiList = twiType.child(iList)
-                if twiList.checkState(0) == Qt.Checked:
+                if twiList.checkState(0) == QT_CHECKSTATE_CHECKED:
                     iChecked += 1
 
         if iChecked == 0:
@@ -464,7 +528,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiDataset.setText(1, dataResource["uid"])
                 twiDataset.setText(2, "dataset")
                 twiDataset.setExpanded(False)
-                twiDataset.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                twiDataset.setFlags(QT_ITEM_FLAG_ENABLED_CHECKABLE)
                 twiDataset.setCheckState(0, twi.checkState(0))
 
         elif twi.text(2) == "provider":
@@ -478,20 +542,20 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         else:  # dataset
 
-            if twi.checkState(0) == Qt.Unchecked:
+            if twi.checkState(0) == QT_CHECKSTATE_UNCHECKED:
                 # If a dataset is unchecked, then uncheck provider
-                twi.parent().setCheckState(0, Qt.Unchecked)
+                twi.parent().setCheckState(0, QT_CHECKSTATE_UNCHECKED)
             else:
                 # If all datasets are checked, then check provider
                 allChecked = True
                 for i in range(0, twi.parent().childCount()):
-                    if twi.parent().child(i).checkState(0) == Qt.Unchecked:
+                    if twi.parent().child(i).checkState(0) == QT_CHECKSTATE_UNCHECKED:
                         allChecked = False
                         break
                 if allChecked:
-                    twi.parent().setCheckState(0, Qt.Checked)
+                    twi.parent().setCheckState(0, QT_CHECKSTATE_CHECKED)
                 else:
-                    twi.parent().setCheckState(0, Qt.Unchecked)
+                    twi.parent().setCheckState(0, QT_CHECKSTATE_UNCHECKED)
 
         self.datasetSelectionChanged()
 
@@ -524,11 +588,11 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiProvider.setText(1, jDataset["uid"])
             twiProvider.setText(2, "provider")
             twiProvider.setExpanded(False)
-            twiProvider.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            twiProvider.setFlags(QT_ITEM_FLAG_ENABLED_CHECKABLE)
             twiProvider.setCheckState(
-                0, Qt.Unchecked)  # 0 is the column number
+                0, QT_CHECKSTATE_UNCHECKED)  # 0 is the column number
 
-        self.twProviders.sortItems(0, Qt.AscendingOrder)
+        self.twProviders.sortItems(0, QT_SORT_ASCENDING)
 
     def readSpeciesListFile(self):
 
@@ -575,13 +639,13 @@ class NBNDialog(QWidget, FORM_CLASS):
         for speciesList in jsonData["lists"]:
             listType = speciesList["listType"].replace("_", " ").capitalize()
             matchItems = self.twSpeciesLists.findItems(
-                listType, Qt.MatchExactly, 0)
+                listType, QT_MATCH_EXACTLY, 0)
             if len(matchItems) == 1:
                 twiList = QTreeWidgetItem(matchItems[0])
                 twiList.setText(0, speciesList["listName"])
                 twiList.setText(1, speciesList["dataResourceUid"])
-                twiList.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-                twiList.setCheckState(0, Qt.Unchecked)
+                twiList.setFlags(QT_ITEM_FLAG_ENABLED_CHECKABLE)
+                twiList.setCheckState(0, QT_CHECKSTATE_UNCHECKED)
 
     def helpFile(self):
 
@@ -642,13 +706,13 @@ class NBNDialog(QWidget, FORM_CLASS):
         twiExact.setText(0, "Exact match")
         twiExact.setExpanded(False)
         # By resetting the flags, we take off default isSelectable
-        twiExact.setFlags(Qt.ItemIsEnabled)
+        twiExact.setFlags(QT_ITEM_FLAG_ENABLED)
 
         twiFuzzy = QTreeWidgetItem(self.twTaxa)
         twiFuzzy.setText(0, "Fuzzy match")
         twiFuzzy.setExpanded(False)
         # By resetting the flags, we take off default isSelectable
-        twiFuzzy.setFlags(Qt.ItemIsEnabled)
+        twiFuzzy.setFlags(QT_ITEM_FLAG_ENABLED)
 
         for jTaxon in jResponseList:
 
@@ -718,7 +782,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiKingdom.setExpanded(True)
                 twiKingdom.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiKingdom.setFlags(Qt.ItemIsEnabled)
+                twiKingdom.setFlags(QT_ITEM_FLAG_ENABLED)
                 twiKingdom.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -741,7 +805,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiPhylum.setExpanded(True)
                 twiPhylum.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiPhylum.setFlags(Qt.ItemIsEnabled)
+                twiPhylum.setFlags(QT_ITEM_FLAG_ENABLED)
                 twiPhylum.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -765,7 +829,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiClass.setExpanded(True)
                 twiClass.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiClass.setFlags(Qt.ItemIsEnabled)
+                twiClass.setFlags(QT_ITEM_FLAG_ENABLED)
                 twiClass.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -789,7 +853,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiOrder.setExpanded(True)
                 twiOrder.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiOrder.setFlags(Qt.ItemIsEnabled)
+                twiOrder.setFlags(QT_ITEM_FLAG_ENABLED)
                 twiOrder.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -813,7 +877,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiFamily.setExpanded(True)
                 twiFamily.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiFamily.setFlags(Qt.ItemIsEnabled)
+                twiFamily.setFlags(QT_ITEM_FLAG_ENABLED)
                 twiFamily.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -837,7 +901,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 twiGenus.setExpanded(True)
                 twiGenus.setForeground(0, lightGrey)
                 # By resetting the flags, we take off default isSelectable
-                twiGenus.setFlags(Qt.ItemIsEnabled)
+                twiGenus.setFlags(QT_ITEM_FLAG_ENABLED)
                 twiGenus.setIcon(
                     0, QIcon(
                         self.pathPlugin %
@@ -855,7 +919,7 @@ class NBNDialog(QWidget, FORM_CLASS):
 
             # Create a child tree item for the preferred TVK group
             twiPTVK = QTreeWidgetItem(twiParent)
-            twiPTVK.setData(0, Qt.ToolTipRole, jTaxon["guid"])
+            twiPTVK.setData(0, QT_ITEM_ROLE_TOOLTIP, jTaxon["guid"])
             twiPTVK.setText(0, tName)
             twiPTVK.setIcon(
                 0, QIcon(
@@ -878,11 +942,11 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            if twiProvider.checkState(0) == Qt.Checked:
+            if twiProvider.checkState(0) == QT_CHECKSTATE_CHECKED:
                 return True
             for iDataset in range(twiProvider.childCount()):
                 twiDataset = twiProvider.child(iDataset)
-                if twiDataset.checkState(0) == Qt.Checked:
+                if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
                     return True
         return False
 
@@ -892,7 +956,7 @@ class NBNDialog(QWidget, FORM_CLASS):
             twiListType = self.twSpeciesLists.topLevelItem(iListType)
             for iSpeciesList in range(twiListType.childCount()):
                 twiSpeciesList = twiListType.child(iSpeciesList)
-                if twiSpeciesList.checkState(0) == Qt.Checked:
+                if twiSpeciesList.checkState(0) == QT_CHECKSTATE_CHECKED:
                     speciesLists.append(twiSpeciesList.text(1))
 
         if len(speciesLists) > 0:
@@ -942,9 +1006,9 @@ class NBNDialog(QWidget, FORM_CLASS):
         # Year filter
         startYear = None
         endYear = None
-        if self.cbStartYear.checkState() == Qt.Checked:
+        if self.cbStartYear.checkState() == QT_CHECKSTATE_CHECKED:
             startYear = self.sbStartYear.value()
-        if self.cbEndYear.checkState() == Qt.Checked:
+        if self.cbEndYear.checkState() == QT_CHECKSTATE_CHECKED:
             endYear = self.sbEndYear.value()
         # Year validity check
         if startYear is not None and endYear is not None:
@@ -987,12 +1051,12 @@ class NBNDialog(QWidget, FORM_CLASS):
         datasets = []
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            if twiProvider.checkState(0) == Qt.Checked:
+            if twiProvider.checkState(0) == QT_CHECKSTATE_CHECKED:
                 providers.append(twiProvider.text(1))
             else:
                 for iDataset in range(twiProvider.childCount()):
                     twiDataset = twiProvider.child(iDataset)
-                    if twiDataset.checkState(0) == Qt.Checked:
+                    if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
                         datasets.append(twiDataset.text(1))
 
         fqd = ''
@@ -1056,9 +1120,9 @@ class NBNDialog(QWidget, FORM_CLASS):
         # Year filters
         startYear = None
         endYear = None
-        if self.cbStartYear.checkState() == Qt.Checked:
+        if self.cbStartYear.checkState() == QT_CHECKSTATE_CHECKED:
             startYear = self.sbStartYear.value()
-        if self.cbEndYear.checkState() == Qt.Checked:
+        if self.cbEndYear.checkState() == QT_CHECKSTATE_CHECKED:
             endYear = self.sbEndYear.value()
         if startYear is not None and endYear is not None:
             if startYear == endYear:
@@ -1075,12 +1139,12 @@ class NBNDialog(QWidget, FORM_CLASS):
         datasets = []
         for iProvider in range(self.twProviders.topLevelItemCount()):
             twiProvider = self.twProviders.topLevelItem(iProvider)
-            if twiProvider.checkState(0) == Qt.Checked:
+            if twiProvider.checkState(0) == QT_CHECKSTATE_CHECKED:
                 providers.append(twiProvider.text(1))
             else:
                 for iDataset in range(twiProvider.childCount()):
                     twiDataset = twiProvider.child(iDataset)
-                    if twiDataset.checkState(0) == Qt.Checked:
+                    if twiDataset.checkState(0) == QT_CHECKSTATE_CHECKED:
                         datasets.append(twiDataset.text(1))
 
         if len(providers) == 1:
@@ -1155,39 +1219,27 @@ class NBNDialog(QWidget, FORM_CLASS):
         # parentName = parent["taxonConcept"]["nameString"]
         # parentRank = parent["taxonConcept"]["rankString"]
 
-        # Build WMS base URL
-        # baseURL = 'https://records-dev-ws.nbnatlas.org'
-        baseURL = 'https://records-ws.nbnatlas.org'
-        baseURL = baseURL + '/ogc/ows?q=*:*'
-        # baseURL = baseURL + parentRank + ':' + parentName.replace(" ", "_")
+        # Use the standard WMS endpoint with no query parameters
+        baseURL = 'https://records-ws.nbnatlas.org/ogc/ows'
 
         # Build Atlas WMS ENV parameter for styling
-        envParam = '&ENV=name:circle;opacity:1.0;'
+        envParam = 'name:circle;opacity:1.0;'
         envParam += 'size:' + str(self.sbPointSize.value()) + ';'
         envParam += 'color:' + self.mcbWMSColour.color().name()[1:] + ';'
         if self.cbGridSize.currentIndex() == 1:
-            envParam += 'colourmode:osgrid;gridres:singlegrid;'
+            # envParam += 'colourmode:osgrid;gridres:singlegrid;'
+            envParam += 'colourmode:osgrid;gridres:variablegrid;'
         if self.cbGridLabels.isChecked():
             envParam += 'gridlabels:true;'
+        outlineParam = self.cbOutline.isChecked()
 
-        baseURL = baseURL + envParam
-        if self.cbOutline.isChecked():
-            baseURL = baseURL + '&OUTLINE=TRUE'
-
-        # Add query filter to baseURL if appropriate
+        # Prepare filter query
         fq = self.makeFilterQuery()
         if fq is None:  # Filter errors detected and reported
             return
-        baseURL = baseURL + fq
 
         # Add WKT filter
         polySearch = self.getSelectedFeatureWKT()
-        if polySearch is not None:
-            baseURL = baseURL + '&wkt=' + polySearch
-
-        uri = QgsDataSourceUri()
-        uri.setParam('url', baseURL)
-        uri.setParam('IgnoreGetMapUrl', '1')
 
         # Species with subgenus, e.g. Bombus (Psithyrus) rupestris, are a problem because the layer returned by
         # GetCapabilities for this will be Bombus_rupestris, so we have to chop
@@ -1195,43 +1247,85 @@ class NBNDialog(QWidget, FORM_CLASS):
         taxonNameMod = re.sub(r'\([^)]*\)', '', taxonName)
         # Replaces mutliple whitespace with single whitespace
         taxonNameMod = re.sub(r'\s+', ' ', taxonNameMod).strip()
-        uri.setParam(
-            'layers',
-            taxonRank +
-            ':' +
-            taxonNameMod.replace(
-                " ",
-                "_"))
+        layerName = taxonRank + ':' + taxonNameMod.replace(" ", "_")
         QgsMessageLog.logMessage(
             "layers: " +
-            taxonRank +
-            ':' +
-            taxonNameMod.replace(
-                " ",
-                "_"),
+            layerName,
             "NBN Tool")
-        # uri.setParam('layers', 'ALA:occurrences')
-        uri.setParam('format', 'image/png')
-        if self.cbGridSize.currentIndex() == 1:
-            uri.setParam('crs', 'EPSG:27700')
-        else:
-            uri.setParam('crs', 'EPSG:3857')
-        uri.setParam('styles', '')
 
-        # rlayer = QgsRasterLayer(str(uri.encodedUri()), self.getLayerName() + " WMS", 'wms')
-        # For v3, using str(uri.encodedUri()) no longer works. The leading b and single quotes
-        # are not valid. Can't find a better way to generate a string from byte
-        # array than this below.
-        encodedUri = str(uri.encodedUri())
-        rlayer = QgsRasterLayer(
-            encodedUri[2:len(encodedUri) - 1], self.getLayerName() + " WMS", 'wms')
+        layerCrs = 'EPSG:3857'
+        bboxToken = '{bbox-epsg-3857}'
+
+        # Build direct GetMap URL so QGIS skips capabilities discovery.
+        getMapUrl = baseURL
+        getMapUrl += '?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap'
+        getMapUrl += '&LAYERS=' + _url_quote(layerName)
+        getMapUrl += '&STYLES='
+        getMapUrl += '&FORMAT=image/png'
+        getMapUrl += '&TRANSPARENT=TRUE'
+        getMapUrl += '&SRS=' + layerCrs
+        getMapUrl += '&WIDTH=256&HEIGHT=256'
+        getMapUrl += '&BBOX=' + bboxToken
+        getMapUrl += '&q=*:*'
+        getMapUrl += '&ENV=' + _url_quote(envParam, safe=':;,_')
+        if outlineParam:
+            getMapUrl += '&OUTLINE=TRUE'
+        if fq:
+            getMapUrl += fq
+        if polySearch is not None:
+            getMapUrl += '&wkt=' + _url_quote(polySearch)
+
+        # Encode the full GetMap URL as a single datasource value so '&'
+        # does not get parsed as top-level URI parameter separators.
+        # We are using an XYZ provider with a WMS GetMap URL as the source, 
+        # which is a bit hacky but seems to be the only way to get QGIS to 
+        # use the WMS in a way that respects the filters and styling parameters 
+        # we need to set. It seems to be the only way to get QGIS to avoid
+        # downloading the full WMS get capabilities response, which is very slow 
+        # and causes timeouts with the Atlas WMS.
+        xyzUri = 'type=xyz&url=' + _url_quote(
+            getMapUrl,
+            safe=':/%{}')
+        wmsUri = xyzUri
+        self.logMessage('WMS fast XYZ mode enabled')
+        self.logMessage('WMS XYZ URI: ' + xyzUri)
+        rlayer = QgsRasterLayer(xyzUri, self.getLayerName() + " WMS", 'wms')
 
         if not rlayer.isValid():
+            layerError = ''
+            providerError = ''
+            provider = None
+
+            try:
+                layerError = rlayer.error().summary()
+            except BaseException:
+                pass
+
+            try:
+                provider = rlayer.dataProvider()
+                if provider is not None:
+                    providerError = provider.error().summary()
+            except BaseException:
+                pass
+
+            self.logMessage("WMS layer invalid for URI: " + wmsUri, Qgis.Warning)
+            self.logMessage("WMS layer provider type: " + rlayer.providerType(), Qgis.Warning)
+            if layerError:
+                self.logMessage("WMS layer error: " + layerError, Qgis.Warning)
+            if providerError:
+                self.logMessage("WMS provider error: " + providerError, Qgis.Warning)
+
+            infoText = (
+                "The specified filters probably result in zero records. "
+                "But if you have a polygon filter, it might be a problem"
+                "with that.")
+            if layerError:
+                infoText += " Layer error: " + layerError
+            elif providerError:
+                infoText += " Provider error: " + providerError
+
             self.infoMessage(
-                ("The NBN Atlas WMS did not return a layer for this query. "
-                 "The specified filters probably result in zero records. "
-                 "But if you have a polygon filter, it might be a problem"
-                 "with that."))
+                infoText)
             return
 
         opacity = (100 - self.hsTransparency.value()) * 0.01
@@ -1597,79 +1691,79 @@ class NBNDialog(QWidget, FORM_CLASS):
 
     def getNetworkErrorMessage(self, error):
         # NOT USED
-        if error == QNetworkReply.NoError:
+        if error == QN_NO_ERROR:
             # No error condition.
             # Note: When the HTTP protocol returns a redirect no error will be reported.
             # You can check if there is a redirect with the
             # QNetworkRequest::RedirectionTargetAttribute attribute.
             return ''
 
-        if error == QNetworkReply.ConnectionRefusedError:
+        if error == QN_CONNECTION_REFUSED_ERROR:
             return 'The remote server refused the connection (the server is not accepting requests)'
 
-        if error == QNetworkReply.RemoteHostClosedError:
+        if error == QN_REMOTE_HOST_CLOSED_ERROR:
             return 'The remote server closed the connection prematurely, before the entire reply was received and processed'
 
-        if error == QNetworkReply.HostNotFoundError:
+        if error == QN_HOST_NOT_FOUND_ERROR:
             return 'The remote host name was not found (invalid hostname)'
 
-        if error == QNetworkReply.TimeoutError:
+        if error == QN_TIMEOUT_ERROR:
             return 'The connection to the remote server timed out'
 
-        if error == QNetworkReply.OperationCanceledError:
+        if error == QN_OPERATION_CANCELED_ERROR:
             return 'The operation was cancelled via calls to abort() or close() before it was finished.'
 
-        if error == QNetworkReply.SslHandshakeFailedError:
+        if error == QN_SSL_HANDSHAKE_FAILED_ERROR:
             return 'The SSL/TLS handshake failed and the encrypted channel could not be established. The sslErrors() signal should have been emitted.'
 
-        if error == QNetworkReply.TemporaryNetworkFailureError:
+        if error == QN_TEMPORARY_NETWORK_FAILURE_ERROR:
             return 'The connection was broken due to disconnection from the network, however the system has initiated roaming to another access point.  The request should be resubmitted and will be processed as soon as the connection is re-established.'
 
-        if error == QNetworkReply.ProxyConnectionRefusedError:
+        if error == QN_PROXY_CONNECTION_REFUSED_ERROR:
             return 'The connection to the proxy server was refused (the proxy server is not accepting requests)'
 
-        if error == QNetworkReply.ProxyConnectionClosedError:
+        if error == QN_PROXY_CONNECTION_CLOSED_ERROR:
             return 'The proxy server closed the connection prematurely, before the entire reply was received and processed'
 
-        if error == QNetworkReply.ProxyNotFoundError:
+        if error == QN_PROXY_NOT_FOUND_ERROR:
             return 'The proxy host name was not found (invalid proxy hostname)'
 
-        if error == QNetworkReply.ProxyTimeoutError:
+        if error == QN_PROXY_TIMEOUT_ERROR:
             return 'The connection to the proxy timed out or the proxy did not reply in time to the request sent'
 
-        if error == QNetworkReply.ProxyAuthenticationRequiredError:
+        if error == QN_PROXY_AUTHENTICATION_REQUIRED_ERROR:
             return 'The proxy requires authentication in order to honour the request but did not accept any credentials offered (if any)'
 
-        if error == QNetworkReply.ContentAccessDenied:
+        if error == QN_CONTENT_ACCESS_DENIED:
             return 'The access to the remote content was denied (similar to HTTP error 401)'
 
-        if error == QNetworkReply.ContentOperationNotPermittedError:
+        if error == QN_CONTENT_OPERATION_NOT_PERMITTED_ERROR:
             return 'The operation requested on the remote content is not permitted'
 
-        if error == QNetworkReply.ContentNotFoundError:
+        if error == QN_CONTENT_NOT_FOUND_ERROR:
             return 'The remote content was not found at the server (similar to HTTP error 404)'
-        if error == QNetworkReply.AuthenticationRequiredError:
+        if error == QN_AUTHENTICATION_REQUIRED_ERROR:
             return 'The remote server requires authentication to serve the content but the credentials provided were not accepted (if any)'
 
-        if error == QNetworkReply.ContentReSendError:
+        if error == QN_CONTENT_RESEND_ERROR:
             return 'The request needed to be sent again, but this failed for example because the upload data could not be read a second time.'
 
-        if error == QNetworkReply.ProtocolUnknownError:
+        if error == QN_PROTOCOL_UNKNOWN_ERROR:
             return 'The Network Access API cannot honor the request because the protocol is not known'
 
-        if error == QNetworkReply.ProtocolInvalidOperationError:
+        if error == QN_PROTOCOL_INVALID_OPERATION_ERROR:
             return 'the requested operation is invalid for this protocol'
 
-        if error == QNetworkReply.UnknownNetworkError:
+        if error == QN_UNKNOWN_NETWORK_ERROR:
             return 'An unknown network-related error was detected'
 
-        if error == QNetworkReply.UnknownProxyError:
+        if error == QN_UNKNOWN_PROXY_ERROR:
             return 'An unknown proxy-related error was detected'
 
-        if error == QNetworkReply.UnknownContentError:
+        if error == QN_UNKNOWN_CONTENT_ERROR:
             return 'An unknown error related to the remote content was detected'
 
-        if error == QNetworkReply.ProtocolFailure:
+        if error == QN_PROTOCOL_FAILURE:
             return 'A breakdown in protocol was detected (parsing error, invalid or unexpected responses, etc.)'
 
         return 'An unknown network-related error was detected'
@@ -1683,7 +1777,7 @@ class NBNDialog(QWidget, FORM_CLASS):
         reply = downloadInfo["reply"]
 
         error = reply.error()
-        if error != QNetworkReply.NoError:
+        if error != QN_NO_ERROR:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
             self.iface.messageBar().pushMessage(
                 "Error", "NBN web service error. Error: %d %s" %
@@ -1792,7 +1886,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 colCount = 0
                 for cellText in row:
                     headerItem = QTableWidgetItem(cellText)
-                    headerItem.setTextAlignment(Qt.AlignLeft)
+                    headerItem.setTextAlignment(QT_ALIGN_LEFT)
                     self.twMetadata.setHorizontalHeaderItem(
                         colCount, headerItem)
                     colCount += 1
@@ -1815,7 +1909,7 @@ class NBNDialog(QWidget, FORM_CLASS):
 
     def showHideMetadataColumns(self):
         if len(self.defaultColumns) == 0:
-            self.cbShowAllMetadata.setCheckState(Qt.Unchecked)
+            self.cbShowAllMetadata.setCheckState(QT_CHECKSTATE_UNCHECKED)
             self.cbShowAllMetadata.setEnabled(False)
         else:
             self.cbShowAllMetadata.setEnabled(True)
@@ -1825,7 +1919,7 @@ class NBNDialog(QWidget, FORM_CLASS):
                 headerItem = self.twMetadata.horizontalHeaderItem(i)
                 self.logMessage(str(i) + " " + headerItem.text())
                 if (not headerItem.text(
-                ) in self.defaultColumns) and self.cbShowAllMetadata.checkState() == Qt.Unchecked:
+                ) in self.defaultColumns) and self.cbShowAllMetadata.checkState() == QT_CHECKSTATE_UNCHECKED:
                     self.twMetadata.hideColumn(i)
                 else:
                     self.twMetadata.showColumn(i)
@@ -1880,13 +1974,16 @@ class NBNDialog(QWidget, FORM_CLASS):
         loop = QEventLoop()
         reply.finished.connect(loop.quit)
         QgsMessageLog.logMessage("exec loop", "NBN Tool")
-        loop.exec_()
+        if hasattr(loop, 'exec'):
+            loop.exec()
+        else:
+            loop.exec_()
         QgsMessageLog.logMessage("loop ended", "NBN Tool")
         reply.finished.disconnect(loop.quit)
         loop = None
 
         error = reply.error()
-        if error != QNetworkReply.NoError:
+        if error != QN_NO_ERROR:
             QgsMessageLog.logMessage("error generated", "NBN Tool")
             self.iface.messageBar().pushMessage(
                 "Error", "NBN web service error. Error: %d %s" %
@@ -1894,10 +1991,9 @@ class NBNDialog(QWidget, FORM_CLASS):
             return None
 
         # If the return is a re-direction then execute that redirection
-        resultCode = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        resultCode = reply.attribute(QNR_HTTP_STATUS_CODE_ATTRIBUTE)
         if resultCode in [301, 302, 307]:
-            redirectUrl = reply.attribute(
-                QNetworkRequest.RedirectionTargetAttribute)
+            redirectUrl = reply.attribute(QNR_REDIRECTION_TARGET_ATTRIBUTE)
             return self.restRequest(redirectUrl, postData, callType)
 
         # Set the result object

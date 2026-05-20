@@ -82,6 +82,7 @@ class TomBio:
 
         # Init Add GRs to layers Processing tool
         self.provider = AddGridRefProvider(iface)
+        self._provider_registered = False
 
     def initGui(self):
 
@@ -120,9 +121,9 @@ class TomBio:
             QIcon(icon_path),
             u"NBN Atlas Tool",
             self.iface.mainWindow())
-        # self.iface.addPluginToMenu(u"&FSC Tools", self.actionNbn)
-        # self.actionNbn.triggered.connect(self.showNbnDialog)
-        # self.toolbar.addAction(self.actionNbn)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionNbn)
+        self.actionNbn.triggered.connect(self.showNbnDialog)
+        self.toolbar.addAction(self.actionNbn)
         self.dwNbn = None
 
         # Map Mashup Tool
@@ -133,9 +134,9 @@ class TomBio:
             QIcon(icon_path),
             u"Map Mashup Tool",
             self.iface.mainWindow())
-        # self.iface.addPluginToMenu(u"&FSC Tools", self.actionMapMash)
-        # self.actionMapMash.triggered.connect(self.showMapmashupDialog)
-        # self.toolbar.addAction(self.actionMapMash)
+        self.iface.addPluginToMenu(u"&FSC Tools", self.actionMapMash)
+        self.actionMapMash.triggered.connect(self.showMapmashupDialog)
+        self.toolbar.addAction(self.actionMapMash)
         self.dwMapmashup = None
 
         # GRs to points Processing tool
@@ -171,6 +172,7 @@ class TomBio:
 
         # Add Grid Ref to point layer Processing tool
         QgsApplication.processingRegistry().addProvider(self.provider)
+        self._provider_registered = True
 
     def showHelp(self):
         # showPluginHelp()
@@ -261,14 +263,32 @@ class TomBio:
             except BaseException:
                 pass
 
-        # Remove the Grid Ref to points Processing tool
-        QgsApplication.processingRegistry().removeProvider(self.provider)
+        # Remove the Grid Ref to points Processing tool.
+        # During QGIS shutdown, the provider reference held by the plugin can
+        # outlive the wrapped C++ object. Remove by provider id from the
+        # registry to avoid dereferencing a deleted wrapper.
+        if self._provider_registered:
+            try:
+                reg = QgsApplication.processingRegistry()
+                provider_to_remove = None
+                for provider in reg.providers():
+                    if provider.id() == 'FSC':
+                        provider_to_remove = provider
+                        break
+
+                if provider_to_remove is not None:
+                    reg.removeProvider(provider_to_remove)
+            except RuntimeError:
+                pass
+            finally:
+                self._provider_registered = False
+                self.provider = None
 
         # Remove the plugin menu item
         self.iface.removePluginMenu(u"&FSC Tools", self.actionOsgr)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionBiorec)
-        # self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
-        # self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionNbn)
+        self.iface.removePluginMenu(u"&FSC Tools", self.actionMapMash)
         # self.iface.removePluginMenu(u"&FSC Tools", self.actionGRs2Points)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionEnv)
         self.iface.removePluginMenu(u"&FSC Tools", self.actionHelp)
