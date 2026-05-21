@@ -634,7 +634,7 @@ class NBNDialog(QWidget, FORM_CLASS):
 
         # return
 
-        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/blob/qgis-v4/help-md/intro.md"))
+        QDesktopServices().openUrl(QUrl("https://github.com/FieldStudiesCouncil/QGIS-Biological-Recording-Tools/blob/master/help-md/intro.md"))
 
         # self.guiFile = filedialog.FileDialog(self.iface, self.infoFile)
         # self.guiFile.setVisible(True)
